@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="background.jpg">./background.jpg</file>
+        <file alias="home.x3d">./home.x3d</file>
+    </qresource>
+</RCC>
