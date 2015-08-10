@@ -307,6 +307,20 @@ QWaylandSurfaceView *QWindowCompositor::viewAt(const QPointF &point, QPointF *lo
     return 0;
 }
 
+
+static QRectF pixels_to_m(const QRect& in)
+{
+    const int ppcm = 47; // Get from surface info later.
+
+    const float ppm = ppcm * 100.0f;
+
+    QRectF out(in.x() / ppm,
+              in.y() / ppm,
+              in.width() / ppm,
+              in.height() / ppm);
+    return out;
+}
+
 void QWindowCompositor::render()
 {
     m_window->makeCurrent();
@@ -318,9 +332,9 @@ void QWindowCompositor::render()
         m_backgroundTexture = new QOpenGLTexture(m_backgroundImage, QOpenGLTexture::DontGenerateMipMaps);
 
     // Draw the background image texture
-    m_scene->drawTexture(m_backgroundTexture->textureId(),
-                                  QRect(QPoint(0, 0), m_backgroundImage.size()),
-                                  m_window->size(),
+    m_scene->addTexture(m_backgroundTexture->textureId(),
+                                  pixels_to_m(QRect(QPoint(0, 0), m_backgroundImage.size())),
+                                  m_backgroundImage.size(),
                                   0, false, true);
 
     foreach (QWaylandSurface *surface, m_surfaces) {
@@ -329,12 +343,14 @@ void QWindowCompositor::render()
         GLuint texture = static_cast<BufferAttacher *>(surface->bufferAttacher())->texture;
         foreach (QWaylandSurfaceView *view, surface->views()) {
             QRect geo(view->pos().toPoint(),surface->size());
-            m_scene->drawTexture(texture,geo,m_window->size(),0,false,surface->isYInverted());
+            m_scene->addTexture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted());
             foreach (QWaylandSurface *child, surface->subSurfaces()) {
                 drawSubSurface(view->pos().toPoint(), child);
             }
         }
     }
+
+    m_scene->render(m_window->size());
 
     sendFrameCallbacks(surfaces());
 
@@ -348,7 +364,7 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     QWaylandSurfaceView *view = surface->views().first();
     QPoint pos = view->pos().toPoint() + offset;
     QRect geo(pos, surface->size());
-    m_scene->drawTexture(texture, geo, m_window->size(), 0, false, surface->isYInverted());
+    m_scene->addTexture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted());
     foreach (QWaylandSurface *child, surface->subSurfaces()) {
         drawSubSurface(pos, child);
     }

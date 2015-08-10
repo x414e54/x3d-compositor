@@ -333,7 +333,8 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 			int height = imgTexture->getHeight();
 			RGBAColor32 *color = imgTexture->getImage();
 
-			if (0 < width && 0 < height && color != NULL) 
+            //if (0 < width && 0 < height && color != NULL)
+            if (imgTexture->getTextureName() != 0)
 				bEnableTexture = true;
 
 			if (bEnableTexture == true) {
