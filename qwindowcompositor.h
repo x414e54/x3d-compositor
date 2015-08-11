@@ -70,6 +70,7 @@ private slots:
     void surfacePosChanged();
 
     void render();
+    void update();
 protected:
     void surfaceCommitted(QWaylandSurface *surface);
     void surfaceCreated(QWaylandSurface *surface);
@@ -98,6 +99,7 @@ private:
     X3DScene *m_scene;
     GLuint m_surface_fbo;
     QTimer m_renderScheduler;
+    QTimer m_updateScheduler;
 
     //Dragging windows around
     QWaylandSurfaceView *m_draggingWindow;

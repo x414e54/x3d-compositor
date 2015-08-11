@@ -1,16 +1,17 @@
-#ifndef _X3DBROWSERFUNC_H_
-#define _X3DBROWSERFUNC_H_
+#ifndef X3DRENDERER_H
+#define X3DRENDERER_H
 
-#include <cybergarage/x3d/CyberX3D.h>
-using namespace CyberX3D;
+namespace CyberX3D
+{
+    class SceneGraph;
+}
 
 class X3DRenderer
 {
 public:
-    void MoveViewpoint(SceneGraph *sg, int width, int height, int mosx, int mosy);
-    void UpdateViewport(SceneGraph *sg, int width, int height);
-    void render(SceneGraph *sg);
+    void UpdateViewport(CyberX3D::SceneGraph *sg, int width, int height);
+    void render(CyberX3D::SceneGraph *sg);
 };
 
-#endif
+#endif // X3DRENDERER_H
 

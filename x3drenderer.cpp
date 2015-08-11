@@ -7,10 +7,11 @@
 *	File:	X3DBrowserFunc.cpp
 *
 ******************************************************************/
+#include "x3drenderer.h"
 
 #define CX3D_SUPPORT_OPENGL
-
-#include "x3drenderer.h"
+#include <cybergarage/x3d/CyberX3D.h>
+using namespace CyberX3D;
 
 #include "GL/gl.h"
 #include <math.h>
@@ -102,36 +103,6 @@ void X3DRenderer::UpdateViewport(SceneGraph *sg, int width, int height)
     gluPerspective(fov, aspect, 0.1f, 10000.0f);
 
 	glViewport( 0, 0, width, height );
-}
-
-////////////////////////////////////////////////////////// 
-//  MoveViewpoint
-////////////////////////////////////////////////////////// 
-
-void X3DRenderer::MoveViewpoint(SceneGraph *sg, int width, int height, int mosx, int mosy)
-{
-	ViewpointNode *view = sg->getViewpointNode();
-	if (view == NULL)
-		view = sg->getDefaultViewpointNode();
-
-	NavigationInfoNode *navInfo = sg->getNavigationInfoNode();
-	if (navInfo == NULL)
-		navInfo = sg->getDefaultNavigationInfoNode();
-
-	float	trans[3] = {0.0f, 0.0f, 0.0f};
-	float	rot[4] = {0.0f, 0.0f, 1.0f, 0.0f};
-
-	static float transScale = 1.0f /10.0f;
-	static float rotScale = (3.1415f/120.0f);
-
-	trans[2] = (float)(mosy - height/2) / (float)(height/2) * navInfo->getSpeed() * transScale;
-	rot[0] = 0.0f;
-	rot[1] = 1.0f;
-	rot[2] = 0.0f;
-	rot[3] = -(float)(mosx - width/2) / (float)(width/2) * rotScale;
-
-	view->translate(trans);
-	view->rotate(rot);
 }
 
 ////////////////////////////////////////////////////////// 

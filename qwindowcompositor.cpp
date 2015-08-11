@@ -115,6 +115,7 @@ QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
     , m_backgroundTexture(0)
     , m_scene(scene)
     , m_renderScheduler(this)
+    , m_updateScheduler(this)
     , m_draggingWindow(0)
     , m_dragKeyIsPressed(false)
     , m_cursorSurface(0)
@@ -129,6 +130,10 @@ QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
     m_renderScheduler.setSingleShot(true);
     connect(&m_renderScheduler,SIGNAL(timeout()),this,SLOT(render()));
 
+    m_updateScheduler.setSingleShot(false);
+    m_updateScheduler.setInterval(10);
+    connect(&m_updateScheduler,SIGNAL(timeout()),this,SLOT(update()));
+
     QOpenGLFunctions *functions = m_window->context()->functions();
     functions->glGenFramebuffers(1, &m_surface_fbo);
 
@@ -138,6 +143,8 @@ QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
 
     //createOutput(window, "", "");
     addDefaultShell();
+
+    m_updateScheduler.start();
 }
 
 QWindowCompositor::~QWindowCompositor()
@@ -321,6 +328,11 @@ static QRectF pixels_to_m(const QRect& in)
     return out;
 }
 
+void QWindowCompositor::update()
+{
+    m_scene->update();
+}
+
 void QWindowCompositor::render()
 {
     m_window->makeCurrent();
@@ -370,6 +382,37 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     }
 }
 
+/*
+ * For routing back from x3d sensors
+bool QWindowCompositor::x3dsensorFilter(QEvent *event)
+{
+    QWaylandInputDevice *input = defaultInputDevice();
+
+    switch (event->type()) {
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+    {
+        QWaylandSurfaceView *target = 0;
+        QTouchEvent *te = static_cast<QTouchEvent *>(event);
+        QList<QTouchEvent::TouchPoint> points = te->touchPoints();
+        QPoint pointPos;
+        if (!points.isEmpty()) {
+            pointPos = points.at(0).pos().toPoint();
+            target = viewAt(pointPos);
+        }
+        if (target && target != input->mouseFocus())
+            input->setMouseFocus(target, pointPos, pointPos);
+        if (input->mouseFocus())
+            input->sendFullTouchEvent(te);
+        break;
+    }
+    default:
+        break;
+    }
+    return false;
+}*/
+
 bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj != m_window)
@@ -395,47 +438,22 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
         }
         break;
     case QEvent::MouseButtonPress: {
-        QPointF local;
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        QWaylandSurfaceView *target = viewAt(me->localPos(), &local);
-        if (m_dragKeyIsPressed && target) {
-            m_draggingWindow = target;
-            m_drag_diff = local;
-        } else {
-            if (target && input->keyboardFocus() != target->surface()) {
-                input->setKeyboardFocus(target->surface());
-                m_surfaces.removeOne(target->surface());
-                m_surfaces.append(target->surface());
-                m_renderScheduler.start(0);
-            }
-            input->sendMousePressEvent(me->button(), local, me->localPos());
-        }
+        m_scene->sendPointerEvent(me->button(), me->localPos(), Qt::TouchPointPressed);
         return true;
     }
     case QEvent::MouseButtonRelease: {
-        QWaylandSurfaceView *target = input->mouseFocus();
-        if (m_draggingWindow) {
-            m_draggingWindow = 0;
-            m_drag_diff = QPointF();
-        } else {
-            QMouseEvent *me = static_cast<QMouseEvent *>(event);
-            QPointF localPos;
-            if (target)
-                localPos = toView(target, me->localPos());
-            input->sendMouseReleaseEvent(me->button(), localPos, me->localPos());
-        }
+        QMouseEvent *me = static_cast<QMouseEvent *>(event);
+        m_scene->sendPointerEvent(me->button(), me->localPos(), Qt::TouchPointReleased);
         return true;
     }
     case QEvent::MouseMove: {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        if (m_draggingWindow) {
-            m_draggingWindow->setPos(me->localPos() - m_drag_diff);
-            m_renderScheduler.start(0);
-        } else {
-            QPointF local;
-            QWaylandSurfaceView *target = viewAt(me->localPos(), &local);
-            input->sendMouseMoveEvent(target, local, me->localPos());
-        }
+        m_scene->sendPointerEvent(0, me->localPos(), Qt::TouchPointMoved);
+        double x = double(me->x()/m_window->width() - 0.5f);
+        double y = double(me->y()/m_window->height() - 0.5f);
+        m_scene->sendAxisEvent(0, x);
+        m_scene->sendAxisEvent(1, y);
         break;
     }
     case QEvent::Wheel: {
@@ -445,42 +463,24 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
     }
     case QEvent::KeyPress: {
         QKeyEvent *ke = static_cast<QKeyEvent *>(event);
-        if (ke->key() == Qt::Key_Meta || ke->key() == Qt::Key_Super_L) {
-            m_dragKeyIsPressed = true;
-        }
-        m_modifiers = ke->modifiers();
-        QWaylandSurface *targetSurface = input->keyboardFocus();
-        if (targetSurface)
-            input->sendKeyPressEvent(ke->nativeScanCode());
+        m_scene->sendKeyDown(ke->nativeScanCode());
         break;
     }
     case QEvent::KeyRelease: {
         QKeyEvent *ke = static_cast<QKeyEvent *>(event);
-        if (ke->key() == Qt::Key_Meta || ke->key() == Qt::Key_Super_L) {
-            m_dragKeyIsPressed = false;
-        }
-        m_modifiers = ke->modifiers();
-        QWaylandSurface *targetSurface = input->keyboardFocus();
-        if (targetSurface)
-            input->sendKeyReleaseEvent(ke->nativeScanCode());
+        m_scene->sendKeyUp(ke->nativeScanCode());
         break;
     }
     case QEvent::TouchBegin:
     case QEvent::TouchUpdate:
     case QEvent::TouchEnd:
     {
-        QWaylandSurfaceView *target = 0;
         QTouchEvent *te = static_cast<QTouchEvent *>(event);
         QList<QTouchEvent::TouchPoint> points = te->touchPoints();
-        QPoint pointPos;
         if (!points.isEmpty()) {
-            pointPos = points.at(0).pos().toPoint();
-            target = viewAt(pointPos);
+            m_scene->sendPointerEvent(points.at(0).id(),
+                                      points.at(0).pos().toPoint(), Qt::TouchPointPressed);
         }
-        if (target && target != input->mouseFocus())
-            input->setMouseFocus(target, pointPos, pointPos);
-        if (input->mouseFocus())
-            input->sendFullTouchEvent(te);
         break;
     }
     default:

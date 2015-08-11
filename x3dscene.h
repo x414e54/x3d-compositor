@@ -1,17 +1,17 @@
-#ifndef TEXTUREBLITTER_H
-#define TEXTUREBLITTER_H
+#ifndef X3DSCENE_H
+#define X3DSCENE_H
 
 #include <QtGui/QMatrix4x4>
 
-#define CX3D_SUPPORT_OPENGL
-#include <cybergarage/x3d/CyberX3D.h>
-using namespace CyberX3D;
+namespace CyberX3D
+{
+    class SceneGraph;
+    class Texture2DNode;
+}
 
-#include "x3drenderer.h"
-
-QT_BEGIN_NAMESPACE
-
+class X3DRenderer;
 class X3DScene
+
 {
 public:
     X3DScene();
@@ -21,13 +21,20 @@ public:
                     bool targethasInvertedY, bool sourceHasInvertedY);
     void render(const QSize &viewportSize);
     void load(const QString& filename);
+    void update();
+
+    void sendKeyDown(uint code);
+    void sendKeyUp(uint code);
+
+    void sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPointState state);
+    void sendAxisEvent(int id, const double& value);
 
 private:
-    SceneGraph m_root;
-    X3DRenderer m_renderer;
-    std::map<int, Texture2DNode*> nodes;
+    float fake_velocity[3];
+    float fake_rotation;
+    CyberX3D::SceneGraph* m_root;
+    X3DRenderer* m_renderer;
+    std::map<int, CyberX3D::Texture2DNode*> nodes;
 };
 
-QT_END_NAMESPACE
-
-#endif // TEXTUREBLITTER_H
+#endif // X3DSCENE_H
