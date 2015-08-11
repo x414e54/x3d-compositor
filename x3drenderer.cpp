@@ -19,6 +19,8 @@ const int OGL_RENDERING_TEXTURE = 0;
 const int OGL_RENDERING_WIRE = 1;
 
 // start glu
+// This is just temporarily here but will be removed later.
+
 /*
  * SGI FREE SOFTWARE LICENSE B (Version 2.0, Sept. 18, 2008)
  * Copyright (C) 1991-2000 Silicon Graphics, Inc. All Rights Reserved.
@@ -48,7 +50,7 @@ const int OGL_RENDERING_WIRE = 1;
  * other dealings in this Software without prior written authorization from
  * Silicon Graphics, Inc.
  */
-static void __gluMakeIdentityd(GLdouble m[16])
+static void __gluMakeIdentityd(double m[16])
 {
     m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
     m[1+4*0] = 0; m[1+4*1] = 1; m[1+4*2] = 0; m[1+4*3] = 0;
@@ -56,12 +58,94 @@ static void __gluMakeIdentityd(GLdouble m[16])
     m[3+4*0] = 0; m[3+4*1] = 0; m[3+4*2] = 0; m[3+4*3] = 1;
 }
 
+static void __gluMultMatricesd(const float (&a)[4][4], const double (&b)[4][4],
+                double (&r)[16])
+{
+    int i, j;
+
+    for (i = 0; i < 4; i++) {
+    for (j = 0; j < 4; j++) {
+        r[i*4+j] =
+        a[i][0]*b[0][j] +
+        a[i][1]*b[1][j] +
+        a[i][2]*b[2][j] +
+        a[i][3]*b[3][j];
+    }
+    }
+}
+
+/*
+** Invert 4x4 matrix.
+** Contributed by David Moore (See Mesa bug #6748)
+*/
+static int __gluInvertMatrixd(const GLdouble m[16], GLdouble invOut[16])
+{
+    double inv[16], det;
+    int i;
+
+    inv[0] =   m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15]
+             + m[9]*m[7]*m[14] + m[13]*m[6]*m[11] - m[13]*m[7]*m[10];
+    inv[4] =  -m[4]*m[10]*m[15] + m[4]*m[11]*m[14] + m[8]*m[6]*m[15]
+             - m[8]*m[7]*m[14] - m[12]*m[6]*m[11] + m[12]*m[7]*m[10];
+    inv[8] =   m[4]*m[9]*m[15] - m[4]*m[11]*m[13] - m[8]*m[5]*m[15]
+             + m[8]*m[7]*m[13] + m[12]*m[5]*m[11] - m[12]*m[7]*m[9];
+    inv[12] = -m[4]*m[9]*m[14] + m[4]*m[10]*m[13] + m[8]*m[5]*m[14]
+             - m[8]*m[6]*m[13] - m[12]*m[5]*m[10] + m[12]*m[6]*m[9];
+    inv[1] =  -m[1]*m[10]*m[15] + m[1]*m[11]*m[14] + m[9]*m[2]*m[15]
+             - m[9]*m[3]*m[14] - m[13]*m[2]*m[11] + m[13]*m[3]*m[10];
+    inv[5] =   m[0]*m[10]*m[15] - m[0]*m[11]*m[14] - m[8]*m[2]*m[15]
+             + m[8]*m[3]*m[14] + m[12]*m[2]*m[11] - m[12]*m[3]*m[10];
+    inv[9] =  -m[0]*m[9]*m[15] + m[0]*m[11]*m[13] + m[8]*m[1]*m[15]
+             - m[8]*m[3]*m[13] - m[12]*m[1]*m[11] + m[12]*m[3]*m[9];
+    inv[13] =  m[0]*m[9]*m[14] - m[0]*m[10]*m[13] - m[8]*m[1]*m[14]
+             + m[8]*m[2]*m[13] + m[12]*m[1]*m[10] - m[12]*m[2]*m[9];
+    inv[2] =   m[1]*m[6]*m[15] - m[1]*m[7]*m[14] - m[5]*m[2]*m[15]
+             + m[5]*m[3]*m[14] + m[13]*m[2]*m[7] - m[13]*m[3]*m[6];
+    inv[6] =  -m[0]*m[6]*m[15] + m[0]*m[7]*m[14] + m[4]*m[2]*m[15]
+             - m[4]*m[3]*m[14] - m[12]*m[2]*m[7] + m[12]*m[3]*m[6];
+    inv[10] =  m[0]*m[5]*m[15] - m[0]*m[7]*m[13] - m[4]*m[1]*m[15]
+             + m[4]*m[3]*m[13] + m[12]*m[1]*m[7] - m[12]*m[3]*m[5];
+    inv[14] = -m[0]*m[5]*m[14] + m[0]*m[6]*m[13] + m[4]*m[1]*m[14]
+             - m[4]*m[2]*m[13] - m[12]*m[1]*m[6] + m[12]*m[2]*m[5];
+    inv[3] =  -m[1]*m[6]*m[11] + m[1]*m[7]*m[10] + m[5]*m[2]*m[11]
+             - m[5]*m[3]*m[10] - m[9]*m[2]*m[7] + m[9]*m[3]*m[6];
+    inv[7] =   m[0]*m[6]*m[11] - m[0]*m[7]*m[10] - m[4]*m[2]*m[11]
+             + m[4]*m[3]*m[10] + m[8]*m[2]*m[7] - m[8]*m[3]*m[6];
+    inv[11] = -m[0]*m[5]*m[11] + m[0]*m[7]*m[9] + m[4]*m[1]*m[11]
+             - m[4]*m[3]*m[9] - m[8]*m[1]*m[7] + m[8]*m[3]*m[5];
+    inv[15] =  m[0]*m[5]*m[10] - m[0]*m[6]*m[9] - m[4]*m[1]*m[10]
+             + m[4]*m[2]*m[9] + m[8]*m[1]*m[6] - m[8]*m[2]*m[5];
+
+    det = m[0]*inv[0] + m[1]*inv[4] + m[2]*inv[8] + m[3]*inv[12];
+    if (det == 0)
+        return GL_FALSE;
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++)
+        invOut[i] = inv[i] * det;
+
+    return GL_TRUE;
+}
+
+static void __gluMultMatrixVecd(const GLdouble matrix[16], const GLdouble in[4],
+              GLdouble out[4])
+{
+    int i;
+
+    for (i=0; i<4; i++) {
+    out[i] =
+        in[0] * matrix[0*4+i] +
+        in[1] * matrix[1*4+i] +
+        in[2] * matrix[2*4+i] +
+        in[3] * matrix[3*4+i];
+    }
+}
+
 #define __glPi 3.14159265358979323846
 
-void GLAPIENTRY
-gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
+static void create_projection(double (&m)[4][4], double fovy, double aspect, double zNear, double zFar)
 {
-    GLdouble m[4][4];
     double sine, cotangent, deltaZ;
     double radians = fovy / 2 * __glPi / 180;
 
@@ -79,30 +163,58 @@ gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
     m[2][3] = -1;
     m[3][2] = -2 * zNear * zFar / deltaZ;
     m[3][3] = 0;
-    glMultMatrixd(&m[0][0]);
+}
+
+bool to_ray(const double (&finalMatrix)[16], const double (&in)[4], double (&out)[3])
+{
+    __gluMultMatrixVecd(finalMatrix, in, out);
+    if (out[3] == 0.0) return false;
+    out[0] /= out[3];
+    out[1] /= out[3];
+    out[2] /= out[3];
+}
+
+bool X3DRenderer::get_ray(double x, double y,
+                          const float (&model)[4][4],
+                          double (&from)[3], double (&to)[3])
+{
+    double finalMatrix[16];
+    double in[4];
+
+    __gluMultMatricesd(model, projection, finalMatrix);
+    if (!__gluInvertMatrixd(finalMatrix, finalMatrix)) return false;
+
+    in[0]=x;
+    in[1]=y;
+    in[2]=0.0;
+    in[3]=1.0;
+
+    /* Map x and y from window coordinates */
+    in[0] = in[0] / width;
+    in[1] = in[1] / height;
+
+    /* Map to range -1 to 1 */
+    in[0] = in[0] * 2 - 1;
+    in[1] = in[1] * 2 - 1;
+    in[2] = in[2] * 2 - 1;
+
+    bool has_ray = to_ray(finalMatrix, in, from);
+    in[2]=1.0;
+    has_ray &= to_ray(finalMatrix, in, to);
+
+    return has_ray;
 }
 // end glu
 
-////////////////////////////////////////////////////////// 
-//  UpdateViewport
-////////////////////////////////////////////////////////// 
-
-void X3DRenderer::UpdateViewport(SceneGraph *sg, int width, int height)
+void X3DRenderer::set_projection(double fovy, double aspect, double zNear, double zFar)
 {
-	GLdouble aspect = (GLdouble)width/(GLdouble)height;
+    create_projection(projection, fovy, aspect, zNear, zFar);
+}
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	ViewpointNode *view = sg->getViewpointNode();
-	if (view == NULL)
-		view = sg->getDefaultViewpointNode();
-
-	float fov = (view->getFieldOfView() / 3.14f) * 180.0f;
-
-    gluPerspective(fov, aspect, 0.1f, 10000.0f);
-
-	glViewport( 0, 0, width, height );
+void X3DRenderer::set_viewport(int width, int height)
+{
+    this->width = width;
+    this->height = height;
 }
 
 ////////////////////////////////////////////////////////// 
@@ -485,6 +597,12 @@ void DrawNode(SceneGraph *sceneGraph, Node *firstNode, int drawMode)
 
 void X3DRenderer::render(SceneGraph *sg)
 {
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    glMultMatrixd(&projection[0][0]);
+
     const int drawMode = OGL_RENDERING_TEXTURE;
 
 	/////////////////////////////////
@@ -514,12 +632,6 @@ void X3DRenderer::render(SceneGraph *sg)
 	ViewpointNode *view = sg->getViewpointNode();
 	if (view == NULL)
 		view = sg->getDefaultViewpointNode();
-
-	if (view) {
-		GLint	viewport[4];
-		glGetIntegerv(GL_VIEWPORT, viewport);
-		UpdateViewport(sg, viewport[2], viewport[3]);
-	}
 
 	/////////////////////////////////
 	//	Rendering 

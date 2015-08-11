@@ -37,6 +37,7 @@ public:
 
 private:
     QElapsedTimer physics;
+    float model[4][4];
     float fake_velocity[3];
     float fake_rotation;
     CyberX3D::SceneGraph* m_root;

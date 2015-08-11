@@ -127,6 +127,33 @@ void X3DScene::sendKeyUp(uint code)
 
 void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPointState state)
 {
+    double from[3];
+    double to[3];
+    if (state== Qt::TouchPointPressed &&
+        m_renderer->get_ray(viewportPos.x(), viewportPos.y(), model, from, to)) {
+        btVector3 bt_from(from[0], from[1], from[2]);
+        btVector3 bt_to(to[0], to[1], to[2]);
+        btCollisionWorld::ClosestRayResultCallback ray_result(bt_from, bt_to);
+
+        m_world->rayTest(bt_from, bt_to, ray_result);
+
+        if (ray_result.hasHit()) {
+            Node* node = static_cast<Node*>(ray_result.m_collisionObject->getUserPointer());
+            if (node != NULL)
+            {
+                TouchSensorNode* touch_node = node->getTouchSensorNodes();
+                if (touch_node != NULL)
+                {
+                    touch_node->setHitPointChanged(ray_result.m_hitPointWorld.x(),
+                                                   ray_result.m_hitPointWorld.y(),
+                                                   ray_result.m_hitPointWorld.z());
+                    touch_node->setHitNormalChanged(ray_result.m_hitNormalWorld.x(),
+                                                    ray_result.m_hitNormalWorld.y(),
+                                                    ray_result.m_hitNormalWorld.z());
+                }
+            }
+        }
+    }
 }
 
 void X3DScene::sendAxisEvent(int id, const double& value)
@@ -148,22 +175,7 @@ void X3DScene::update()
     if (navInfo == NULL) {
         navInfo = m_root->getDefaultNavigationInfoNode();
     }
-/*
-    btCollisionWorld::ClosestRayResultCallback ray_result(
-    );
 
-    m_world->rayTest(
-        ray_result
-    );
-
-    if (ray_result.hasHit()) {
-        Node* node = static_cast<Node>(ray_result.m_collisionObject->getUserPointer());
-        if node->getTouchSensorNodes()
-        {
-
-        }
-    }
-*/
     const float speed = navInfo->getSpeed();
     float view_translation[3] = {fake_velocity[0] * speed,
                                  fake_velocity[1] * speed,
@@ -177,11 +189,22 @@ void X3DScene::update()
     m_root->update();
 
     m_world->stepSimulation((btScalar)physics.restart()/(btScalar)1000, 10);
+
+    view->getMatrix(model);
 }
 
 void X3DScene::render(const QSize &viewportSize)
 {
-    m_renderer->UpdateViewport(m_root,viewportSize.width(),viewportSize.height());
+    double aspect = (double)viewportSize.width()/(double)viewportSize.height();
+
+    ViewpointNode *view = m_root->getViewpointNode();
+    if (view == NULL)
+        view = m_root->getDefaultViewpointNode();
+
+    double fov = (view->getFieldOfView() / 3.14) * 180.0;
+
+    m_renderer->set_projection(fov, aspect, 0.1f, 10000.0f);
+    m_renderer->set_viewport(viewportSize.width(), viewportSize.height());
     m_renderer->render(m_root);
 }
 QT_END_NAMESPACE
