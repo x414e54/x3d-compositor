@@ -73,26 +73,26 @@ void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &
 void X3DScene::sendKeyDown(uint code)
 {
     if (code == 25) {
-        fake_velocity[0] += 1.0f;
+        fake_velocity[2] += 1.0f;
     } else if(code == 39) {
-        fake_velocity[0] -= 1.0f;
+        fake_velocity[2] -= 1.0f;
     } else if(code == 38) {
-        fake_velocity[1] += 1.0f;
+        fake_velocity[0] -= 1.0f;
     } else if(code == 40) {
-        fake_velocity[1] -= 1.0f;
+        fake_velocity[0] += 1.0f;
     }
 }
 
 void X3DScene::sendKeyUp(uint code)
 {
     if (code == 25) {
-        fake_velocity[0] -= 1.0f;
+        fake_velocity[2] -= 1.0f;
     } else if(code == 39) {
-        fake_velocity[0] += 1.0f;
+        fake_velocity[2] += 1.0f;
     } else if(code == 38) {
-        fake_velocity[1] -= 1.0f;
+        fake_velocity[0] += 1.0f;
     } else if(code == 40) {
-        fake_velocity[1] += 1.0f;
+        fake_velocity[0] -= 1.0f;
     }
 }
 
@@ -123,12 +123,12 @@ void X3DScene::update()
     const float speed = navInfo->getSpeed();
     float view_translation[3] = {fake_velocity[0] * speed,
                                  fake_velocity[1] * speed,
-                                 fake_velocity[2] * speed};
+                                 -fake_velocity[2] * speed};
 
     view->translate(view_translation);
 
     float view_rotation[4] = {0.0f, 1.0f, 0.0f, fake_rotation};
-    view->rotate(view_rotation);
+    view->setOrientation(view_rotation);
 
     m_root->update();
 }

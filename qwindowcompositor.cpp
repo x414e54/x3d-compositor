@@ -331,6 +331,7 @@ static QRectF pixels_to_m(const QRect& in)
 void QWindowCompositor::update()
 {
     m_scene->update();
+    m_renderScheduler.start(0);
 }
 
 void QWindowCompositor::render()
