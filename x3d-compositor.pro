@@ -15,8 +15,9 @@ SOURCES += main.cpp \
     x3dscene.cpp \
     x3drenderer.cpp
 
-INCLUDEPATH+=/usr/local/include/CyberX3D-1.0
-LIBS += -lcx3d-1.0
+INCLUDEPATH+=/usr/local/include/CyberX3D-1.0 \
+             /usr/include/bullet
+LIBS += -lcx3d-1.0 -lBulletCollision -lBulletDynamics -lBulletSoftBody -lLinearMath
 
 RESOURCES += x3d-compositor.qrc
 

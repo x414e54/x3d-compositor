@@ -10,6 +10,9 @@
 #include <cybergarage/x3d/CyberX3D.h>
 using namespace CyberX3D;
 
+#include <btBulletCollisionCommon.h>
+#include <btBulletDynamicsCommon.h>
+
 #include "x3drenderer.h"
 
 QT_BEGIN_NAMESPACE
@@ -19,6 +22,13 @@ X3DScene::X3DScene()
 {
     m_root = new SceneGraph();
     m_renderer = new X3DRenderer();
+    physics.start();
+    m_btinterface = new btDbvtBroadphase();
+    m_btconfiguration = new btDefaultCollisionConfiguration();
+    m_btdispatcher = new btCollisionDispatcher(m_btconfiguration);
+    m_btsolver = new btSequentialImpulseConstraintSolver();
+    m_world = new btDiscreteDynamicsWorld(m_btdispatcher, m_btinterface, m_btsolver, m_btconfiguration);
+    m_world->setGravity(btVector3(0, -9.80665, 0));
 }
 
 X3DScene::~X3DScene()
@@ -28,6 +38,22 @@ X3DScene::~X3DScene()
     }
     if (m_root != NULL) {
         delete m_root;
+    }
+
+    if (m_world != NULL) {
+        delete m_world;
+    }
+    if (m_btsolver != NULL) {
+        delete m_btsolver;
+    }
+    if (m_btdispatcher != NULL) {
+        delete m_btdispatcher;
+    }
+    if (m_btconfiguration != NULL) {
+        delete m_btconfiguration;
+    }
+    if (m_btinterface != NULL) {
+        delete m_btinterface;
     }
 }
 
@@ -45,6 +71,9 @@ void X3DScene::load(const QString& filename)
     m_root->initialize();
     if (m_root->getViewpointNode() == NULL)
         m_root->zoomAllViewpoint();
+
+    nodes.clear();
+    physics.restart();
 }
 
 void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY)
@@ -119,7 +148,22 @@ void X3DScene::update()
     if (navInfo == NULL) {
         navInfo = m_root->getDefaultNavigationInfoNode();
     }
+/*
+    btCollisionWorld::ClosestRayResultCallback ray_result(
+    );
 
+    m_world->rayTest(
+        ray_result
+    );
+
+    if (ray_result.hasHit()) {
+        Node* node = static_cast<Node>(ray_result.m_collisionObject->getUserPointer());
+        if node->getTouchSensorNodes()
+        {
+
+        }
+    }
+*/
     const float speed = navInfo->getSpeed();
     float view_translation[3] = {fake_velocity[0] * speed,
                                  fake_velocity[1] * speed,
@@ -131,6 +175,8 @@ void X3DScene::update()
     view->rotate(view_rotation);
 
     m_root->update();
+
+    m_world->stepSimulation((btScalar)physics.restart()/(btScalar)1000, 10);
 }
 
 void X3DScene::render(const QSize &viewportSize)

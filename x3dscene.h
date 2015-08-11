@@ -2,6 +2,7 @@
 #define X3DSCENE_H
 
 #include <QtGui/QMatrix4x4>
+#include <QElapsedTimer>
 
 namespace CyberX3D
 {
@@ -10,8 +11,13 @@ namespace CyberX3D
 }
 
 class X3DRenderer;
-class X3DScene
+class btDiscreteDynamicsWorld;
+class btBroadphaseInterface;
+class btDefaultCollisionConfiguration;
+class btCollisionDispatcher;
+class btSequentialImpulseConstraintSolver;
 
+class X3DScene
 {
 public:
     X3DScene();
@@ -30,9 +36,16 @@ public:
     void sendAxisEvent(int id, const double& value);
 
 private:
+    QElapsedTimer physics;
     float fake_velocity[3];
     float fake_rotation;
     CyberX3D::SceneGraph* m_root;
+    btDiscreteDynamicsWorld* m_world;
+    btBroadphaseInterface* m_btinterface;
+    btDefaultCollisionConfiguration* m_btconfiguration;
+    btCollisionDispatcher* m_btdispatcher;
+    btSequentialImpulseConstraintSolver* m_btsolver;
+
     X3DRenderer* m_renderer;
     std::map<int, CyberX3D::Texture2DNode*> nodes;
 };
