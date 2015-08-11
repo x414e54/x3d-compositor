@@ -127,8 +127,8 @@ void X3DScene::update()
 
     view->translate(view_translation);
 
-    float view_rotation[4] = {0.0f, 1.0f, 0.0f, fake_rotation};
-    view->setOrientation(view_rotation);
+    float view_rotation[4] = {0.0f, 1.0f, 0.0f, -fake_rotation * 0.01f};
+    view->rotate(view_rotation);
 
     m_root->update();
 }

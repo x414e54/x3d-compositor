@@ -451,8 +451,8 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
     case QEvent::MouseMove: {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
         m_scene->sendPointerEvent(0, me->localPos(), Qt::TouchPointMoved);
-        double x = double(me->x()/m_window->width() - 0.5f);
-        double y = double(me->y()/m_window->height() - 0.5f);
+        double x = double(me->localPos().x()/m_window->width() - 0.5f);
+        double y = double(me->localPos().y()/m_window->height() - 0.5f);
         m_scene->sendAxisEvent(0, x);
         m_scene->sendAxisEvent(1, y);
         break;
