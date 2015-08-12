@@ -138,6 +138,7 @@ QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
     functions->glGenFramebuffers(1, &m_surface_fbo);
 
     window->installEventFilter(this);
+    m_scene->installEventFilter(this);
 
     setRetainedSelectionEnabled(true);
 
@@ -348,7 +349,7 @@ void QWindowCompositor::render()
     m_scene->addTexture(m_backgroundTexture->textureId(),
                                   pixels_to_m(QRect(QPoint(0, 0), m_backgroundImage.size())),
                                   m_backgroundImage.size(),
-                                  0, false, true);
+                                  0, false, true, NULL);
 
     foreach (QWaylandSurface *surface, m_surfaces) {
         if (!surface->visible())
@@ -356,7 +357,7 @@ void QWindowCompositor::render()
         GLuint texture = static_cast<BufferAttacher *>(surface->bufferAttacher())->texture;
         foreach (QWaylandSurfaceView *view, surface->views()) {
             QRect geo(view->pos().toPoint(),surface->size());
-            m_scene->addTexture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted());
+            m_scene->addTexture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted(), surface);
             foreach (QWaylandSurface *child, surface->subSurfaces()) {
                 drawSubSurface(view->pos().toPoint(), child);
             }
@@ -377,47 +378,35 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     QWaylandSurfaceView *view = surface->views().first();
     QPoint pos = view->pos().toPoint() + offset;
     QRect geo(pos, surface->size());
-    m_scene->addTexture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted());
+    m_scene->addTexture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted(), surface);
     foreach (QWaylandSurface *child, surface->subSurfaces()) {
         drawSubSurface(pos, child);
     }
 }
 
-/*
- * For routing back from x3d sensors
-bool QWindowCompositor::x3dsensorFilter(QEvent *event)
+bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2])
 {
-    QWaylandInputDevice *input = defaultInputDevice();
+/*    QWaylandInputDevice *input = defaultInputDevice();
 
-    switch (event->type()) {
-    case QEvent::TouchBegin:
-    case QEvent::TouchUpdate:
-    case QEvent::TouchEnd:
-    {
-        QWaylandSurfaceView *target = 0;
-        QTouchEvent *te = static_cast<QTouchEvent *>(event);
-        QList<QTouchEvent::TouchPoint> points = te->touchPoints();
-        QPoint pointPos;
+    QWaylandSurfaceView *target = static_cast<QWaylandSurfaceView*>(obj);
+    QTouchEvent *te = static_cast<QTouchEvent *>(event);
+    QList<QTouchEvent::TouchPoint> points = te->touchPoints();
+    QPoint pointPos;
         if (!points.isEmpty()) {
             pointPos = points.at(0).pos().toPoint();
-            target = viewAt(pointPos);
-        }
-        if (target && target != input->mouseFocus())
-            input->setMouseFocus(target, pointPos, pointPos);
-        if (input->mouseFocus())
-            input->sendFullTouchEvent(te);
-        break;
-    }
-    default:
-        break;
-    }
+   }
+   if (target && target != input->mouseFocus())
+       input->setMouseFocus(target, pointPos, pointPos);
+    if (input->mouseFocus())
+       input->sendFullTouchEvent(te);*/
     return false;
-}*/
+}
 
 bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
 {
-    if (obj != m_window)
+    if (obj != m_window) {
         return false;
+    }
 
     QWaylandInputDevice *input = defaultInputDevice();
 

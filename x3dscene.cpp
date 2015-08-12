@@ -29,6 +29,7 @@ X3DScene::X3DScene()
     m_btsolver = new btSequentialImpulseConstraintSolver();
     m_world = new btDiscreteDynamicsWorld(m_btdispatcher, m_btinterface, m_btsolver, m_btconfiguration);
     m_world->setGravity(btVector3(0, -9.80665, 0));
+    event_filter = NULL;
 }
 
 X3DScene::~X3DScene()
@@ -76,12 +77,15 @@ void X3DScene::load(const QString& filename)
     physics.restart();
 }
 
-void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY)
+void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, QObject* data)
 {
     std::map<int, Texture2DNode*>::iterator found;
     if ((found = nodes.find(textureId)) == nodes.end()) {
         TransformNode* transform = new TransformNode();
             transform->setTranslation(0.0f + (1.0f * nodes.size()), 2.0f, 0.0f);
+            TouchSensorNode* touch_node = new TouchSensorNode();
+            touch_node->setValue(data);
+            transform->addChildNode(touch_node);
             ShapeNode* shape = new ShapeNode();
                 AppearanceNode* appearance = new AppearanceNode();
                     ImageTextureNode* texture = new ImageTextureNode();
@@ -125,6 +129,11 @@ void X3DScene::sendKeyUp(uint code)
     }
 }
 
+void X3DScene::installEventFilter(SceneEventFilter* filter)
+{
+    event_filter = filter;
+}
+
 void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPointState state)
 {
     double from[3];
@@ -150,6 +159,17 @@ void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPoi
                     touch_node->setHitNormalChanged(ray_result.m_hitNormalWorld.x(),
                                                     ray_result.m_hitNormalWorld.y(),
                                                     ray_result.m_hitNormalWorld.z());
+
+                    //touch_node->setHitTexCoord(,
+                     //                          );
+                    //touch_node->setTouchTime(double value);
+                    if (touch_node->getValue() != NULL) {
+                        if (event_filter != NULL) {
+                            float tex_coord[2];
+                            touch_node->getHitTexCoord(tex_coord);
+                            event_filter->sceneEventFilter(touch_node->getValue(), tex_coord);
+                        }
+                    }
                 }
             }
         }
@@ -187,6 +207,45 @@ void X3DScene::update()
     view->rotate(view_rotation);
 
     m_root->update();
+
+    // Only touch sensors for now top level only
+    Node* node = m_root->getTransformNodes();
+    while (node != NULL) {
+        TouchSensorNode* touch_node = node->getTouchSensorNodes();
+        if (touch_node != NULL) {
+            // Only shape nodes for now
+            ShapeNode* bounded_node = node->getShapeNodes();
+
+            if (bounded_node) {
+                float trans[4][4];
+                bounded_node->getTranslationMatrix(trans);
+                float size[3];
+                float center[3];
+                bounded_node->getBoundingBoxSize(size);
+                bounded_node->getBoundingBoxCenter(center);
+
+                btCollisionShape* bt_collision = new btBoxShape(btVector3(size[0], size[1], size[2]));
+                btDefaultMotionState* bt_motionstate = new btDefaultMotionState(btTransform(
+                        btMatrix3x3(trans[0][1], trans[0][1], trans[0][1],
+                                    trans[1][1], trans[1][2], trans[1][3],
+                                    trans[2][1], trans[2][2], trans[2][3]),
+                        btVector3(trans[3][0], trans[3][1], trans[3][2])
+                        ));
+
+                btRigidBody::btRigidBodyConstructionInfo bt_info(
+                            0,
+                            bt_motionstate,
+                            bt_collision,
+                            btVector3(0,0,0)
+                            );
+
+                btRigidBody *bt_rigid_body = new btRigidBody(bt_info);
+                bt_rigid_body->setUserPointer(node);
+                m_world->addRigidBody(bt_rigid_body);
+            }
+        }
+        node = node->next();
+    }
 
     m_world->stepSimulation((btScalar)physics.restart()/(btScalar)1000, 10);
 

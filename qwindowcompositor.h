@@ -55,7 +55,7 @@ QT_BEGIN_NAMESPACE
 class QWaylandSurfaceView;
 class QOpenGLTexture;
 
-class QWindowCompositor : public QObject, public QWaylandCompositor
+class QWindowCompositor : public QObject, public QWaylandCompositor, public SceneEventFilter
 {
     Q_OBJECT
 public:
@@ -77,6 +77,7 @@ protected:
 
     QWaylandSurfaceView* viewAt(const QPointF &point, QPointF *local = 0);
 
+    bool sceneEventFilter(void *obj, const float (&pos)[2]);
     bool eventFilter(QObject *obj, QEvent *event);
     QPointF toView(QWaylandSurfaceView *view, const QPointF &pos) const;
 

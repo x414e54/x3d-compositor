@@ -17,14 +17,21 @@ class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
 class btSequentialImpulseConstraintSolver;
 
+class SceneEventFilter
+{
+public:
+    virtual bool sceneEventFilter(void *, const float (&pos)[2]) = 0;
+};
+
 class X3DScene
 {
 public:
     X3DScene();
     ~X3DScene();
+    void installEventFilter(SceneEventFilter* filter);
     void addTexture(int textureId, const QRectF &sourceGeometry,
                     const QSize &textureSize, int depth,
-                    bool targethasInvertedY, bool sourceHasInvertedY);
+                    bool targethasInvertedY, bool sourceHasInvertedY, QObject* data);
     void render(const QSize &viewportSize);
     void load(const QString& filename);
     void update();
@@ -36,6 +43,7 @@ public:
     void sendAxisEvent(int id, const double& value);
 
 private:
+    SceneEventFilter* event_filter;
     QElapsedTimer physics;
     float model[4][4];
     float fake_velocity[3];
