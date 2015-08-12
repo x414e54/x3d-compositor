@@ -214,7 +214,11 @@ void X3DScene::update()
         TouchSensorNode* touch_node = node->getTouchSensorNodes();
         if (touch_node != NULL) {
             // Only shape nodes for now
-            ShapeNode* bounded_node = node->getShapeNodes();
+            ShapeNode* shape = node->getShapeNodes();
+            Geometry3DNode* bounded_node = NULL;
+            if (shape != NULL) {
+                bounded_node = shape->getGeometry3DNode();
+            }
 
             if (bounded_node) {
                 float trans[4][4];
