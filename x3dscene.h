@@ -8,6 +8,7 @@ namespace CyberX3D
 {
     class SceneGraph;
     class Texture2DNode;
+    class Node;
 }
 
 class X3DRenderer;
@@ -43,6 +44,8 @@ public:
     void sendAxisEvent(int id, const double& value);
 
 private:
+    void addToPhysics(CyberX3D::Node* node);
+
     SceneEventFilter* event_filter;
     QElapsedTimer physics;
     float view[4][4];
