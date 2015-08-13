@@ -45,7 +45,7 @@ public:
 private:
     SceneEventFilter* event_filter;
     QElapsedTimer physics;
-    float model[4][4];
+    float view[4][4];
     float fake_velocity[3];
     float fake_rotation;
     CyberX3D::SceneGraph* m_root;

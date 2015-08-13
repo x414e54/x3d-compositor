@@ -139,7 +139,7 @@ void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPoi
     double from[3];
     double to[3];
     if (state== Qt::TouchPointPressed &&
-        m_renderer->get_ray(viewportPos.x(), viewportPos.y(), model, from, to)) {
+        m_renderer->get_ray(viewportPos.x(), viewportPos.y(), this->view, from, to)) {
         btVector3 bt_from(from[0], from[1], from[2]);
         btVector3 bt_to(to[0], to[1], to[2]);
         btCollisionWorld::ClosestRayResultCallback ray_result(bt_from, bt_to);
@@ -233,7 +233,7 @@ void X3DScene::update()
                         btMatrix3x3(trans[0][0], trans[0][1], trans[0][2],
                                     trans[1][0], trans[1][1], trans[1][2],
                                     trans[2][0], trans[2][1], trans[2][2]),
-                        btVector3(trans[3][0], trans[3][1], trans[3][2])
+                        btVector3(trans[3][0], -trans[3][1], trans[3][2])
                         ));
 
                 btRigidBody::btRigidBodyConstructionInfo bt_info(
@@ -253,7 +253,7 @@ void X3DScene::update()
 
     m_world->stepSimulation((btScalar)physics.restart()/(btScalar)1000, 10);
 
-    view->getMatrix(model);
+    view->getMatrix(this->view);
 }
 
 void X3DScene::render(const QSize &viewportSize)
