@@ -108,6 +108,7 @@ void X3DScene::addToPhysics(Node* node)
 void X3DScene::load(const QString& filename)
 {
     std::string file_utf8 = filename.toUtf8().constData();
+
     if (m_root->load(file_utf8.c_str()) == false) {
         qCritical() << "Loading error"
             << "\nLine Number: " << m_root->getParserErrorLineNumber()
@@ -129,8 +130,21 @@ void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &
 {
     std::map<void*, NodePhysicsGroup>::iterator found;
     if ((found = nodes.find(data)) == nodes.end()) {
+
+        ViewpointNode *view = m_root->getViewpointNode();
+        if (view == NULL) {
+            view = m_root->getDefaultViewpointNode();
+        }
+
         TransformNode* transform = new TransformNode();
-            transform->setTranslation(2.0f + (1.0f * nodes.size()), 0.0f, 0.0f);
+            float position[3];
+            view->getPosition(position);
+            position[2] -= 0.5;
+            float rotation[4];
+            view->getOrientation(rotation);
+            transform->setRotation(rotation);
+            transform->setCenter(0.0, 0.0, 0.5);
+            transform->setTranslation(position);
             TouchSensorNode* touch_node = new TouchSensorNode();
             touch_node->setValue(data);
             transform->addChildNode(touch_node);
