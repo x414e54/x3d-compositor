@@ -398,6 +398,7 @@ bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2])
         }
 
         if (input->mouseFocus()) {
+            input->sendMousePressEvent(Qt::LeftButton, point, point);
             input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointPressed);
         }
         return true;

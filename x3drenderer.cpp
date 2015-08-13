@@ -172,6 +172,7 @@ bool to_ray(const double (&finalMatrix)[16], const double (&in)[4], double (&out
     out[0] /= out[3];
     out[1] /= out[3];
     out[2] /= out[3];
+    return true;
 }
 
 bool X3DRenderer::get_ray(double x, double y,

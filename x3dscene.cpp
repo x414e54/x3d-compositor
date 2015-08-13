@@ -30,6 +30,7 @@ X3DScene::X3DScene()
     m_world = new btDiscreteDynamicsWorld(m_btdispatcher, m_btinterface, m_btsolver, m_btconfiguration);
     m_world->setGravity(btVector3(0, -9.80665, 0));
     event_filter = NULL;
+    fake_rotating = false;
 }
 
 X3DScene::~X3DScene()
@@ -82,7 +83,7 @@ void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &
     std::map<int, Texture2DNode*>::iterator found;
     if ((found = nodes.find(textureId)) == nodes.end()) {
         TransformNode* transform = new TransformNode();
-            transform->setTranslation(0.0f + (1.0f * nodes.size()), 2.0f, 0.0f);
+            transform->setTranslation(2.0f + (1.0f * nodes.size()), 0.0f, 0.0f);
             TouchSensorNode* touch_node = new TouchSensorNode();
             touch_node->setValue(data);
             transform->addChildNode(touch_node);
@@ -138,7 +139,12 @@ void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPoi
 {
     double from[3];
     double to[3];
-    if (state== Qt::TouchPointPressed &&
+    if (id == 2 && state == Qt::TouchPointPressed) {
+        fake_rotating = true;
+    } else if (id == 2 && state == Qt::TouchPointReleased) {
+        fake_rotation = 0.0;
+        fake_rotating = false;
+    } else if (state == Qt::TouchPointPressed &&
         m_renderer->get_ray(viewportPos.x(), viewportPos.y(), this->view, from, to)) {
         btVector3 bt_from(from[0], from[1], from[2]);
         btVector3 bt_to(to[0], to[1], to[2]);
@@ -190,7 +196,7 @@ void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPoi
 
 void X3DScene::sendAxisEvent(int id, const double& value)
 {
-    if (id == 0) {
+    if (id == 0 && fake_rotating) {
         fake_rotation = value;
     } else if (id == 1) {
     }

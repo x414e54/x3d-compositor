@@ -48,6 +48,7 @@ private:
     float view[4][4];
     float fake_velocity[3];
     float fake_rotation;
+    bool fake_rotating;
     CyberX3D::SceneGraph* m_root;
     btDiscreteDynamicsWorld* m_world;
     btBroadphaseInterface* m_btinterface;
