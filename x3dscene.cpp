@@ -77,7 +77,7 @@ void X3DScene::load(const QString& filename)
     physics.restart();
 }
 
-void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, QObject* data)
+void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, void* data)
 {
     std::map<int, Texture2DNode*>::iterator found;
     if ((found = nodes.find(textureId)) == nodes.end()) {

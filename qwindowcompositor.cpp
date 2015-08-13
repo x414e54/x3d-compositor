@@ -357,7 +357,7 @@ void QWindowCompositor::render()
         GLuint texture = static_cast<BufferAttacher *>(surface->bufferAttacher())->texture;
         foreach (QWaylandSurfaceView *view, surface->views()) {
             QRect geo(view->pos().toPoint(),surface->size());
-            m_scene->addTexture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted(), surface);
+            m_scene->addTexture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted(), view);
             foreach (QWaylandSurface *child, surface->subSurfaces()) {
                 drawSubSurface(view->pos().toPoint(), child);
             }
@@ -378,7 +378,7 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     QWaylandSurfaceView *view = surface->views().first();
     QPoint pos = view->pos().toPoint() + offset;
     QRect geo(pos, surface->size());
-    m_scene->addTexture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted(), surface);
+    m_scene->addTexture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted(), view);
     foreach (QWaylandSurface *child, surface->subSurfaces()) {
         drawSubSurface(pos, child);
     }

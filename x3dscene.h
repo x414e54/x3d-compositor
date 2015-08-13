@@ -31,7 +31,7 @@ public:
     void installEventFilter(SceneEventFilter* filter);
     void addTexture(int textureId, const QRectF &sourceGeometry,
                     const QSize &textureSize, int depth,
-                    bool targethasInvertedY, bool sourceHasInvertedY, QObject* data);
+                    bool targethasInvertedY, bool sourceHasInvertedY, void* data);
     void render(const QSize &viewportSize);
     void load(const QString& filename);
     void update();
