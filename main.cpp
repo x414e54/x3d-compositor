@@ -45,6 +45,8 @@
 #include <QStringList>
 #include <QScreen>
 #include <QSurfaceFormat>
+#include <QFileInfo>
+#include <QDir>
 
 int main(int argc, char *argv[])
 {
@@ -71,7 +73,10 @@ int main(int argc, char *argv[])
 
     if (argc > 1)
     {
-        scene.load(argv[1]);
+        QString file = argv[1];
+        QFileInfo file_info(file);
+        QDir::setCurrent(file_info.absoluteDir().absolutePath());
+        scene.load(file);
     }
 
     QWindowCompositor compositor(&window, &scene);
