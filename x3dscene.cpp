@@ -19,6 +19,7 @@ QT_BEGIN_NAMESPACE
 
 X3DScene::X3DScene()
     : fake_velocity{0.0f, 0.0f, 0.0f}
+    , fake_rotation(0.0f)
 {
     m_root = new SceneGraph();
     m_renderer = new X3DRenderer();
@@ -181,6 +182,14 @@ void X3DScene::sendKeyDown(uint code)
         fake_velocity[0] -= 1.0f;
     } else if(code == 40) {
         fake_velocity[0] += 1.0f;
+    } else if (code == 113) {
+        fake_rotating = true;
+        fake_rotation = -1.0f;
+    } else if(code == 114) {
+        fake_rotating = true;
+        fake_rotation = 1.0f;
+    } else if(code == 111) {
+    } else if(code == 116) {
     }
 }
 
@@ -194,6 +203,14 @@ void X3DScene::sendKeyUp(uint code)
         fake_velocity[0] += 1.0f;
     } else if(code == 40) {
         fake_velocity[0] -= 1.0f;
+    } else if (code == 113) {
+        fake_rotating = false;
+        fake_rotation = 0.0f;
+    } else if(code == 114) {
+        fake_rotating = false;
+        fake_rotation = 0.0f;
+    } else if(code == 111) {
+    } else if(code == 116) {
     }
 }
 
@@ -288,7 +305,7 @@ void X3DScene::update()
 
     view->translate(view_translation);
 
-    float view_rotation[4] = {0.0f, 1.0f, 0.0f, -fake_rotation * 0.01f};
+    float view_rotation[4] = {0.0f, 1.0f, 0.0f, -fake_rotation * speed};
     view->rotate(view_rotation);
 
     m_root->update();
