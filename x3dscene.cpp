@@ -96,6 +96,7 @@ void X3DScene::addToPhysics(Node* node)
 
                 btRigidBody *bt_rigid_body = new btRigidBody(bt_info);
                 bt_rigid_body->setUserPointer(node);
+                node->setValue(bt_rigid_body);
                 m_world->addRigidBody(bt_rigid_body);
             }
         }
@@ -125,8 +126,8 @@ void X3DScene::load(const QString& filename)
 
 void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, void* data)
 {
-    std::map<int, Texture2DNode*>::iterator found;
-    if ((found = nodes.find(textureId)) == nodes.end()) {
+    std::map<void*, NodePhysicsGroup>::iterator found;
+    if ((found = nodes.find(data)) == nodes.end()) {
         TransformNode* transform = new TransformNode();
             transform->setTranslation(2.0f + (1.0f * nodes.size()), 0.0f, 0.0f);
             TouchSensorNode* touch_node = new TouchSensorNode();
@@ -142,11 +143,31 @@ void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &
                 box->setSize(targetRect.width(), targetRect.height(), 1.0f/100.0f);
                 shape->addChildNode(box);
             transform->addChildNode(shape);
-        nodes[textureId] = texture;
+        nodes[data].top_node = transform;
+        nodes[data].texture_node = texture;
+        nodes[data].bounded_node = box;
         m_root->addNode(transform);
         addToPhysics(transform);
-    } else if (found->second != NULL){
-        found->second->setTextureName(textureId);
+        nodes[data].bt_rigid_body = (btRigidBody *)transform->getValue();
+    } else if (found->second.texture_node != NULL){
+        found->second.texture_node->setTextureName(textureId);
+    }
+}
+
+void X3DScene::removeTexture(void* data)
+{
+    std::map<void*, NodePhysicsGroup>::iterator found;
+    if ((found = nodes.find(data)) != nodes.end()) {
+        if (found->second.top_node != NULL) {
+            m_root->removeNode(found->second.top_node);
+            delete found->second.top_node;
+        }
+
+        m_world->removeRigidBody(found->second.bt_rigid_body);
+        delete found->second.bt_rigid_body->getMotionState();
+        delete found->second.bt_rigid_body->getCollisionShape();
+        delete found->second.bt_rigid_body;
+        nodes.erase(found);
     }
 }
 

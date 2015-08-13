@@ -183,6 +183,11 @@ void QWindowCompositor::ensureKeyboardFocusSurface(QWaylandSurface *oldSurface)
 void QWindowCompositor::surfaceDestroyed()
 {
     QWaylandSurface *surface = static_cast<QWaylandSurface *>(sender());
+
+    foreach (QWaylandSurfaceView *view, surface->views()) {
+        m_scene->removeTexture(view);
+    }
+
     m_surfaces.removeOne(surface);
     ensureKeyboardFocusSurface(surface);
     m_renderScheduler.start(0);
@@ -222,6 +227,11 @@ void QWindowCompositor::surfaceMapped()
 void QWindowCompositor::surfaceUnmapped()
 {
     QWaylandSurface *surface = qobject_cast<QWaylandSurface *>(sender());
+
+    foreach (QWaylandSurfaceView *view, surface->views()) {
+        m_scene->removeTexture(view);
+    }
+
     if (m_surfaces.removeOne(surface))
         m_surfaces.insert(0, surface);
 

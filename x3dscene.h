@@ -7,8 +7,8 @@
 namespace CyberX3D
 {
     class SceneGraph;
-    class Texture2DNode;
     class Node;
+    class Texture2DNode;
 }
 
 class X3DRenderer;
@@ -17,6 +17,7 @@ class btBroadphaseInterface;
 class btDefaultCollisionConfiguration;
 class btCollisionDispatcher;
 class btSequentialImpulseConstraintSolver;
+class btRigidBody;
 
 class SceneEventFilter
 {
@@ -27,12 +28,21 @@ public:
 class X3DScene
 {
 public:
+    struct NodePhysicsGroup
+    {
+        CyberX3D::Node* top_node;
+        CyberX3D::Node* bounded_node;
+        CyberX3D::Texture2DNode* texture_node;
+        btRigidBody *bt_rigid_body;
+    };
+
     X3DScene();
     ~X3DScene();
     void installEventFilter(SceneEventFilter* filter);
     void addTexture(int textureId, const QRectF &sourceGeometry,
                     const QSize &textureSize, int depth,
                     bool targethasInvertedY, bool sourceHasInvertedY, void* data);
+    void removeTexture(void* data);
     void render(const QSize &viewportSize);
     void load(const QString& filename);
     void update();
@@ -60,7 +70,7 @@ private:
     btSequentialImpulseConstraintSolver* m_btsolver;
 
     X3DRenderer* m_renderer;
-    std::map<int, CyberX3D::Texture2DNode*> nodes;
+    std::map<void *, NodePhysicsGroup> nodes;
 };
 
 #endif // X3DSCENE_H
