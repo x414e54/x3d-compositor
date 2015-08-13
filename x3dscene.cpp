@@ -214,7 +214,7 @@ void X3DScene::update()
         navInfo = m_root->getDefaultNavigationInfoNode();
     }
 
-    const float speed = navInfo->getSpeed();
+    const float speed = navInfo->getSpeed() * (physics.elapsed() / 1000.0f);
     float view_translation[3] = {fake_velocity[0] * speed,
                                  fake_velocity[1] * speed,
                                  -fake_velocity[2] * speed};
