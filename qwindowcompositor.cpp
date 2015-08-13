@@ -386,19 +386,22 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
 
 bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2])
 {
-/*    QWaylandInputDevice *input = defaultInputDevice();
-
+    QWaylandInputDevice *input = defaultInputDevice();
     QWaylandSurfaceView *target = static_cast<QWaylandSurfaceView*>(obj);
-    QTouchEvent *te = static_cast<QTouchEvent *>(event);
-    QList<QTouchEvent::TouchPoint> points = te->touchPoints();
-    QPoint pointPos;
-        if (!points.isEmpty()) {
-            pointPos = points.at(0).pos().toPoint();
-   }
-   if (target && target != input->mouseFocus())
-       input->setMouseFocus(target, pointPos, pointPos);
-    if (input->mouseFocus())
-       input->sendFullTouchEvent(te);*/
+    if (target && target->surface())
+    {
+        QSize size = target->surface()->size();
+        QPointF point(pos[0] * size.width(), pos[1] * size.height());
+
+        if (target != input->mouseFocus()) {
+            input->setMouseFocus(target, point, point);
+        }
+
+        if (input->mouseFocus()) {
+            input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointPressed);
+        }
+        return true;
+    }
     return false;
 }
 

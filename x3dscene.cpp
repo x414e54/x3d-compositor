@@ -160,14 +160,26 @@ void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPoi
                                                     ray_result.m_hitNormalWorld.y(),
                                                     ray_result.m_hitNormalWorld.z());
 
-                    //touch_node->setHitTexCoord(,
-                     //                          );
-                    //touch_node->setTouchTime(double value);
-                    if (touch_node->getValue() != NULL) {
-                        if (event_filter != NULL) {
-                            float tex_coord[2];
-                            touch_node->getHitTexCoord(tex_coord);
-                            event_filter->sceneEventFilter(touch_node->getValue(), tex_coord);
+                    // This is just a quick hack for the prototype.
+                    btVector3 hitPointLocal = ray_result.m_collisionObject->getWorldTransform().inverse() * ray_result.m_hitPointWorld;
+
+                    ShapeNode* shape = node->getShapeNodes();
+                    Geometry3DNode* bounded_node = NULL;
+                    if (shape != NULL) {
+                        bounded_node = shape->getGeometry3DNode();
+                    }
+
+                    if (bounded_node) {
+                        float size[3];
+                        bounded_node->getBoundingBoxSize(size);
+                        btVector3 bt_size(size[0], size[1], size[2]);
+                        btVector3 texCoord = (hitPointLocal + bt_size) / (bt_size * 2);
+                        touch_node->setHitTexCoord(texCoord.x(), texCoord.y());
+                        //touch_node->setTouchTime(double value);
+                        if (touch_node->getValue() != NULL) {
+                            if (event_filter != NULL) {
+                                event_filter->sceneEventFilter(touch_node->getValue(), {texCoord.x(), texCoord.y()});
+                            }
                         }
                     }
                 }
