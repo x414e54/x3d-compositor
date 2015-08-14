@@ -417,8 +417,8 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 			int height = imgTexture->getHeight();
 			RGBAColor32 *color = imgTexture->getImage();
 
-            //if (0 < width && 0 < height && color != NULL)
-            if (imgTexture->getTextureName() != 0)
+		//if (0 < width && 0 < height && color != NULL)
+		if (imgTexture->getTextureName() != 0)
 				bEnableTexture = true;
 
 			if (bEnableTexture == true) {
@@ -433,7 +433,6 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 				glBindTexture(GL_TEXTURE_2D, imgTexture->getTextureName());
 
 				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
 				glEnable(GL_TEXTURE_2D);
 
 				glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -455,7 +454,16 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 		if (material) {
 			float	ambientIntesity = material->getAmbientIntensity();
 
+			glDisable(GL_COLOR_MATERIAL);
 			material->getDiffuseColor(color);
+			if (material->getTransparency() != 0.0) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			} else if (!bEnableTexture) {
+				glDisable(GL_BLEND);
+			}
+
+			color[3] = 1.0 - material->getTransparency();
 			glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
 
 			material->getSpecularColor(color);
@@ -484,11 +492,12 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 		color[0] = 0.8f*0.2f; color[1] = 0.8f*0.2f; color[2] = 0.8f*0.2f;
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
 		glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, (int)(0.2*128.0));
+		glDisable(GL_BLEND);
 	}
 
 	if (!appearance || !imgTexture || drawMode != OGL_RENDERING_TEXTURE) {
 		glDisable(GL_TEXTURE_2D);
-		glDisable(GL_BLEND);
+		glDisable(GL_COLOR_MATERIAL);
 	}
 
 	/////////////////////////////////
