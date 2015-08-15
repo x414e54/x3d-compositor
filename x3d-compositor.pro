@@ -1,19 +1,23 @@
 QT += gui gui-private core-private compositor
 
 LIBS += -L ../../lib
-#include (../../src/qt-compositor/qt-compositor.pri)
 
 HEADERS += \
-    compositorwindow.h \
+    opengloutput.h \
+    qwindowoutput.h \
     qwindowcompositor.h \
     x3dscene.h \
-    x3drenderer.h
+    x3drenderer.h \
+    x3dopenglrenderer.h \
+    openglrenderer.h
 
 SOURCES += main.cpp \
-    compositorwindow.cpp \
+    opengloutput.cpp \
+    qwindowoutput.cpp \
     qwindowcompositor.cpp \
     x3dscene.cpp \
-    x3drenderer.cpp
+    x3dopenglrenderer.cpp \
+    openglrenderer.cpp
 
 INCLUDEPATH+=/usr/local/include/CyberX3D-1.0 \
              /usr/include/bullet

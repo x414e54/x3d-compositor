@@ -7,13 +7,19 @@
 *	File:	X3DBrowserFunc.cpp
 *
 ******************************************************************/
-#include "x3drenderer.h"
+
+#include "x3dopenglrenderer.h"
 
 #define CX3D_SUPPORT_OPENGL
 #include <cybergarage/x3d/CyberX3D.h>
 using namespace CyberX3D;
 
-#include "GL/gl.h"
+#include <QtGui/QOpenGLShaderProgram>
+#include <QtGui/QOpenGLVertexArrayObject>
+#include <QtGui/QOpenGLBuffer>
+#include <QtGui/QOpenGLContext>
+#include <QtGui/QOpenGLFunctions_4_3_Compatibility>
+
 #include <math.h>
 const int OGL_RENDERING_TEXTURE = 0;
 const int OGL_RENDERING_WIRE = 1;
@@ -175,7 +181,17 @@ bool to_ray(const double (&finalMatrix)[16], const double (&in)[4], double (&out
     return true;
 }
 
-bool X3DRenderer::get_ray(double x, double y,
+X3DOpenGLRenderer::X3DOpenGLRenderer()
+{
+
+}
+
+X3DOpenGLRenderer::~X3DOpenGLRenderer()
+{
+
+}
+
+bool X3DOpenGLRenderer::get_ray(double x, double y,
                           const float (&model)[4][4],
                           double (&from)[3], double (&to)[3])
 {
@@ -207,12 +223,12 @@ bool X3DRenderer::get_ray(double x, double y,
 }
 // end glu
 
-void X3DRenderer::set_projection(double fovy, double aspect, double zNear, double zFar)
+void X3DOpenGLRenderer::set_projection(double fovy, double aspect, double zNear, double zFar)
 {
     create_projection(projection, fovy, aspect, zNear, zFar);
 }
 
-void X3DRenderer::set_viewport(int width, int height)
+void X3DOpenGLRenderer::set_viewport(int width, int height)
 {
     this->width = width;
     this->height = height;
@@ -356,8 +372,10 @@ void PopLightNode(LightNode *lightNode)
 		glDisable(GL_LIGHT0+gnLights);
 }
 
-void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
+void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 {
+    const ContextPoolContext& context = current_context.localData();
+
 	glPushMatrix ();
 
 	/////////////////////////////////
@@ -515,9 +533,51 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 	/////////////////////////////////
 
 	Geometry3DNode *gnode = shape->getGeometry3D();
-	if (gnode) {
-		if (0 < gnode->getDisplayList())
-			gnode->draw();
+    if (gnode) {
+        GeometryRenderInfo::VertexArray array;
+        gnode->getVertexArray(array);
+        if (array.num_verts > 0) {
+            QOpenGLVertexArrayObject* vao = NULL;
+            VertexFormatMap::iterator it_format = formats.find(array.format);
+            if (it_format == formats.end()) {
+                vao = new QOpenGLVertexArrayObject();
+                vao->bind();
+                for (int i = 0; i < array.format.num_attribs; ++i) {
+                    const GeometryRenderInfo::Attribute& attrib = array.format.attribs[i];
+                    context.gl->glEnableVertexAttribArray(i);
+                    context.gl->glVertexAttribFormat(i, attrib.attrib_size, GL_UNSIGNED_BYTE, attrib.normalized, attrib.offset);
+                    context.gl->glVertexAttribBinding(i, 0);
+                    context.gl->glVertexBindingDivisor(i, attrib.divisor);
+                }
+                formats[array.format] = vao;
+            } else {
+                vao = it_format->second;
+            }
+
+            VertexFormatBufferMap::iterator it = buffers.find(vao);
+            if (it == buffers.end()) {
+                QOpenGLBuffer* vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+                vbo->create();
+                vbo->bind();
+                vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+                vbo->allocate(array.getBufferSize());
+                void *data = vbo->map(QOpenGLBuffer::ReadWrite);
+                gnode->getVertexData(data);
+                vbo->unmap();
+                buffers[vao] = vbo;
+
+                context.gl->glBindVertexBuffer(0, vbo->bufferId(), 0, array.format.size);
+            } else {
+                context.gl->glBindVertexBuffer(0, it->second->bufferId(), 0, array.format.size);
+            }
+            if (array.num_elements > 0) {
+
+            } else {
+                glDrawArrays(GL_TRIANGLES, 0, 1);
+            }
+        } else if (0 < gnode->getDisplayList()) {
+            gnode->draw();
+        }
 	}
 
 	ShapeNode *selectedShapeNode = sg->getSelectedShapeNode();
@@ -580,17 +640,19 @@ void DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 }
 
 
-void DrawNode(SceneGraph *sceneGraph, Node *firstNode, int drawMode) 
+void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int drawMode)
 {
+    const ContextPoolContext& context = current_context.localData();
+
 	if (!firstNode)
 		return;
 
 	Node	*node;
 
-	for (node = firstNode; node; node=node->next()) {
-		if (node->isLightNode()) 
-			PushLightNode((LightNode *)node);
-	}
+//	for (node = firstNode; node; node=node->next()) {
+//		if (node->isLightNode())
+//			PushLightNode((LightNode *)node);
+//	}
 
 	for (node = firstNode; node; node=node->next()) {
 		if (node->isShapeNode()) 
@@ -599,14 +661,16 @@ void DrawNode(SceneGraph *sceneGraph, Node *firstNode, int drawMode)
 			DrawNode(sceneGraph, node->getChildNodes(), drawMode);
 	}
 
-	for (node = firstNode; node; node=node->next()) {
-		if (node->isLightNode()) 
-			PopLightNode((LightNode *)node);
-	}
+//	for (node = firstNode; node; node=node->next()) {
+//		if (node->isLightNode())
+//			PopLightNode((LightNode *)node);
+//	}
 }
 
-void X3DRenderer::render(SceneGraph *sg)
+void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
+    const ContextPoolContext& context = current_context.localData();
+
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();

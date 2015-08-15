@@ -36,7 +36,7 @@ public:
         btRigidBody *bt_rigid_body;
     };
 
-    X3DScene();
+    X3DScene(X3DRenderer* renderer);
     ~X3DScene();
     void installEventFilter(SceneEventFilter* filter);
     void addTexture(int textureId, const QRectF &sourceGeometry,

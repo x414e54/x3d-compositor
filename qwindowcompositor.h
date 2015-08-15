@@ -44,7 +44,6 @@
 #include "qwaylandcompositor.h"
 #include "qwaylandsurface.h"
 #include "x3dscene.h"
-#include "compositorwindow.h"
 
 #include <QtGui/private/qopengltexturecache_p.h>
 #include <QObject>
@@ -54,12 +53,12 @@ QT_BEGIN_NAMESPACE
 
 class QWaylandSurfaceView;
 class QOpenGLTexture;
-
+class QWindowOutput;
 class QWindowCompositor : public QObject, public QWaylandCompositor, public SceneEventFilter
 {
     Q_OBJECT
 public:
-    QWindowCompositor(CompositorWindow *window, X3DScene *scene);
+    QWindowCompositor(QWindowOutput *window, X3DScene *scene);
     ~QWindowCompositor();
 
 private slots:
@@ -93,7 +92,7 @@ private slots:
 private:
     void drawSubSurface(const QPoint &offset, QWaylandSurface *surface);
 
-    CompositorWindow *m_window;
+    QWindowOutput *m_window;
     QImage m_backgroundImage;
     QOpenGLTexture *m_backgroundTexture;
     QList<QWaylandSurface *> m_surfaces;

@@ -1,8 +1,5 @@
 #include "x3dscene.h"
 
-#include <QtGui/QOpenGLShaderProgram>
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLFunctions>
 #include <QtDebug>
 #include <QTemporaryFile>
 
@@ -17,12 +14,12 @@ using namespace CyberX3D;
 
 QT_BEGIN_NAMESPACE
 
-X3DScene::X3DScene()
+X3DScene::X3DScene(X3DRenderer* renderer)
     : fake_velocity{0.0f, 0.0f, 0.0f}
     , fake_rotation(0.0f)
+    , m_renderer(renderer)
 {
     m_root = new SceneGraph();
-    m_renderer = new X3DRenderer();
     physics.start();
     m_btinterface = new btDbvtBroadphase();
     m_btconfiguration = new btDefaultCollisionConfiguration();

@@ -57,6 +57,8 @@
 #include <QtCompositor/qwaylandbufferref.h>
 #include <QtCompositor/qwaylandsurfaceview.h>
 
+#include "qwindowoutput.h"
+
 QT_BEGIN_NAMESPACE
 
 class BufferAttacher : public QWaylandBufferAttacher
@@ -109,10 +111,9 @@ public:
     GLuint texture;
 };
 
-QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
+QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
     : QWaylandCompositor(0, 0, DefaultExtensions | SubSurfaceExtension)
     , m_window(window)
-    , m_backgroundTexture(0)
     , m_scene(scene)
     , m_renderScheduler(this)
     , m_updateScheduler(this)
@@ -124,8 +125,6 @@ QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
     , m_modifiers(Qt::NoModifier)
 
 {
-    m_window->makeCurrent();
-
     m_backgroundImage = makeBackgroundImage(QLatin1String(":/background.jpg"));
     m_renderScheduler.setSingleShot(true);
     connect(&m_renderScheduler,SIGNAL(timeout()),this,SLOT(render()));
@@ -134,10 +133,7 @@ QWindowCompositor::QWindowCompositor(CompositorWindow *window, X3DScene *scene)
     m_updateScheduler.setInterval(10);
     connect(&m_updateScheduler,SIGNAL(timeout()),this,SLOT(update()));
 
-    QOpenGLFunctions *functions = m_window->context()->functions();
-    functions->glGenFramebuffers(1, &m_surface_fbo);
-
-    window->installEventFilter(this);
+    m_window->installEventFilter(this);
     m_scene->installEventFilter(this);
 
     setRetainedSelectionEnabled(true);
@@ -347,7 +343,6 @@ void QWindowCompositor::update()
 
 void QWindowCompositor::render()
 {
-    m_window->makeCurrent();
     frameStarted();
 
     cleanupGraphicsResources();
