@@ -337,7 +337,6 @@ void X3DScene::render(const QSize &viewportSize)
     double fov = (view->getFieldOfView() / 3.14) * 180.0;
 
     m_renderer->set_projection(fov, aspect, 0.1f, 10000.0f);
-    m_renderer->set_viewport(viewportSize.width(), viewportSize.height());
     m_renderer->render(m_root);
 }
 QT_END_NAMESPACE

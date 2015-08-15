@@ -1,6 +1,6 @@
-#include "qwindowoutput.h"
-#include "qwindowcompositor.h"
-#include "x3dopenglrenderer.h"
+#include "output/qwindowoutput.h"
+#include "compositor/wayland/qwindowcompositor.h"
+#include "opengl/x3dopenglrenderer.h"
 
 #include <QGuiApplication>
 #include <QFileInfo>
@@ -11,8 +11,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QWindowOutput window;
+    window.enabled = true;
     X3DOpenGLRenderer renderer;
-    renderer.set_viewpoint_output(0, &window);
+    renderer.set_viewpoint_output(0, window);
+    renderer.set_viewpoint_viewport(0, 800, 600);
     X3DScene scene(&renderer);
 
     if (argc > 1)

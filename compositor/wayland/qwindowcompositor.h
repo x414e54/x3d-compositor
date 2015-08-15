@@ -43,7 +43,7 @@
 
 #include "qwaylandcompositor.h"
 #include "qwaylandsurface.h"
-#include "x3dscene.h"
+#include "x3d/x3dscene.h"
 
 #include <QtGui/private/qopengltexturecache_p.h>
 #include <QObject>
@@ -93,8 +93,6 @@ private:
     void drawSubSurface(const QPoint &offset, QWaylandSurface *surface);
 
     QWindowOutput *m_window;
-    QImage m_backgroundImage;
-    QOpenGLTexture *m_backgroundTexture;
     QList<QWaylandSurface *> m_surfaces;
     X3DScene *m_scene;
     GLuint m_surface_fbo;

@@ -57,7 +57,7 @@
 #include <QtCompositor/qwaylandbufferref.h>
 #include <QtCompositor/qwaylandsurfaceview.h>
 
-#include "qwindowoutput.h"
+#include "output/qwindowoutput.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -125,7 +125,6 @@ QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
     , m_modifiers(Qt::NoModifier)
 
 {
-    m_backgroundImage = makeBackgroundImage(QLatin1String(":/background.jpg"));
     m_renderScheduler.setSingleShot(true);
     connect(&m_renderScheduler,SIGNAL(timeout()),this,SLOT(render()));
 
@@ -347,15 +346,6 @@ void QWindowCompositor::render()
 
     cleanupGraphicsResources();
 
-    if (!m_backgroundTexture)
-        m_backgroundTexture = new QOpenGLTexture(m_backgroundImage, QOpenGLTexture::DontGenerateMipMaps);
-
-    // Draw the background image texture
-    m_scene->addTexture(m_backgroundTexture->textureId(),
-                                  pixels_to_m(QRect(QPoint(0, 0), m_backgroundImage.size())),
-                                  m_backgroundImage.size(),
-                                  0, false, true, NULL);
-
     foreach (QWaylandSurface *surface, m_surfaces) {
         if (!surface->visible())
             continue;
@@ -374,7 +364,7 @@ void QWindowCompositor::render()
     sendFrameCallbacks(surfaces());
 
     // N.B. Never call glFinish() here as the busylooping with vsync 'feature' of the nvidia binary driver is not desirable.
-    m_window->swapBuffers();
+    m_window->swap_buffers();
 }
 
 void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *surface)

@@ -1,23 +1,26 @@
-QT += gui gui-private core-private compositor
+QT += gui gui-private core-private compositor openglextensions
+CONFIG += c++11
 
 LIBS += -L ../../lib
 
 HEADERS += \
-    opengloutput.h \
-    qwindowoutput.h \
-    qwindowcompositor.h \
-    x3dscene.h \
-    x3drenderer.h \
-    x3dopenglrenderer.h \
-    openglrenderer.h
+    opengl/opengloutput.h \
+    opengl/openglrenderer.h \
+    opengl/x3dopenglrenderer.h \
+    compositor/wayland/qwindowcompositor.h \
+    x3d/x3dscene.h \
+    x3d/x3drenderer.h \
+    output/qwindowoutput.h \
+    output/openvroutput.h
 
 SOURCES += main.cpp \
-    opengloutput.cpp \
-    qwindowoutput.cpp \
-    qwindowcompositor.cpp \
-    x3dscene.cpp \
-    x3dopenglrenderer.cpp \
-    openglrenderer.cpp
+    opengl/opengloutput.cpp \
+    opengl/openglrenderer.cpp \
+    opengl/x3dopenglrenderer.cpp \
+    compositor/wayland/qwindowcompositor.cpp \
+    x3d/x3dscene.cpp \
+    output/qwindowoutput.cpp \
+    output/openvroutput.cpp
 
 INCLUDEPATH+=/usr/local/include/CyberX3D-1.0 \
              /usr/include/bullet

@@ -9,7 +9,6 @@
 ******************************************************************/
 
 #include "x3dopenglrenderer.h"
-
 #define CX3D_SUPPORT_OPENGL
 #include <cybergarage/x3d/CyberX3D.h>
 using namespace CyberX3D;
@@ -18,7 +17,9 @@ using namespace CyberX3D;
 #include <QtGui/QOpenGLVertexArrayObject>
 #include <QtGui/QOpenGLBuffer>
 #include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLFunctions_4_3_Compatibility>
+#include <QtGui/QOpenGLFunctions_3_0>
+#include <QtOpenGLExtensions/QOpenGLExtensions>
+#include <QtGui/QOpenGLFramebufferObject>
 
 #include <math.h>
 const int OGL_RENDERING_TEXTURE = 0;
@@ -183,7 +184,6 @@ bool to_ray(const double (&finalMatrix)[16], const double (&in)[4], double (&out
 
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
-
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -198,7 +198,7 @@ bool X3DOpenGLRenderer::get_ray(double x, double y,
     double finalMatrix[16];
     double in[4];
 
-    __gluMultMatricesd(model, projection, finalMatrix);
+    __gluMultMatricesd(model, active_viewpoint.left.projection, finalMatrix);
     if (!__gluInvertMatrixd(finalMatrix, finalMatrix)) return false;
 
     in[0]=x;
@@ -207,8 +207,8 @@ bool X3DOpenGLRenderer::get_ray(double x, double y,
     in[3]=1.0;
 
     /* Map x and y from window coordinates */
-    in[0] = in[0] / width;
-    in[1] = in[1] / height;
+    in[0] = in[0] / active_viewpoint.left.viewport_width;
+    in[1] = in[1] / active_viewpoint.left.viewport_height;
 
     /* Map to range -1 to 1 */
     in[0] = in[0] * 2 - 1;
@@ -225,13 +225,7 @@ bool X3DOpenGLRenderer::get_ray(double x, double y,
 
 void X3DOpenGLRenderer::set_projection(double fovy, double aspect, double zNear, double zFar)
 {
-    create_projection(projection, fovy, aspect, zNear, zFar);
-}
-
-void X3DOpenGLRenderer::set_viewport(int width, int height)
-{
-    this->width = width;
-    this->height = height;
+    create_projection(active_viewpoint.left.projection, fovy, aspect, zNear, zFar);
 }
 
 ////////////////////////////////////////////////////////// 
@@ -372,9 +366,21 @@ void PopLightNode(LightNode *lightNode)
 		glDisable(GL_LIGHT0+gnLights);
 }
 
+VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
+{
+    VertexFormat new_format;
+    for (size_t i = 0; i < format.num_attribs; ++i) {
+        const GeometryRenderInfo::Attribute& attrib = format.attribs[i];
+        new_format.addAttribute(GL_UNSIGNED_BYTE, attrib.attrib_size, attrib.normalized, attrib.divisor);
+    }
+    return new_format;
+}
+
 void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
 {
-    const ContextPoolContext& context = current_context.localData();
+    ScopedContext context(this->context_pool, 0);
+    auto gl = context.context.gl;
+    auto vab = context.context.vab;
 
 	glPushMatrix ();
 
@@ -468,7 +474,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 		}
 
 		// Material
-		material = appearance->getMaterialNodes();
+        material = appearance->getMaterialNodes();
 		if (material) {
 			float	ambientIntesity = material->getAmbientIntensity();
 
@@ -499,8 +505,8 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 			glMateriali(GL_FRONT, GL_SHININESS, (int)(material->getShininess()*128.0));
 		}
 
-	}
-	
+    }
+
 	if (!appearance || !material) {
 		color[0] = 0.8f; color[1] = 0.8f; color[2] = 0.8f;
 		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
@@ -535,46 +541,28 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 	Geometry3DNode *gnode = shape->getGeometry3D();
     if (gnode) {
         GeometryRenderInfo::VertexArray array;
+        VertexFormat format = convert_to_internal(array.format);
         gnode->getVertexArray(array);
         if (array.num_verts > 0) {
-            QOpenGLVertexArrayObject* vao = NULL;
-            VertexFormatMap::iterator it_format = formats.find(array.format);
-            if (it_format == formats.end()) {
-                vao = new QOpenGLVertexArrayObject();
-                vao->bind();
-                for (int i = 0; i < array.format.num_attribs; ++i) {
-                    const GeometryRenderInfo::Attribute& attrib = array.format.attribs[i];
-                    context.gl->glEnableVertexAttribArray(i);
-                    context.gl->glVertexAttribFormat(i, attrib.attrib_size, GL_UNSIGNED_BYTE, attrib.normalized, attrib.offset);
-                    context.gl->glVertexAttribBinding(i, 0);
-                    context.gl->glVertexBindingDivisor(i, attrib.divisor);
-                }
-                formats[array.format] = vao;
-            } else {
-                vao = it_format->second;
-            }
+/* this will be done elsewhere*/
+            int vao = context.context.get_vao(format);
+            gl->glBindVertexArray(vao);
 
-            VertexFormatBufferMap::iterator it = buffers.find(vao);
-            if (it == buffers.end()) {
-                QOpenGLBuffer* vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-                vbo->create();
-                vbo->bind();
-                vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-                vbo->allocate(array.getBufferSize());
-                void *data = vbo->map(QOpenGLBuffer::ReadWrite);
-                gnode->getVertexData(data);
-                vbo->unmap();
-                buffers[vao] = vbo;
+            QOpenGLBuffer* vbo = get_buffer(format);
+            vbo->allocate(array.getBufferSize());
+            void *data = vbo->map(QOpenGLBuffer::ReadWrite);
+/* only this part will be done here */
+            gnode->getVertexData(data);
+/*  */
+            vbo->unmap();
+            vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.format.size);
 
-                context.gl->glBindVertexBuffer(0, vbo->bufferId(), 0, array.format.size);
-            } else {
-                context.gl->glBindVertexBuffer(0, it->second->bufferId(), 0, array.format.size);
-            }
             if (array.num_elements > 0) {
 
             } else {
                 glDrawArrays(GL_TRIANGLES, 0, 1);
             }
+/**/
         } else if (0 < gnode->getDisplayList()) {
             gnode->draw();
         }
@@ -642,8 +630,6 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 
 void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int drawMode)
 {
-    const ContextPoolContext& context = current_context.localData();
-
 	if (!firstNode)
 		return;
 
@@ -669,13 +655,13 @@ void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int dr
 
 void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
-    const ContextPoolContext& context = current_context.localData();
+    ScopedContext context(context_pool, 0);
 
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, active_viewpoint.left.viewport_width, active_viewpoint.left.viewport_height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    glMultMatrixd(&projection[0][0]);
+    glMultMatrixd(&active_viewpoint.left.projection[0][0]);
 
     const int drawMode = OGL_RENDERING_TEXTURE;
 
@@ -782,5 +768,6 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	/////////////////////////////////
 
 	glFlush();
-}
 
+    render_viewpoints();
+}
