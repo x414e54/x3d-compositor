@@ -26,7 +26,7 @@ public:
     OpenGLOutput();
     virtual ~OpenGLOutput();
     virtual void submit();
-    virtual void set_textures(int left, int right);
+    virtual void set_textures(int left, int right, size_t width, size_t height);
     virtual void set_renderbuffers(int depthleft, int depthright);
     bool is_quad_buffered()
     {
@@ -40,6 +40,8 @@ protected:
     bool quad_buffered;
     unsigned int left;
     unsigned int right;
+    size_t fbo_width;
+    size_t fbo_height;
     QOpenGLFunctions_3_2_Core* gl;
 };
 

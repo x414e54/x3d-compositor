@@ -15,6 +15,8 @@ public:
     virtual void swap_buffers();
     virtual void make_current();
     virtual void done_current();
+protected:
+    virtual void resizeEvent(QResizeEvent* event);
 private:
     QOpenGLContext* context;
     QOpenGLVertexArrayObject* vao;

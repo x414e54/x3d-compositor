@@ -299,7 +299,9 @@ void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
 
     if (set_textures && active_viewpoint.output != nullptr) {
         active_viewpoint.output->set_textures(active_viewpoint.left.render_target->texture(),
-                                             active_viewpoint.right.render_target->texture());
+                                              active_viewpoint.right.render_target->texture(),
+                                              width,
+                                              height);
     }
 }
 

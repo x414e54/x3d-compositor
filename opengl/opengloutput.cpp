@@ -2,7 +2,7 @@
 
 #include <QtGui/QOpenGLFunctions_3_2_Core>
 
-OpenGLOutput::OpenGLOutput() : left(0), right(0), gl(nullptr)
+OpenGLOutput::OpenGLOutput() : left(0), right(0), fbo_width(0), fbo_height(0), gl(nullptr)
 {
 }
 
@@ -19,18 +19,18 @@ void OpenGLOutput::submit()
         gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
         if (is_quad_buffered()) {
             gl->glDrawBuffer(GL_BACK_LEFT);
-            gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             gl->glDrawBuffer(GL_BACK_RIGHT);
             if (right != 0) {
                 gl->glBindFramebuffer(GL_READ_FRAMEBUFFER, right);
                 gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
-                gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                gl->glBlitFramebuffer(0, 0, fbo_width, fbo_width, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             } else {
-                gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             }
         } else {
             gl->glDrawBuffer(GL_BACK);
-            gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         }
     } else {
         gl->glClear(GL_COLOR_BUFFER_BIT);
@@ -42,14 +42,17 @@ void OpenGLOutput::set_renderbuffers(int depthleft, int depthright)
 
 }
 
-void OpenGLOutput::set_textures(int left, int right)
+void OpenGLOutput::set_textures(int left, int right, size_t width, size_t height)
 {
     ScopedOutputContext context(*this);
+    this->fbo_width = width;
+    this->fbo_height = height;
+
     if (this->left != 0) {
         gl->glDeleteFramebuffers(1, &this->left);
     }
 
-    if (left != 0) {
+    if (left != 0 && width > 0 && height > 0) {
         gl->glGenFramebuffers(1, &this->left);
         gl->glBindFramebuffer(GL_FRAMEBUFFER, this->left);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, left, 0);
@@ -59,7 +62,7 @@ void OpenGLOutput::set_textures(int left, int right)
         gl->glDeleteFramebuffers(1, &this->right);
     }
 
-    if (right != 0) {
+    if (right != 0 && width > 0 && height > 0) {
         gl->glGenFramebuffers(1, &this->right);
         gl->glBindFramebuffer(GL_FRAMEBUFFER, this->right);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, right, 0);
