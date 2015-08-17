@@ -103,6 +103,7 @@ bool ContextPoolContext::assign(std::thread::id thread)
 
 void ContextPoolContext::release()
 {
+    thread = std::thread::id();
     used.clear();
 }
 
