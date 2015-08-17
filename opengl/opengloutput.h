@@ -33,9 +33,9 @@ public:
         return quad_buffered;
     }
 
-    virtual void init_context(QOpenGLContext*) {}
-    virtual void make_current() {}
-    virtual void done_current() {}
+    virtual void init_context(QOpenGLContext*) = 0;
+    virtual void make_current() = 0;
+    virtual void done_current() = 0;
 protected:
     bool quad_buffered;
     unsigned int left;

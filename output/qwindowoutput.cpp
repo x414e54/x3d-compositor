@@ -9,6 +9,7 @@ QWindowOutput::QWindowOutput() : context(nullptr)
     QSurfaceFormat format;
     format.setMajorVersion(3);
     format.setMinorVersion(2);
+    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setRenderableType(QSurfaceFormat::OpenGL);
     setFormat(format);

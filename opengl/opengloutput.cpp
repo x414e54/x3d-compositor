@@ -15,15 +15,15 @@ void OpenGLOutput::submit()
 {
     ScopedOutputContext context(*this);
     if (left != 0) {
-        gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
-        gl->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         gl->glBindFramebuffer(GL_READ_FRAMEBUFFER, left);
+        gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
         if (is_quad_buffered()) {
             gl->glDrawBuffer(GL_BACK_LEFT);
             gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             gl->glDrawBuffer(GL_BACK_RIGHT);
             if (right != 0) {
                 gl->glBindFramebuffer(GL_READ_FRAMEBUFFER, right);
+                gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
                 gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             } else {
                 gl->glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -64,4 +64,6 @@ void OpenGLOutput::set_textures(int left, int right)
         gl->glBindFramebuffer(GL_FRAMEBUFFER, this->right);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, right, 0);
     }
+    gl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    gl->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }

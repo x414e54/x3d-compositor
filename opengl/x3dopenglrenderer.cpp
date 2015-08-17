@@ -658,6 +658,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
     ScopedContext context(context_pool, 0);
     context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
         context.context.get_fbo(active_viewpoint.left.render_target->texture()));
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
     glViewport(0, 0, active_viewpoint.left.viewport_width, active_viewpoint.left.viewport_height);
     glMatrixMode(GL_PROJECTION);

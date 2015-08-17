@@ -133,11 +133,10 @@ public:
 class Viewpoint
 {
 public:
-    static OpenGLOutput null_output;
-    Viewpoint() : output(null_output) {}
+    Viewpoint() : output(nullptr) {}
     RenderOuputGroup left;
     RenderOuputGroup right;
-    OpenGLOutput& output;
+    OpenGLOutput* output;
 };
 
 typedef std::map<VertexFormat, QOpenGLBuffer*> VertexFormatBufferMap;

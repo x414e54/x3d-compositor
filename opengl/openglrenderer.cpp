@@ -16,8 +16,6 @@
 
 #include "opengloutput.h"
 
-OpenGLOutput Viewpoint::null_output;
-
 static void debug_callback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *msg, const void *data )
 {
     std::cout << msg;
@@ -248,8 +246,8 @@ OpenGLRenderer::~OpenGLRenderer()
 void OpenGLRenderer::set_viewpoint_output(int id, OpenGLOutput& output)
 {
     ScopedContext context(this->context_pool, 0);
-    output.init_context(this->context_pool.share_context);
-    active_viewpoint.output = output;
+    active_viewpoint.output = &output;
+    active_viewpoint.output->init_context(this->context_pool.share_context);
     active_viewpoint.left.enabled = output.is_enabled();
     active_viewpoint.right.enabled = output.is_enabled() && output.is_stereo();
 }
@@ -296,8 +294,8 @@ void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
         set_textures = true;
     }
 
-    if (set_textures) {
-        active_viewpoint.output.set_textures(active_viewpoint.left.render_target->texture(),
+    if (set_textures && active_viewpoint.output != nullptr) {
+        active_viewpoint.output->set_textures(active_viewpoint.left.render_target->texture(),
                                              active_viewpoint.right.render_target->texture());
     }
 }
@@ -333,5 +331,7 @@ void OpenGLRenderer::render_viewpoints()
     left_render.waitForFinished();
     right_render.waitForFinished();
 
-    active_viewpoint.output.submit();
+    if (active_viewpoint.output != nullptr) {
+        active_viewpoint.output->submit();
+    }
 }
