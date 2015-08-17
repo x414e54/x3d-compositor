@@ -229,8 +229,10 @@ ContextPoolContext& ContextPool::assign_context(int named_id)
 
 void ContextPool::return_context(ContextPoolContext& context)
 {
-    if (thread_pool_context == &context && context.decrement()) {
-        thread_pool_context = nullptr;
+    if (context.decrement()) {
+        if (thread_pool_context == &context) {
+            thread_pool_context = nullptr;
+        }
         context.release();
     }
 }
