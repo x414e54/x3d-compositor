@@ -17,6 +17,7 @@ class QOpenGLFramebufferObject;
 class QOpenGLExtension_ARB_multi_draw_indirect;
 class QOpenGLExtension_ARB_vertex_attrib_binding;
 class QOpenGLExtension_ARB_separate_shader_objects;
+class QOpenGLExtension_ARB_debug_output;
 class QOpenGLFunctions_3_0;
 
 // Split this into smaller headers
@@ -27,26 +28,22 @@ public:
     size_t type;
     size_t attrib_size;
     bool normalized;
-    size_t divisor;
 
-    Attribute() : type(0), attrib_size(0), normalized(false), divisor(0) {}
+    Attribute() : type(0), attrib_size(0), normalized(false) {}
 
-    Attribute(size_t type, size_t attrib_size, bool normalized, size_t divisor)
-        : type(type), attrib_size(attrib_size), normalized(normalized),
-          divisor(divisor) {}
+    Attribute(size_t type, size_t attrib_size, bool normalized)
+        : type(type), attrib_size(attrib_size), normalized(normalized) {}
 
     bool operator<(const Attribute& b) const {
         return this->type < b.type &&
                this->normalized < b.normalized &&
-               this->attrib_size < b.attrib_size &&
-               this->divisor < b.divisor;
+               this->attrib_size < b.attrib_size;
     }
 
     bool operator==(const Attribute& b) const {
         return this->type == b.type &&
                this->normalized == b.normalized &&
-               this->attrib_size == b.attrib_size &&
-               this->divisor == b.divisor;
+               this->attrib_size == b.attrib_size;
     }
 };
 
@@ -58,10 +55,10 @@ public:
     Attribute attribs[MAX_ATTRIBUTES];
     VertexFormat() : num_attribs(0) {}
 
-    void addAttribute(size_t type, size_t attrib_size, bool normalized, size_t divisor)
+    void addAttribute(size_t type, size_t attrib_size, bool normalized)
     {
         if (num_attribs < MAX_ATTRIBUTES - 1) {
-            attribs[num_attribs++] = Attribute(type, attrib_size, normalized, divisor);
+            attribs[num_attribs++] = Attribute(type, attrib_size, normalized);
         }
     }
 
@@ -184,6 +181,7 @@ public:
     QOpenGLExtension_ARB_multi_draw_indirect* indirect;
     QOpenGLExtension_ARB_vertex_attrib_binding* vab;
     QOpenGLExtension_ARB_separate_shader_objects* sso;
+    QOpenGLExtension_ARB_debug_output* debug;
     QOpenGLFunctions_3_0* gl;
     RenderTargetFboMap fbos;
     VertexFormatVaoMap vaos;

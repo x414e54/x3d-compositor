@@ -1,6 +1,7 @@
 #include "openglrenderer.h"
 
 #include <thread>
+#include <iostream>
 
 #include <QtGui/QOpenGLShaderProgram>
 #include <QtGui/QOpenGLVertexArrayObject>
@@ -17,6 +18,11 @@
 
 OpenGLOutput Viewpoint::null_output;
 
+static void debug_callback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *msg, const void *data )
+{
+    std::cout << msg;
+}
+
 ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reserved)
     : reserved(reserved), count(0), surface(NULL), context(NULL)
 {
@@ -27,6 +33,7 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
     format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setProfile(QSurfaceFormat::CompatibilityProfile);
+    format.setOption(QSurfaceFormat::DebugContext);
     surface = new QOffscreenSurface();
     surface->setFormat(format);
     surface->create();
@@ -37,6 +44,7 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     context = new QOpenGLContext();
     context->setShareContext(share_context);
     context->setFormat(surface->requestedFormat());
+
     if (!context->create()) {
         throw;
     }
@@ -58,6 +66,11 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     if (!sso->initializeOpenGLFunctions()) {
         throw;
     }
+    debug = new QOpenGLExtension_ARB_debug_output();
+    if (!debug->initializeOpenGLFunctions()) {
+        throw;
+    }
+    debug->glDebugMessageCallbackARB(debug_callback, nullptr);
     context->doneCurrent();
     context->moveToThread(nullptr);
 }

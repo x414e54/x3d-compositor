@@ -371,7 +371,7 @@ VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
     VertexFormat new_format;
     for (size_t i = 0; i < format.num_attribs; ++i) {
         const GeometryRenderInfo::Attribute& attrib = format.attribs[i];
-        new_format.addAttribute(GL_UNSIGNED_BYTE, attrib.attrib_size, attrib.normalized, attrib.divisor);
+        new_format.addAttribute(GL_UNSIGNED_BYTE, attrib.attrib_size, attrib.normalized);
     }
     return new_format;
 }
@@ -540,10 +540,10 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 
 	Geometry3DNode *gnode = shape->getGeometry3D();
     if (gnode) {
-        GeometryRenderInfo::VertexArray array;
-        VertexFormat format = convert_to_internal(array.format);
-        gnode->getVertexArray(array);
-        if (array.num_verts > 0) {
+        if (gnode->getNumVertexArrays() > 0) {
+            GeometryRenderInfo::VertexArray array;
+            VertexFormat format = convert_to_internal(array.format);
+
 /* this will be done elsewhere*/
             int vao = context.context.get_vao(format);
             gl->glBindVertexArray(vao);
@@ -552,7 +552,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             vbo->allocate(array.getBufferSize());
             void *data = vbo->map(QOpenGLBuffer::ReadWrite);
 /* only this part will be done here */
-            gnode->getVertexData(data);
+            gnode->getVertexData(array, data);
 /*  */
             vbo->unmap();
             vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.format.size);
@@ -656,6 +656,8 @@ void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int dr
 void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
     ScopedContext context(context_pool, 0);
+    context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
+        context.context.get_fbo(active_viewpoint.left.render_target->texture()));
 
     glViewport(0, 0, active_viewpoint.left.viewport_width, active_viewpoint.left.viewport_height);
     glMatrixMode(GL_PROJECTION);

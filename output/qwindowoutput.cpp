@@ -58,6 +58,7 @@ void QWindowOutput::init_context(QOpenGLContext* share_context)
     }
     vao = new QOpenGLVertexArrayObject();
     vao->bind();
+
     context->doneCurrent();
 }
 
