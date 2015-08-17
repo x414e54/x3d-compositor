@@ -65,16 +65,13 @@ void QWindowOutput::init_context(QOpenGLContext* share_context)
 
 void QWindowOutput::swap_buffers()
 {
-    if (context != nullptr) {
-        throw;
-    }
-
-    context->swapBuffers(this);
+    ScopedOutputContext context(*this);
+    this->context->swapBuffers(this);
 }
 
 void QWindowOutput::make_current()
 {
-    if (context != nullptr) {
+    if (context == nullptr) {
         throw;
     }
     context->makeCurrent(this);
@@ -82,7 +79,7 @@ void QWindowOutput::make_current()
 
 void QWindowOutput::done_current()
 {
-    if (context != nullptr) {
+    if (context == nullptr) {
         throw;
     }
     context->doneCurrent();
