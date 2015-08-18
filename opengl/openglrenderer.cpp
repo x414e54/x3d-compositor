@@ -130,6 +130,9 @@ int ContextPoolContext::get_fbo(int render_target_id)
         gl->glGenFramebuffers(1, &fbo);
         gl->glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_target_id, 0);
+        if (gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                throw;
+        }
         fbos[render_target_id] = fbo;
         return fbo;
     } else {

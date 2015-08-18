@@ -1,5 +1,7 @@
 #include "qwindowoutput.h"
 
+#include <iostream>
+
 #include <QOpenGLContext>
 #include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtGui/QOpenGLVertexArrayObject>
@@ -26,6 +28,38 @@ QWindowOutput::QWindowOutput() : context(nullptr)
 QWindowOutput::~QWindowOutput()
 {
 
+}
+
+static void mesa_hack(QOpenGLFunctions_3_2_Core* gl)
+{
+    int mesa_hack = gl->glCreateProgram();
+    int mesa_hack_vp = gl->glCreateShader(GL_VERTEX_SHADER);
+    int mesa_hack_fp = gl->glCreateShader(GL_FRAGMENT_SHADER);
+    const char* empty = "#version 150\nvoid main() {}";
+    gl->glShaderSource(mesa_hack_vp, 1, &empty, nullptr);
+    gl->glCompileShader(mesa_hack_vp);
+    gl->glShaderSource(mesa_hack_fp, 1, &empty, nullptr);
+    gl->glCompileShader(mesa_hack_fp);
+    gl->glAttachShader(mesa_hack, mesa_hack_vp);
+    gl->glAttachShader(mesa_hack, mesa_hack_fp);
+    gl->glLinkProgram(mesa_hack);
+    GLint valid = GL_FALSE;
+    gl->glGetProgramiv(mesa_hack, GL_LINK_STATUS, &valid);
+    if (valid == GL_FALSE) {
+        throw;
+    }
+    gl->glUseProgram(mesa_hack);
+    float vertex[] = {
+        0.0f,  0.0f,  0.0f
+    };
+    GLuint vbo = 0;
+    gl->glGenBuffers(1, &vbo);
+    gl->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    gl->glBufferData(GL_ARRAY_BUFFER, sizeof(vertex), vertex, GL_STATIC_DRAW);
+    gl->glEnableVertexAttribArray (0);
+    gl->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    gl->glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    gl->glDrawArrays(GL_TRIANGLES, 0, 1);
 }
 
 void QWindowOutput::init_context(QOpenGLContext* share_context)
@@ -60,6 +94,8 @@ void QWindowOutput::init_context(QOpenGLContext* share_context)
     }
     vao = new QOpenGLVertexArrayObject();
     vao->bind();
+
+    mesa_hack(gl);
 
     context->doneCurrent();
 }

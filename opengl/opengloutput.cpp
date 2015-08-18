@@ -56,6 +56,9 @@ void OpenGLOutput::set_textures(int left, int right, size_t width, size_t height
         gl->glGenFramebuffers(1, &this->left);
         gl->glBindFramebuffer(GL_FRAMEBUFFER, this->left);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, left, 0);
+        if (gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                throw;
+        }
     }
 
     if (this->right != 0) {
@@ -66,6 +69,9 @@ void OpenGLOutput::set_textures(int left, int right, size_t width, size_t height
         gl->glGenFramebuffers(1, &this->right);
         gl->glBindFramebuffer(GL_FRAMEBUFFER, this->right);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, right, 0);
+        if (gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                throw;
+        }
     }
     gl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     gl->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
