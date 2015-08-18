@@ -566,7 +566,9 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             vbo->allocate(array.getBufferSize());
             void *data = vbo->map(QOpenGLBuffer::ReadWrite);
 /* only this part will be done here */
-            gnode->getVertexData(data, 0);
+            if (gnode->isBoxNode()) {
+                ((BoxNode*)gnode)->getVertexData(0, data);
+            }
 /*  */
             vbo->unmap();
             vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.getFormat().getSize());
@@ -574,7 +576,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             if (array.getNumElements() > 0) {
 
             } else {
-                glDrawArrays(GL_TRIANGLES, 0, 1);
+                glDrawArrays(GL_TRIANGLES, 0, array.getNumVertices());
             }
 /**/
         } else if (0 < gnode->getDisplayList()) {
@@ -725,7 +727,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
 
-	glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHTING);
 //	glShadeModel (GL_FLAT);
 	glShadeModel (GL_SMOOTH);
 
