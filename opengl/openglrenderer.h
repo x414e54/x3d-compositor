@@ -21,29 +21,29 @@ class QOpenGLExtension_ARB_debug_output;
 class QOpenGLFunctions_3_0;
 
 // Split this into smaller headers
-
 class Attribute
 {
 public:
     size_t type;
-    size_t attrib_size;
+    size_t components;
     bool normalized;
+    size_t offset;
 
-    Attribute() : type(0), attrib_size(0), normalized(false) {}
+    Attribute() : type(0), components(0), normalized(false), offset(0) {}
 
-    Attribute(size_t type, size_t attrib_size, bool normalized)
-        : type(type), attrib_size(attrib_size), normalized(normalized) {}
+    Attribute(size_t type, size_t components, bool normalized, size_t offset)
+        : type(type), components(components), normalized(normalized), offset(offset) {}
 
     bool operator<(const Attribute& b) const {
         return this->type < b.type &&
                this->normalized < b.normalized &&
-               this->attrib_size < b.attrib_size;
+               this->components < b.components;
     }
 
     bool operator==(const Attribute& b) const {
         return this->type == b.type &&
                this->normalized == b.normalized &&
-               this->attrib_size == b.attrib_size;
+               this->components == b.components;
     }
 };
 
@@ -55,10 +55,10 @@ public:
     Attribute attribs[MAX_ATTRIBUTES];
     VertexFormat() : num_attribs(0) {}
 
-    void addAttribute(size_t type, size_t attrib_size, bool normalized)
+    void addAttribute(size_t type, size_t components, bool normalized, size_t offset)
     {
         if (num_attribs < MAX_ATTRIBUTES - 1) {
-            attribs[num_attribs++] = Attribute(type, attrib_size, normalized);
+            attribs[num_attribs++] = Attribute(type, components, normalized, offset);
         }
     }
 

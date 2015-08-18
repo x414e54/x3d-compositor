@@ -369,9 +369,22 @@ void PopLightNode(LightNode *lightNode)
 VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
 {
     VertexFormat new_format;
-    for (size_t i = 0; i < format.num_attribs; ++i) {
-        const GeometryRenderInfo::Attribute& attrib = format.attribs[i];
-        new_format.addAttribute(GL_UNSIGNED_BYTE, attrib.attrib_size, attrib.normalized);
+    for (size_t i = 0; i < format.getNumAttributes(); ++i) {
+        const GeometryRenderInfo::Attribute* attrib = format.getAttribute(i);
+        GLenum type = GL_INVALID_ENUM;
+        const std::type_info& cpp_type = attrib->getType();
+        if (cpp_type == typeid(int) || cpp_type == typeid(unsigned int)) {
+            type = GL_UNSIGNED_INT;
+        } else if (cpp_type == typeid(short) || cpp_type == typeid(unsigned short)) {
+            type = GL_UNSIGNED_SHORT;
+        } else if (cpp_type == typeid(char) || cpp_type == typeid(unsigned char)) {
+            type = GL_UNSIGNED_BYTE;
+        } else if (cpp_type == typeid(float)) {
+            type = GL_FLOAT;
+        } else if (cpp_type == typeid(double)) {
+            type = GL_DOUBLE;
+        }
+        new_format.addAttribute(type, attrib->getComponents(), attrib->getNormalized(), attrib->getOffset());
     }
     return new_format;
 }
@@ -543,7 +556,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
         if (gnode->getNumVertexArrays() > 0) {
             GeometryRenderInfo::VertexArray array;
             gnode->getVertexArray(array, 0);
-            VertexFormat format = convert_to_internal(array.format);
+            VertexFormat format = convert_to_internal(array.getFormat());
 
 /* this will be done elsewhere*/
             int vao = context.context.get_vao(format);
@@ -553,12 +566,12 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             vbo->allocate(array.getBufferSize());
             void *data = vbo->map(QOpenGLBuffer::ReadWrite);
 /* only this part will be done here */
-            gnode->getVertexData(array, data);
+            gnode->getVertexData(data, 0);
 /*  */
             vbo->unmap();
-            vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.format.size);
+            vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.getFormat().getSize());
 
-            if (array.num_elements > 0) {
+            if (array.getNumElements() > 0) {
 
             } else {
                 glDrawArrays(GL_TRIANGLES, 0, 1);
