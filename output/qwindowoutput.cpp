@@ -125,6 +125,6 @@ void QWindowOutput::done_current()
 void QWindowOutput::resizeEvent(QResizeEvent* event)
 {
    QWindow::resizeEvent(event);
-   this->output_height = event->size().width();
-   this->output_width = event->size().height();
+   this->output_height = event->size().height();
+   this->output_width = event->size().width();
 }
