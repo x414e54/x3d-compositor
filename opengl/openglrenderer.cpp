@@ -163,6 +163,7 @@ int ContextPoolContext::get_vao(const VertexFormat& format)
         for (size_t i = 0; i < format.num_attribs; ++i) {
             const Attribute& attrib = format.attribs[i];
             gl->glEnableVertexAttribArray(i);
+            vab->glVertexAttribBinding(i, 0);
             vab->glVertexAttribFormat(i, attrib.attrib_size, GL_UNSIGNED_BYTE, attrib.normalized, offset);
             offset += attrib.attrib_size;
         }
@@ -313,10 +314,9 @@ QOpenGLBuffer* OpenGLRenderer::get_buffer(const VertexFormat& format)
     VertexFormatBufferMap::iterator it = buffers.find(format);
     if (it == buffers.end()) {
         QOpenGLBuffer* vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+        vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
         vbo->create();
         vbo->bind();
-        vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-        vbo->unmap();
         buffers[format] = vbo;
         return vbo;
     } else {

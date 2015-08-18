@@ -154,16 +154,25 @@ public:
         if (!old.assign(std::this_thread::get_id()) || count > 0) {
             throw;
         }
+        fbos = std::move(old.fbos);
+        pipelines = std::move(old.pipelines);
+        vaos = std::move(old.vaos);
         surface = old.surface;
         context = old.context;
         gl = old.gl;
         indirect = old.indirect;
         reserved = old.reserved;
+        vab = old.vab;
+        sso = old.sso;
+        debug = old.debug;
         old.reserved = false;
         old.surface = nullptr;
         old.context = nullptr;
         old.gl = nullptr;
         old.indirect = nullptr;
+        old.sso = nullptr;
+        old.debug = nullptr;
+        old.vab = nullptr;
         old.used.clear();
     }
 

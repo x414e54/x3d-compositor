@@ -542,6 +542,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
     if (gnode) {
         if (gnode->getNumVertexArrays() > 0) {
             GeometryRenderInfo::VertexArray array;
+            gnode->getVertexArray(array, 0);
             VertexFormat format = convert_to_internal(array.format);
 
 /* this will be done elsewhere*/
