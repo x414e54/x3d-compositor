@@ -559,10 +559,10 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             VertexFormat format = convert_to_internal(array.getFormat());
 
 /* this will be done elsewhere*/
-            int vao = context.context.get_vao(format);
-            gl->glBindVertexArray(vao);
+            gl->glBindVertexArray(0);
 
             QOpenGLBuffer* vbo = get_buffer(format);
+            vbo->bind();
             vbo->allocate(array.getBufferSize());
             void *data = vbo->map(QOpenGLBuffer::ReadWrite);
 /* only this part will be done here */
@@ -571,7 +571,13 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             }
 /*  */
             vbo->unmap();
-            vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.getFormat().getSize());
+
+            glEnableClientState(GL_NORMAL_ARRAY);
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            glVertexPointer(3, GL_FLOAT, 32, 0);
+            glNormalPointer(GL_FLOAT, 32, (void*)12);
+            glTexCoordPointer(2, GL_FLOAT, 32, (void*)24);
 
             if (array.getNumElements() > 0) {
 
@@ -651,10 +657,10 @@ void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int dr
 
 	Node	*node;
 
-//	for (node = firstNode; node; node=node->next()) {
-//		if (node->isLightNode())
-//			PushLightNode((LightNode *)node);
-//	}
+    for (node = firstNode; node; node=node->next()) {
+        if (node->isLightNode())
+            PushLightNode((LightNode *)node);
+    }
 
 	for (node = firstNode; node; node=node->next()) {
 		if (node->isShapeNode()) 
@@ -663,10 +669,10 @@ void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int dr
 			DrawNode(sceneGraph, node->getChildNodes(), drawMode);
 	}
 
-//	for (node = firstNode; node; node=node->next()) {
-//		if (node->isLightNode())
-//			PopLightNode((LightNode *)node);
-//	}
+    for (node = firstNode; node; node=node->next()) {
+        if (node->isLightNode())
+            PopLightNode((LightNode *)node);
+    }
 }
 
 void X3DOpenGLRenderer::render(SceneGraph *sg)
