@@ -513,7 +513,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 			}
 
             material->getDiffuseColor(node.diffuseColor);
-            node.diffuseColor[3] = material->getTransparency();
+            node.diffuseColor[3] = 1 - material->getTransparency();
             material->getSpecularColor(node.specularColor);
             material->getEmissiveColor(node.emissiveColor);
             node.shininess = material->getShininess();

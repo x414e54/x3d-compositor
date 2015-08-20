@@ -21,7 +21,7 @@ layout(location = 0) out _vertex
 
 void main()
 {
-    gl_Position = view_projection * model * vec4(position, 1.0);
+    gl_Position.xyz = position; //view_projection * model * vec4(position, 1.0);
     vertex.position = (view * model * vec4(position, 1.0)).rgb;
     vertex.normal = normal;
     vertex.texcoord = texcoord;

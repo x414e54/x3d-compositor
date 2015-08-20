@@ -27,7 +27,7 @@ public:
     virtual ~OpenGLOutput();
     virtual void submit();
     virtual void set_textures(int left, int right, size_t width, size_t height);
-    virtual void set_renderbuffers(int depthleft, int depthright);
+    virtual void set_depth_textures(int depthleft, int depthright);
     bool is_quad_buffered()
     {
         return quad_buffered;

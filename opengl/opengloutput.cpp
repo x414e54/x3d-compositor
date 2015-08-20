@@ -37,7 +37,7 @@ void OpenGLOutput::submit()
     }
 }
 
-void OpenGLOutput::set_renderbuffers(int depthleft, int depthright)
+void OpenGLOutput::set_depth_textures(int depthleft, int depthright)
 {
 
 }
