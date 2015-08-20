@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file alias="background.jpg">./background.jpg</file>
-        <file alias="home.x3d">./home.x3d</file>
+        <file alias="home.x3d">home.x3d</file>
+        <file>shaders/default.frag</file>
+        <file>shaders/default.vert</file>
     </qresource>
 </RCC>

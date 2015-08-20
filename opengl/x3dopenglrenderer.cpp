@@ -204,13 +204,23 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
     ScopedContext context(context_pool, 0);
     Material& material = get_material("default");
-    QFile vert("./shaders/default.vert");
-    QFile frag("./shaders/default.vert");
+    QFile vert(":/shaders/default.vert");
+    QFile frag(":/shaders/default.frag");
+
+    if (!vert.open(QIODevice::ReadOnly) ||
+        !frag.open(QIODevice::ReadOnly)) {
+        throw;
+    }
 
     QByteArray vert_data = vert.readAll();
-    char* vert_list[1] = {vert_data.data()};
     QByteArray frag_data = frag.readAll();
-    char* frag_list[1] = {frag_data.data()};
+
+    if (vert_data.size() == 0 || frag_data.size() == 0) {
+        throw;
+    }
+
+    const char* vert_list[1] = {vert_data.constData()};
+    const char* frag_list[1] = {frag_data.constData()};
     material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vert_list);
     material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
     context.context.gl->glGenBuffers(1, &material.params);
