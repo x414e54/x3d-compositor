@@ -244,6 +244,13 @@ public:
     ContextPoolContext& context;
 };
 
+typedef struct {
+    uint  count;
+    uint  instanceCount;
+    uint  first;
+    uint  baseInstance;
+} DrawArraysIndirectCommand;
+
 class OpenGLRenderer
 {
 public:
@@ -260,7 +267,7 @@ protected:
 
     std::map<std::string, Material> materials;
     unsigned int global_uniforms;
-    QOpenGLBuffer* draw_calls;
+    unsigned int draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;
 private:

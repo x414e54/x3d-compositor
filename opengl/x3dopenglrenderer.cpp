@@ -247,6 +247,10 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     context.context.gl->glGenBuffers(1, &this->global_uniforms);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
+
+    context.context.gl->glGenBuffers(1, &this->draw_calls);
+    context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
+    context.context.gl->glBufferData(GL_DRAW_INDIRECT_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -576,7 +580,16 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             if (array.getNumElements() > 0) {
 
             } else {
-                glDrawArrays(GL_TRIANGLES, 0, array.getNumVertices());
+                gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
+                void* data = gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT);
+                DrawArraysIndirectCommand cmd = {array.getNumVertices(), 1, 0, 0};
+                memcpy(data, &cmd, sizeof(cmd));
+                gl->glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+                DrawBatch batch;
+                batch.primitive_type = GL_TRIANGLES;
+                batch.num_draws = 1;
+                batch.buffer_offset = 0;
+                context.context.indirect->glMultiDrawArraysIndirect(batch.primitive_type, (const void*)batch.buffer_offset, batch.num_draws, 0);
             }
 /**/
         }
