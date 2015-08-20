@@ -15,6 +15,7 @@ QWindowOutput::QWindowOutput() : context(nullptr)
     format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setRenderableType(QSurfaceFormat::OpenGL);
+    setMinimumSize(QSize(800, 600));
     setFormat(format);
     setSurfaceType(OpenGLSurface);
     create();
