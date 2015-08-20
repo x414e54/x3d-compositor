@@ -61,8 +61,8 @@ public:
         : type(type), components(components), normalized(normalized), offset(offset) {}
 
     bool operator<(const Attribute& b) const {
-        return this->type < b.type &&
-               this->normalized < b.normalized &&
+        return this->type < b.type ||
+               this->normalized < b.normalized ||
                this->components < b.components;
     }
 
@@ -90,19 +90,23 @@ public:
 
     bool operator<(const VertexFormat& b) const {
 
-        if (this->num_attribs >= b.num_attribs) {
+        if (this->num_attribs > b.num_attribs) {
             return false;
+        } else if (this->num_attribs > b.num_attribs) {
+            return true;
         }
 
         for (size_t i = 0; i < num_attribs; ++i) {
             const Attribute& attrib_a = this->attribs[i];
             const Attribute& attrib_b = b.attribs[i];
-            if (!(attrib_a < attrib_b)) {
+            if (attrib_a < attrib_b) {
+                return true;
+            } else if (!(attrib_a == attrib_b)) {
                 return false;
             }
         }
 
-        return true;
+        return false;
     }
 
     bool operator==(const VertexFormat& b) const {
@@ -134,6 +138,12 @@ public:
     int primitive_type;
 };
 
+class ShaderPass
+{
+    int render_target_in;
+    int render_target_out;
+};
+
 class Material
 {
 public:
@@ -154,11 +164,49 @@ struct GlobalParameters
     float view_projection[4][4];
 };
 
+class RenderTarget
+{
+public:
+    static const size_t MAX_ATTACHMENTS = 4;
+
+    RenderTarget(size_t num_attachments, bool depth)
+        : width(0), height(0), num_attachments(num_attachments),
+          use_depth(depth), initialized(false)
+    {
+    }
+
+    unsigned int attachments[MAX_ATTACHMENTS];
+    unsigned int depth;
+    size_t width;
+    size_t height;
+    size_t num_attachments;
+    bool use_depth;
+    bool initialized;
+
+    bool operator<(const RenderTarget& b) const {
+        if (this->num_attachments > b.num_attachments) {
+            return false;
+        } else if (this->num_attachments < b.num_attachments) {
+            return true;
+        }
+
+        for (size_t i = 0; i < num_attachments; ++i) {
+            if (this->attachments[i] < b.attachments[i]) {
+                return true;
+            } else if (this->attachments[i] > b.attachments[i]) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+};
+
 class RenderOuputGroup
 {
 public:
-    RenderOuputGroup() :  enabled(false), render_target(nullptr),
-        viewport_width(0), viewport_height(0), uniform_offset(0)
+    RenderOuputGroup() :  enabled(false), uniform_offset(0),
+        g_buffer(4, true), back_buffer(1, true)
     {
         reset(projection);
         reset(view_offset);
@@ -167,10 +215,9 @@ public:
     Scalar projection[4][4];
     Scalar view_offset[4][4];
     bool enabled;
-    QOpenGLFramebufferObject* render_target;
-    size_t viewport_width;
-    size_t viewport_height;
     size_t uniform_offset;
+    RenderTarget g_buffer;
+    RenderTarget back_buffer;
 };
 
 class Viewpoint
@@ -184,7 +231,7 @@ public:
 
 typedef std::map<VertexFormat, QOpenGLBuffer*> VertexFormatBufferMap;
 typedef std::map<VertexFormat, int> VertexFormatVaoMap;
-typedef std::map<int, int> RenderTargetFboMap;
+typedef std::map<RenderTarget, int> RenderTargetFboMap;
 typedef std::map<Material, int> MaterialPipelineMap;
 
 class ContextPoolContext
@@ -240,7 +287,7 @@ public:
     MaterialPipelineMap pipelines;
 
     int get_vao(const VertexFormat& format);
-    int get_fbo(int id);
+    int get_fbo(const RenderTarget& render_target);
     int get_pipeline(const Material& material);
 
     bool make_current();

@@ -26,6 +26,7 @@ public:
 protected:
     QOpenGLBuffer* get_buffer(const VertexFormat& format);
     Material& get_material(const std::string& name);
+    void set_render_target_size(RenderTarget& rt, size_t width, size_t height);
 
     static void render_viewpoint(OpenGLRenderer* renderer, const RenderOuputGroup& output, int context_id);
 

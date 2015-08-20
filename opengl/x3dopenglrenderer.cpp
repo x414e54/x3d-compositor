@@ -189,8 +189,8 @@ bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
     in[3]=1.0;
 
     /* Map x and y from window coordinates */
-    in[0] = in[0] / active_viewpoint.left.viewport_width;
-    in[1] = in[1] / active_viewpoint.left.viewport_height;
+    in[0] = in[0] / active_viewpoint.left.back_buffer.width;
+    in[1] = in[1] / active_viewpoint.left.back_buffer.height;
 
     /* Map to range -1 to 1 */
     in[0] = in[0] * 2 - 1;

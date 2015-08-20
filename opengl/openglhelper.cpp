@@ -122,18 +122,27 @@ bool ContextPoolContext::make_current()
     }
 }
 
-int ContextPoolContext::get_fbo(int render_target_id)
+int ContextPoolContext::get_fbo(const RenderTarget& render_target)
 {
-    RenderTargetFboMap::iterator it = fbos.find(render_target_id);
+    RenderTargetFboMap::iterator it = fbos.find(render_target);
     if (it == fbos.end()) {
         unsigned int fbo = 0;
         gl->glGenFramebuffers(1, &fbo);
         gl->glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_target_id, 0);
+        for (size_t i = 0; i < render_target.num_attachments; ++i) {
+            gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
+                                       GL_TEXTURE_2D, render_target.attachments[i], 0);
+        }
+
+        if (render_target.use_depth) {
+            gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                                       GL_TEXTURE_2D, render_target.depth, 0);
+        }
+
         if (gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
                 throw;
         }
-        fbos[render_target_id] = fbo;
+        fbos[render_target] = fbo;
         return fbo;
     } else {
         return it->second;

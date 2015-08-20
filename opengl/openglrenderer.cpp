@@ -47,16 +47,18 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
     ScopedContext context(renderer->context_pool, context_id);
 
     context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
-        context.context.get_fbo(output.render_target->texture()));
-    context.context.gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    context.context.gl->glViewport(0, 0, output.viewport_width, output.viewport_height);
+        context.context.get_fbo(output.g_buffer));
+    GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                        GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+    context.context.gl->glDrawBuffers(output.g_buffer.num_attachments, buffers);
+    context.context.gl->glViewport(0, 0, output.g_buffer.width, output.g_buffer.height);
 
-    glEnable(GL_DEPTH_TEST);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-    glClearColor(renderer->clear_color[0], renderer->clear_color[1],
-                 renderer->clear_color[2], renderer->clear_color[3]);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    context.context.gl->glEnable(GL_DEPTH_TEST);
+    context.context.gl->glCullFace(GL_BACK);
+    context.context.gl->glEnable(GL_CULL_FACE);
+    context.context.gl->glClearColor(renderer->clear_color[0], renderer->clear_color[1],
+                                     renderer->clear_color[2], renderer->clear_color[3]);
+    context.context.gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, output.uniform_offset);
     context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms);
@@ -74,40 +76,30 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
         }
     }
+
+    context.context.gl->glBindFramebuffer(GL_READ_FRAMEBUFFER,
+        context.context.get_fbo(output.g_buffer));
+    context.context.gl->glBindFramebuffer(GL_DRAW_FRAMEBUFFER,
+        context.context.get_fbo(output.back_buffer));
+    context.context.gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
+    context.context.gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    context.context.gl->glBlitFramebuffer(0, 0, output.g_buffer.width, output.g_buffer.height,
+                                          0, 0, output.back_buffer.width, output.back_buffer.height,
+                                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
 {
     ScopedContext context(this->context_pool, 0);
 
-    QOpenGLFramebufferObjectFormat format;
-    format.setSamples(0);
-    format.setMipmap(false);
-    format.setAttachment(QOpenGLFramebufferObject::NoAttachment);
-    format.setTextureTarget(GL_TEXTURE_2D);
+    set_render_target_size(active_viewpoint.left.g_buffer, width, height);
+    set_render_target_size(active_viewpoint.left.back_buffer, width, height);
+    set_render_target_size(active_viewpoint.right.g_buffer, width, height);
+    set_render_target_size(active_viewpoint.right.back_buffer, width, height);
 
-    bool set_textures = false;
-    if (active_viewpoint.left.viewport_width != width ||
-        active_viewpoint.left.viewport_height != height)
-    {
-        active_viewpoint.left.render_target = new QOpenGLFramebufferObject(width, height, format);
-        active_viewpoint.left.viewport_width = width;
-        active_viewpoint.left.viewport_height = height;
-        set_textures = true;
-    }
-
-    if (active_viewpoint.right.viewport_width != width ||
-        active_viewpoint.right.viewport_height != height)
-    {
-        active_viewpoint.right.render_target = new QOpenGLFramebufferObject(width, height, format);
-        active_viewpoint.right.viewport_width = width;
-        active_viewpoint.right.viewport_height = height;
-        set_textures = true;
-    }
-
-    if (set_textures && active_viewpoint.output != nullptr) {
-        active_viewpoint.output->set_textures(active_viewpoint.left.render_target->texture(),
-                                              active_viewpoint.right.render_target->texture(),
+    if (active_viewpoint.output != nullptr) {
+        active_viewpoint.output->set_textures(active_viewpoint.left.back_buffer.attachments[0],
+                                              active_viewpoint.right.back_buffer.attachments[0],
                                               width,
                                               height);
     }
@@ -153,6 +145,49 @@ QOpenGLBuffer* OpenGLRenderer::get_buffer(const VertexFormat& format)
         return vbo;
     } else {
         return it->second;
+    }
+}
+
+
+void OpenGLRenderer::set_render_target_size(RenderTarget& rt, size_t width, size_t height)
+{
+    ScopedContext context(this->context_pool, 0);
+
+    if (rt.width != width ||
+        rt.height != height)
+    {
+        if (!rt.initialized) {
+            context.context.gl->glGenTextures(rt.num_attachments, rt.attachments);
+            if (rt.use_depth) {
+                context.context.gl->glGenTextures(1, &rt.depth);
+            }
+            rt.initialized = true;
+        }
+
+        rt.width = width;
+        rt.height = height;
+        for (size_t i = 0; i < rt.num_attachments; ++i) {
+            context.context.gl->glBindTexture(GL_TEXTURE_2D, rt.attachments[i]);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            context.context.gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                                             width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
+        }
+        if (rt.use_depth) {
+            context.context.gl->glBindTexture(GL_TEXTURE_2D, rt.depth);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+            //context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+            context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8,
+                         width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        }
     }
 }
 
