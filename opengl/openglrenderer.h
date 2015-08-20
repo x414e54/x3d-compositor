@@ -21,6 +21,7 @@ public:
     virtual ~OpenGLRenderer();
     void set_viewpoint_output(int id, OpenGLOutput& output);
     void set_viewpoint_viewport(int id, size_t width, size_t height);
+    void set_viewpoint_view(int id, const float (&view)[4][4]);
     void render_viewpoints();
 protected:
     QOpenGLBuffer* get_buffer(const VertexFormat& format);

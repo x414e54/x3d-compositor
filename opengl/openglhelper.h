@@ -21,8 +21,32 @@ class QOpenGLExtension_ARB_debug_output;
 class QOpenGLFunctions_3_2_Core;
 
 typedef float Scalar;
+typedef Scalar Mat4x4[4][4];
 
 // Split this into smaller headers
+
+inline void mult(const Mat4x4& a, const Mat4x4& b, Mat4x4& o)
+{
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            o[i][j] = 0;
+            for (int k = 0; k < 4; ++k) {
+                o[i][j] += a[i][k] * b[k][j];
+            }
+        }
+    }
+}
+
+
+inline void reset(Mat4x4& o)
+{
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            o[i][j] = (j - i == 0) ? 1.0 : 0.0;
+        }
+    }
+}
+
 class Attribute
 {
 public:
@@ -123,10 +147,23 @@ public:
     }
 };
 
+struct GlobalParameters
+{
+    float view[4][4];
+    float projection[4][4];
+    float view_projection[4][4];
+};
+
 class RenderOuputGroup
 {
 public:
-    RenderOuputGroup() :  enabled(false), render_target(nullptr), viewport_width(0), viewport_height(0) {}
+    RenderOuputGroup() :  enabled(false), render_target(nullptr),
+        viewport_width(0), viewport_height(0)
+    {
+        reset(projection);
+        reset(view_offset);
+    }
+
     Scalar projection[4][4];
     Scalar view_offset[4][4];
     bool enabled;

@@ -18,6 +18,14 @@
 
 OpenGLRenderer::OpenGLRenderer()
 {
+    ScopedContext context(context_pool, 0);
+    context.context.gl->glGenBuffers(1, &this->global_uniforms);
+    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
+    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
+
+    context.context.gl->glGenBuffers(1, &this->draw_calls);
+    context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
+    context.context.gl->glBufferData(GL_DRAW_INDIRECT_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
 }
 
 OpenGLRenderer::~OpenGLRenderer()
@@ -103,6 +111,22 @@ void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
                                               width,
                                               height);
     }
+}
+
+void OpenGLRenderer::set_viewpoint_view(int, const float (&view)[4][4])
+{
+    ScopedContext context(this->context_pool, 0);
+
+    GlobalParameters params[2];
+    mult(view, active_viewpoint.left.view_offset, params[0].view);
+    mult(params[0].view, active_viewpoint.left.projection, params[0].view_projection);
+    mult(view, active_viewpoint.right.view_offset, params[1].view);
+    mult(params[1].view, active_viewpoint.right.projection, params[1].view_projection);
+
+    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
+    void* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(GlobalParameters) * 2, GL_MAP_WRITE_BIT);
+    memcpy(data, params, sizeof(params));
+    context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 }
 
 Material& OpenGLRenderer::get_material(const std::string& name)

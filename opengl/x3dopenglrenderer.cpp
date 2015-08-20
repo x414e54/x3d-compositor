@@ -23,8 +23,6 @@ using namespace CyberX3D;
 #include <QFile>
 
 #include <math.h>
-const int OGL_RENDERING_TEXTURE = 0;
-const int OGL_RENDERING_WIRE = 1;
 
 // start glu
 // This is just temporarily here but will be removed later.
@@ -58,14 +56,6 @@ const int OGL_RENDERING_WIRE = 1;
  * other dealings in this Software without prior written authorization from
  * Silicon Graphics, Inc.
  */
-static void __gluMakeIdentity(Scalar m[16])
-{
-    m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
-    m[1+4*0] = 0; m[1+4*1] = 1; m[1+4*2] = 0; m[1+4*3] = 0;
-    m[2+4*0] = 0; m[2+4*1] = 0; m[2+4*2] = 1; m[2+4*3] = 0;
-    m[3+4*0] = 0; m[3+4*1] = 0; m[3+4*2] = 0; m[3+4*3] = 1;
-}
-
 static void __gluMultMatrices(const Scalar (&a)[4][4], const Scalar (&b)[4][4],
                 Scalar (&r)[16])
 {
@@ -164,7 +154,7 @@ static void create_projection(Scalar (&m)[4][4], Scalar fovy, Scalar aspect, Sca
     }
     cotangent = cos(radians) / sine;
 
-    __gluMakeIdentity(&m[0][0]);
+    reset(m);
     m[0][0] = cotangent / aspect;
     m[1][1] = cotangent;
     m[2][2] = -(zFar + zNear) / deltaZ;
@@ -224,13 +214,6 @@ struct X3DMaterialNode
     float specular_color[3] = {0.0, 0.0, 0.0};
 };
 
-struct GlobalParameters
-{
-    float view[4][4];
-    float projection[4][4];
-    float view_projection[4][4];
-};
-
 struct X3DNode
 {
     float transform[4][4];
@@ -248,7 +231,7 @@ struct X3DTextureTransformNode
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
     ScopedContext context(context_pool, 0);
-    Material& material = get_material("default");
+    Material& material = get_material("x3d-default");
     QFile vert(":/shaders/default.vert");
     QFile frag(":/shaders/default.frag");
 
@@ -275,14 +258,6 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     context.context.gl->glGenBuffers(1, &material.params);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-
-    context.context.gl->glGenBuffers(1, &this->global_uniforms);
-    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
-    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-
-    context.context.gl->glGenBuffers(1, &this->draw_calls);
-    context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
-    context.context.gl->glBufferData(GL_DRAW_INDIRECT_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -293,9 +268,10 @@ X3DOpenGLRenderer::~X3DOpenGLRenderer()
 void X3DOpenGLRenderer::set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar)
 {
     create_projection(active_viewpoint.left.projection, fovy, aspect, zNear, zFar);
+    create_projection(active_viewpoint.right.projection, fovy, aspect, zNear, zFar);
 }
 
-void X3DOpenGLRenderer::process_light_node(LightNode *lightNode)
+void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 {
     return;
 /*	if (!lightNode->isOn())
@@ -524,7 +500,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 		}
     }
 
-    Material& default_material = get_material("default");
+    Material& default_material = get_material("x3d-default");
 
     shape->getTransformMatrix(node.transform);
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
@@ -628,20 +604,9 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	if (!view)
 		return;
 
-    GlobalParameters params;
-    view->getMatrix(params.view);
-    //&active_viewpoint.left.view_offset[0][0]
-    float view_proj[16];
-    __gluMultMatrices(params.view, active_viewpoint.left.projection, view_proj);
-
-    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
-    char* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(GlobalParameters), GL_MAP_WRITE_BIT);
-    memcpy(data, params.view, sizeof(params.view));
-    memcpy(data + sizeof(params.view), active_viewpoint.left.projection, sizeof(params.projection));
-    memcpy(data + sizeof(params.view) + sizeof(params.projection),
-           view_proj, sizeof(params.view_projection));
-
-    context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+    float matrix[4][4];
+    view->getMatrix(matrix);
+    set_viewpoint_view(0, matrix);
 
     process_node(sg, sg->getNodes());
 
