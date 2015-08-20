@@ -6,6 +6,7 @@ LIBS += -L ../../lib
 HEADERS += \
     opengl/opengloutput.h \
     opengl/openglrenderer.h \
+    opengl/openglhelper.h \
     opengl/x3dopenglrenderer.h \
     compositor/wayland/qwindowcompositor.h \
     x3d/x3dscene.h \
@@ -16,6 +17,7 @@ HEADERS += \
 SOURCES += main.cpp \
     opengl/opengloutput.cpp \
     opengl/openglrenderer.cpp \
+    opengl/openglhelper.cpp \
     opengl/x3dopenglrenderer.cpp \
     compositor/wayland/qwindowcompositor.cpp \
     x3d/x3dscene.cpp \
