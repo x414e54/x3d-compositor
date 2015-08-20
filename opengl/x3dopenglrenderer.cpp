@@ -439,6 +439,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
     ScopedContext context(this->context_pool, 0);
     auto gl = context.context.gl;
     auto vab = context.context.vab;
+    auto sso = context.context.sso;
 
 	AppearanceNode			*appearance = shape->getAppearanceNodes();
 	MaterialNode			*material = NULL;
@@ -520,11 +521,12 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 		}
     }
 
+    Material& default_material = get_material("default");
+
     float transform[4][4];
     shape->getTransformMatrix(transform);
-    gl->glUniformMatrix4fv(3, 1, GL_FALSE, &transform[0][0]);
+    sso->glProgramUniformMatrix4fv(default_material.vert, 3, 1, GL_FALSE, &transform[0][0]);
 
-    Material& default_material = get_material("default");
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
     void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DMaterialNode), GL_MAP_WRITE_BIT);
     memcpy(data, &node, sizeof(X3DMaterialNode));
@@ -647,11 +649,11 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
     float view_matrix[4][4];
     view->getMatrix(view_matrix);
     //&active_viewpoint.left.view_offset[0][0]
-    context.context.gl->glUniformMatrix4fv(1, 1, GL_FALSE, &view_matrix[0][0]);
-    context.context.gl->glUniformMatrix4fv(0, 1, GL_FALSE, &active_viewpoint.left.projection[0][0]);
+    context.context.sso->glProgramUniformMatrix4fv(material.vert, 0, 1, GL_FALSE, &view_matrix[0][0]);
+    context.context.sso->glProgramUniformMatrix4fv(material.vert, 1, 1, GL_FALSE, &active_viewpoint.left.projection[0][0]);
     float view_proj[16];
     __gluMultMatrices(view_matrix, active_viewpoint.left.projection, view_proj);
-    context.context.gl->glUniformMatrix4fv(2, 1, GL_FALSE, &view_proj[0]);
+    context.context.sso->glProgramUniformMatrix4fv(material.vert, 2, 1, GL_FALSE, &view_proj[0]);
 
 	DrawNode(sg, sg->getNodes(), drawMode);
 
