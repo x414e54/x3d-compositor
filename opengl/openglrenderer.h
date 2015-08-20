@@ -18,9 +18,7 @@ class QOpenGLExtension_ARB_multi_draw_indirect;
 class QOpenGLExtension_ARB_vertex_attrib_binding;
 class QOpenGLExtension_ARB_separate_shader_objects;
 class QOpenGLExtension_ARB_debug_output;
-class QOpenGLExtension_ARB_uniform_buffer_object;
-class QOpenGLExtension_EXT_transform_feedback;
-class QOpenGLFunctions_3_0;
+class QOpenGLFunctions_3_2_Core;
 
 typedef float Scalar;
 
@@ -171,8 +169,6 @@ public:
         reserved = old.reserved;
         vab = old.vab;
         sso = old.sso;
-        ubo = old.ubo;
-        tf = old.tf;
         debug = old.debug;
         old.reserved = false;
         old.surface = nullptr;
@@ -199,9 +195,7 @@ public:
     QOpenGLExtension_ARB_vertex_attrib_binding* vab;
     QOpenGLExtension_ARB_separate_shader_objects* sso;
     QOpenGLExtension_ARB_debug_output* debug;
-    QOpenGLExtension_ARB_uniform_buffer_object* ubo;
-    QOpenGLExtension_EXT_transform_feedback* tf;
-    QOpenGLFunctions_3_0* gl;
+    QOpenGLFunctions_3_2_Core* gl;
     RenderTargetFboMap fbos;
     VertexFormatVaoMap vaos;
     MaterialPipelineMap pipelines;

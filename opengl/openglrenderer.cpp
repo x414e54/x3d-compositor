@@ -8,7 +8,7 @@
 #include <QtGui/QOpenGLBuffer>
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLFramebufferObject>
-#include <QtGui/QOpenGLFunctions_3_0>
+#include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
@@ -25,12 +25,12 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     : reserved(reserved), count(0), surface(NULL), context(NULL)
 {
     QSurfaceFormat format;
-    format.setMajorVersion(2);
-    format.setMinorVersion(1);
+    format.setMajorVersion(3);
+    format.setMinorVersion(2);
     format.setSwapInterval(0);
     format.setSwapBehavior(QSurfaceFormat::SingleBuffer);
     format.setRenderableType(QSurfaceFormat::OpenGL);
-    format.setProfile(QSurfaceFormat::CompatibilityProfile);
+    format.setProfile(QSurfaceFormat::CoreProfile);
     format.setOption(QSurfaceFormat::DebugContext);
     surface = new QOffscreenSurface();
     surface->setFormat(format);
@@ -48,7 +48,7 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     }
 
     context->makeCurrent(surface);
-    gl = context->versionFunctions<QOpenGLFunctions_3_0>();
+    gl = context->versionFunctions<QOpenGLFunctions_3_2_Core>();
     if (gl == nullptr || !gl->initializeOpenGLFunctions()) {
         throw;
     }
@@ -62,14 +62,6 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     }
     sso = new QOpenGLExtension_ARB_separate_shader_objects();
     if (!sso->initializeOpenGLFunctions()) {
-        throw;
-    }
-    ubo = new QOpenGLExtension_ARB_uniform_buffer_object();
-    if (!ubo->initializeOpenGLFunctions()) {
-        throw;
-    }
-    tf = new QOpenGLExtension_EXT_transform_feedback();
-    if (!tf->initializeOpenGLFunctions()) {
         throw;
     }
     debug = new QOpenGLExtension_ARB_debug_output();

@@ -17,7 +17,7 @@ using namespace CyberX3D;
 #include <QtGui/QOpenGLVertexArrayObject>
 #include <QtGui/QOpenGLBuffer>
 #include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLFunctions_3_0>
+#include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QtGui/QOpenGLFramebufferObject>
 #include <QFile>
@@ -226,7 +226,7 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     context.context.gl->glGenBuffers(1, &material.params);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-    context.context.ubo->glUniformBlockBinding(material.frag, 0, 0);
+    context.context.gl->glUniformBlockBinding(material.frag, 0, 0);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -439,7 +439,6 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
     ScopedContext context(this->context_pool, 0);
     auto gl = context.context.gl;
     auto vab = context.context.vab;
-    auto tf = context.context.tf;
 
 	AppearanceNode			*appearance = shape->getAppearanceNodes();
 	MaterialNode			*material = NULL;
@@ -531,7 +530,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
     memcpy(data, &node, sizeof(X3DMaterialNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-    tf->glBindBufferRangeEXT(GL_UNIFORM_BUFFER, 0, default_material.params, 0, sizeof(X3DMaterialNode));
+    gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, default_material.params, 0, sizeof(X3DMaterialNode));
 
 	Geometry3DNode *gnode = shape->getGeometry3D();
     if (gnode) {
