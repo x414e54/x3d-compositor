@@ -585,7 +585,6 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
                 batch.num_draws = 1;
                 batch.buffer_offset = 0;
                 default_material.batches.push_back(batch);
-                //context.context.indirect->glMultiDrawArraysIndirect(batch.primitive_type, (const void*)batch.buffer_offset, batch.num_draws, 0);
             }
 /**/
         }

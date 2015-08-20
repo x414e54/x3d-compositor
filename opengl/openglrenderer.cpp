@@ -291,7 +291,6 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 
             context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
         }
-        material_it->second.batches.empty();
     }
 }
 
@@ -374,5 +373,11 @@ void OpenGLRenderer::render_viewpoints()
 
     if (active_viewpoint.output != nullptr) {
         active_viewpoint.output->submit();
+    }
+
+    for (std::map<std::string, Material>::iterator material_it = materials.begin();
+         material_it != materials.end(); ++material_it) {
+
+        material_it->second.batches.clear();
     }
 }
