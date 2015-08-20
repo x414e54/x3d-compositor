@@ -64,6 +64,14 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     if (!sso->initializeOpenGLFunctions()) {
         throw;
     }
+    ubo = new QOpenGLExtension_ARB_uniform_buffer_object();
+    if (!ubo->initializeOpenGLFunctions()) {
+        throw;
+    }
+    tf = new QOpenGLExtension_EXT_transform_feedback();
+    if (!tf->initializeOpenGLFunctions()) {
+        throw;
+    }
     debug = new QOpenGLExtension_ARB_debug_output();
     if (!debug->initializeOpenGLFunctions()) {
         throw;
@@ -304,6 +312,16 @@ void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
                                               active_viewpoint.right.render_target->texture(),
                                               width,
                                               height);
+    }
+}
+
+Material& OpenGLRenderer::get_material(const std::string& name)
+{
+    std::map<std::string, Material>::iterator it = materials.find(name);
+    if (it == materials.end()) {
+        return materials[name];
+    } else {
+        return it->second;
     }
 }
 

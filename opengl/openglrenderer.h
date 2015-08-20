@@ -18,7 +18,11 @@ class QOpenGLExtension_ARB_multi_draw_indirect;
 class QOpenGLExtension_ARB_vertex_attrib_binding;
 class QOpenGLExtension_ARB_separate_shader_objects;
 class QOpenGLExtension_ARB_debug_output;
+class QOpenGLExtension_ARB_uniform_buffer_object;
+class QOpenGLExtension_EXT_transform_feedback;
 class QOpenGLFunctions_3_0;
+
+typedef float Scalar;
 
 // Split this into smaller headers
 class Attribute
@@ -112,7 +116,9 @@ class Material
 public:
     std::string name;
     std::vector<DrawBatch> batches;
-    QOpenGLBuffer* parameters;
+    unsigned int frag;
+    unsigned int vert;
+    unsigned int params;
     bool operator<(const Material& b) const {
         return this->name.compare(b.name);
     }
@@ -122,8 +128,8 @@ class RenderOuputGroup
 {
 public:
     RenderOuputGroup() :  enabled(false), render_target(nullptr), viewport_width(0), viewport_height(0) {}
-    double projection[4][4];
-    double view[4][4];
+    Scalar projection[4][4];
+    Scalar view_offset[4][4];
     bool enabled;
     QOpenGLFramebufferObject* render_target;
     size_t viewport_width;
@@ -151,6 +157,7 @@ public:
     ContextPoolContext& operator=(const ContextPoolContext&) = delete;
     ContextPoolContext(ContextPoolContext&& old) noexcept
     {
+        // TODO - This is a mess
         if (!old.assign(std::this_thread::get_id()) || count > 0) {
             throw;
         }
@@ -164,6 +171,8 @@ public:
         reserved = old.reserved;
         vab = old.vab;
         sso = old.sso;
+        ubo = old.ubo;
+        tf = old.tf;
         debug = old.debug;
         old.reserved = false;
         old.surface = nullptr;
@@ -190,6 +199,8 @@ public:
     QOpenGLExtension_ARB_vertex_attrib_binding* vab;
     QOpenGLExtension_ARB_separate_shader_objects* sso;
     QOpenGLExtension_ARB_debug_output* debug;
+    QOpenGLExtension_ARB_uniform_buffer_object* ubo;
+    QOpenGLExtension_EXT_transform_feedback* tf;
     QOpenGLFunctions_3_0* gl;
     RenderTargetFboMap fbos;
     VertexFormatVaoMap vaos;
@@ -254,7 +265,7 @@ protected:
     static void render_viewpoint(OpenGLRenderer* renderer, const RenderOuputGroup& output, int context_id);
 
     std::map<std::string, Material> materials;
-    QOpenGLBuffer* global_uniforms;
+    unsigned int global_uniforms;
     QOpenGLBuffer* draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;

@@ -232,8 +232,8 @@ void X3DScene::installEventFilter(SceneEventFilter* filter)
 
 void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPointState state)
 {
-    double from[3];
-    double to[3];
+    Scalar from[3];
+    Scalar to[3];
     if (id == 2 && state == Qt::TouchPointPressed) {
         fake_rotating = true;
     } else if (id == 2 && state == Qt::TouchPointReleased) {

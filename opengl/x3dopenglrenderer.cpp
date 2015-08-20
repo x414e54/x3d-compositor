@@ -20,6 +20,7 @@ using namespace CyberX3D;
 #include <QtGui/QOpenGLFunctions_3_0>
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QtGui/QOpenGLFramebufferObject>
+#include <QFile>
 
 #include <math.h>
 const int OGL_RENDERING_TEXTURE = 0;
@@ -57,7 +58,7 @@ const int OGL_RENDERING_WIRE = 1;
  * other dealings in this Software without prior written authorization from
  * Silicon Graphics, Inc.
  */
-static void __gluMakeIdentityd(double m[16])
+static void __gluMakeIdentity(Scalar m[16])
 {
     m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
     m[1+4*0] = 0; m[1+4*1] = 1; m[1+4*2] = 0; m[1+4*3] = 0;
@@ -65,8 +66,8 @@ static void __gluMakeIdentityd(double m[16])
     m[3+4*0] = 0; m[3+4*1] = 0; m[3+4*2] = 0; m[3+4*3] = 1;
 }
 
-static void __gluMultMatricesd(const float (&a)[4][4], const double (&b)[4][4],
-                double (&r)[16])
+static void __gluMultMatrices(const Scalar (&a)[4][4], const Scalar (&b)[4][4],
+                Scalar (&r)[16])
 {
     int i, j;
 
@@ -85,9 +86,9 @@ static void __gluMultMatricesd(const float (&a)[4][4], const double (&b)[4][4],
 ** Invert 4x4 matrix.
 ** Contributed by David Moore (See Mesa bug #6748)
 */
-static int __gluInvertMatrixd(const GLdouble m[16], GLdouble invOut[16])
+static int __gluInvertMatrix(const Scalar m[16], Scalar invOut[16])
 {
-    double inv[16], det;
+    float inv[16], det;
     int i;
 
     inv[0] =   m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15]
@@ -135,8 +136,8 @@ static int __gluInvertMatrixd(const GLdouble m[16], GLdouble invOut[16])
     return GL_TRUE;
 }
 
-static void __gluMultMatrixVecd(const GLdouble matrix[16], const GLdouble in[4],
-              GLdouble out[4])
+static void __gluMultMatrixVec(const Scalar matrix[16], const Scalar in[4],
+              Scalar out[4])
 {
     int i;
 
@@ -151,10 +152,10 @@ static void __gluMultMatrixVecd(const GLdouble matrix[16], const GLdouble in[4],
 
 #define __glPi 3.14159265358979323846
 
-static void create_projection(double (&m)[4][4], double fovy, double aspect, double zNear, double zFar)
+static void create_projection(Scalar (&m)[4][4], Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar)
 {
-    double sine, cotangent, deltaZ;
-    double radians = fovy / 2 * __glPi / 180;
+    Scalar sine, cotangent, deltaZ;
+    Scalar radians = fovy / 2 * __glPi / 180;
 
     deltaZ = zFar - zNear;
     sine = sin(radians);
@@ -163,7 +164,7 @@ static void create_projection(double (&m)[4][4], double fovy, double aspect, dou
     }
     cotangent = cos(radians) / sine;
 
-    __gluMakeIdentityd(&m[0][0]);
+    __gluMakeIdentity(&m[0][0]);
     m[0][0] = cotangent / aspect;
     m[1][1] = cotangent;
     m[2][2] = -(zFar + zNear) / deltaZ;
@@ -172,9 +173,9 @@ static void create_projection(double (&m)[4][4], double fovy, double aspect, dou
     m[3][3] = 0;
 }
 
-bool to_ray(const double (&finalMatrix)[16], const double (&in)[4], double (&out)[3])
+bool to_ray(const Scalar (&finalMatrix)[16], const Scalar (&in)[4], Scalar (&out)[3])
 {
-    __gluMultMatrixVecd(finalMatrix, in, out);
+    __gluMultMatrixVec(finalMatrix, in, out);
     if (out[3] == 0.0) return false;
     out[0] /= out[3];
     out[1] /= out[3];
@@ -182,8 +183,40 @@ bool to_ray(const double (&finalMatrix)[16], const double (&in)[4], double (&out
     return true;
 }
 
+struct X3DMaterialNode
+{
+    float ambientIntensity = 0.8*0.2;
+    float diffuseColor[4] = {0.8, 0.8, 0.8};
+    float emissiveColor[3] = {0.0, 0.0, 0.0};
+    float shininess = 0.2*128.0;
+    float specularColor[3] = {0.0, 0.0, 0.0};
+};
+
+struct X3DTextureTransformNode
+{
+    float texCenter[2];
+    float texScale[2];
+    float texTranslation[2];
+    float texRotation;
+};
+
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
+    ScopedContext context(context_pool, 0);
+    Material& material = get_material("default");
+    QFile vert("./shaders/default.vert");
+    QFile frag("./shaders/default.vert");
+
+    QByteArray vert_data = vert.readAll();
+    char* vert_list[1] = {vert_data.data()};
+    QByteArray frag_data = frag.readAll();
+    char* frag_list[1] = {frag_data.data()};
+    material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_PROGRAM_ARB, 1, vert_list);
+    material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_PROGRAM_ARB, 1, frag_list);
+    context.context.gl->glGenBuffers(1, &material.params);
+    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
+    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
+    context.context.ubo->glUniformBlockBinding(material.frag, 0, 0);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -191,15 +224,15 @@ X3DOpenGLRenderer::~X3DOpenGLRenderer()
 
 }
 
-bool X3DOpenGLRenderer::get_ray(double x, double y,
-                          const float (&model)[4][4],
-                          double (&from)[3], double (&to)[3])
+bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
+                          const Scalar (&model)[4][4],
+                          Scalar (&from)[3], Scalar (&to)[3])
 {
-    double finalMatrix[16];
-    double in[4];
+    Scalar finalMatrix[16];
+    Scalar in[4];
 
-    __gluMultMatricesd(model, active_viewpoint.left.projection, finalMatrix);
-    if (!__gluInvertMatrixd(finalMatrix, finalMatrix)) return false;
+    __gluMultMatrices(model, active_viewpoint.left.projection, finalMatrix);
+    if (!__gluInvertMatrix(finalMatrix, finalMatrix)) return false;
 
     in[0]=x;
     in[1]=y;
@@ -223,7 +256,7 @@ bool X3DOpenGLRenderer::get_ray(double x, double y,
 }
 // end glu
 
-void X3DOpenGLRenderer::set_projection(double fovy, double aspect, double zNear, double zFar)
+void X3DOpenGLRenderer::set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar)
 {
     create_projection(active_viewpoint.left.projection, fovy, aspect, zNear, zFar);
 }
@@ -237,6 +270,7 @@ static PointLightNode headLight;
 
 void PushLightNode(LightNode *lightNode)
 {
+    return;
 	if (!lightNode->isOn()) 
 		return;
 
@@ -354,6 +388,7 @@ void PushLightNode(LightNode *lightNode)
 
 void PopLightNode(LightNode *lightNode)
 {
+    return;
 	if (!lightNode->isOn()) 
 		return;
 
@@ -394,15 +429,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
     ScopedContext context(this->context_pool, 0);
     auto gl = context.context.gl;
     auto vab = context.context.vab;
-
-	glPushMatrix ();
-
-	/////////////////////////////////
-	//	Appearance(Material)
-	/////////////////////////////////
-
-	float	color[4];
-	color[3] = 1.0f;
+    auto tf = context.context.tf;
 
 	AppearanceNode			*appearance = shape->getAppearanceNodes();
 	MaterialNode			*material = NULL;
@@ -411,9 +438,9 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 
 	bool				bEnableTexture = false;
 
-	if (appearance) {
+    X3DMaterialNode node;
 
-		// Texture Transform
+    if (appearance) {
 		TextureTransformNode *texTransform = appearance->getTextureTransformNodes();
 		if (texTransform) {
 			float texCenter[2];
@@ -421,40 +448,20 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 			float texTranslation[2];
 			float texRotation;
 
-			glMatrixMode(GL_TEXTURE);
-			glLoadIdentity();
-
-			texTransform->getTranslation(texTranslation);
-			glTranslatef(texTranslation[0], texTranslation[1], 0.0f);
-
-			texTransform->getCenter(texCenter);
-			glTranslatef(texCenter[0], texCenter[1], 0.0f);
-
-			texRotation = texTransform->getRotation();
-			glRotatef(0.0f, 0.0f, 1.0f, texRotation);
-
-			texTransform->getScale(texScale);
-			glScalef(texScale[0], texScale[1], 1.0f);
-
-			glTranslatef(-texCenter[0], -texCenter[1], 0.0f);
-		}
-		else {
-			glMatrixMode(GL_TEXTURE);
-			glLoadIdentity();
-			glTranslatef(0.0f, 0.0f, 1.0f);
-		}
-
-		glMatrixMode(GL_MODELVIEW);
+            texTransform->getTranslation(texTranslation);
+            texTransform->getCenter(texCenter);
+            texRotation = texTransform->getRotation();
+            texTransform->getScale(texScale);
+        }
 
 		// Texture
-		imgTexture = appearance->getImageTextureNodes();
+        /*imgTexture = appearance->getImageTextureNodes();
 		if (imgTexture && drawMode == OGL_RENDERING_TEXTURE) {
 
 			int width = imgTexture->getWidth();
 			int height = imgTexture->getHeight();
 			RGBAColor32 *color = imgTexture->getImage();
 
-		//if (0 < width && 0 < height && color != NULL)
 		if (imgTexture->getTextureName() != 0)
 				bEnableTexture = true;
 
@@ -477,22 +484,17 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 				glEnable(GL_COLOR_MATERIAL);
 			}
 			else {
-				glDisable(GL_TEXTURE_2D);
-				glDisable(GL_COLOR_MATERIAL);
+                glDisable(GL_TEXTURE_2D);
 			}
 		}
 		else {
-			glDisable(GL_TEXTURE_2D);
-			glDisable(GL_COLOR_MATERIAL);
-		}
+            glDisable(GL_TEXTURE_2D);
+        }*/
 
 		// Material
         material = appearance->getMaterialNodes();
-		if (material) {
-			float	ambientIntesity = material->getAmbientIntensity();
+        if (material) {
 
-			glDisable(GL_COLOR_MATERIAL);
-			material->getDiffuseColor(color);
 			if (material->getTransparency() != 0.0) {
 				glEnable(GL_BLEND);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -500,56 +502,26 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 				glDisable(GL_BLEND);
 			}
 
-			color[3] = 1.0 - material->getTransparency();
-			glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
-
-			material->getSpecularColor(color);
-			glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
-
-			material->getEmissiveColor(color);
-			glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, color);
-
-			material->getDiffuseColor(color);
-			color[0] *= ambientIntesity; 
-			color[1] *= ambientIntesity; 
-			color[2] *= ambientIntesity; 
-			glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
-
-			glMateriali(GL_FRONT, GL_SHININESS, (int)(material->getShininess()*128.0));
+            material->getDiffuseColor(node.diffuseColor);
+            node.diffuseColor[3] = material->getTransparency();
+            material->getSpecularColor(node.specularColor);
+            material->getEmissiveColor(node.emissiveColor);
+            node.shininess = material->getShininess();
+            node.ambientIntensity = material->getAmbientIntensity();
 		}
-
     }
 
-	if (!appearance || !material) {
-		color[0] = 0.8f; color[1] = 0.8f; color[2] = 0.8f;
-		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
-		color[0] = 0.0f; color[1] = 0.0f; color[2] = 0.0f;
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, color);
-		color[0] = 0.8f*0.2f; color[1] = 0.8f*0.2f; color[2] = 0.8f*0.2f;
-		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, color);
-		glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, (int)(0.2*128.0));
-		glDisable(GL_BLEND);
-	}
+    float transform[4][4];
+    shape->getTransformMatrix(transform);
+    gl->glUniformMatrix4fv(3, 1, GL_FALSE, &transform[0][0]);
 
-	if (!appearance || !imgTexture || drawMode != OGL_RENDERING_TEXTURE) {
-		glDisable(GL_TEXTURE_2D);
-		glDisable(GL_COLOR_MATERIAL);
-	}
+    Material& default_material = get_material("default");
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DMaterialNode), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DMaterialNode));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-	/////////////////////////////////
-	//	Transform 
-	/////////////////////////////////
-
-	float	m4[4][4];
-	shape->getTransformMatrix(m4);
-	glMultMatrixf((float *)m4);
-
-	glColor3f(1.0f, 1.0f, 1.0f);
-
-	/////////////////////////////////
-	//	Geometry3D
-	/////////////////////////////////
+    tf->glBindBufferRangeEXT(GL_UNIFORM_BUFFER, 0, default_material.params, 0, sizeof(X3DMaterialNode));
 
 	Geometry3DNode *gnode = shape->getGeometry3D();
     if (gnode) {
@@ -559,8 +531,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             VertexFormat format = convert_to_internal(array.getFormat());
 
 /* this will be done elsewhere*/
-            gl->glBindVertexArray(0);
-
+            gl->glBindVertexArray(context.context.get_vao(format));
             QOpenGLBuffer* vbo = get_buffer(format);
             vbo->bind();
             vbo->allocate(array.getBufferSize());
@@ -572,12 +543,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 /*  */
             vbo->unmap();
 
-            glEnableClientState(GL_NORMAL_ARRAY);
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            glVertexPointer(3, GL_FLOAT, 32, 0);
-            glNormalPointer(GL_FLOAT, 32, (void*)12);
-            glTexCoordPointer(2, GL_FLOAT, 32, (void*)24);
+            vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.getFormat().getSize());
 
             if (array.getNumElements() > 0) {
 
@@ -585,68 +551,9 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
                 glDrawArrays(GL_TRIANGLES, 0, array.getNumVertices());
             }
 /**/
-        } else if (0 < gnode->getDisplayList()) {
-            gnode->draw();
         }
 	}
 
-	ShapeNode *selectedShapeNode = sg->getSelectedShapeNode();
-	if (gnode && selectedShapeNode == shape) {
-		float	bboxCenter[3];
-		float	bboxSize[3];
-		gnode->getBoundingBoxCenter(bboxCenter);
-		gnode->getBoundingBoxSize(bboxSize);
-
-		glColor3f(1.0f, 1.0f, 1.0f);
-		glDisable(GL_LIGHTING);
-//		glDisable(GL_COLOR_MATERIAL);
-		glDisable(GL_TEXTURE_2D);
-		glDisable(GL_BLEND);
-
-		glBegin(GL_LINES);
-		int x, y, z;
-		for (x=0; x<2; x++) {
-			for (y=0; y<2; y++) {
-				float point[3];
-				point[0] = (x==0) ? bboxCenter[0] - bboxSize[0] : bboxCenter[0] + bboxSize[0];
-				point[1] = (y==0) ? bboxCenter[1] - bboxSize[1] : bboxCenter[1] + bboxSize[1];
-				point[2] = bboxCenter[2] - bboxSize[2];
-				glVertex3fv(point);
-				point[2] = bboxCenter[2] + bboxSize[2];
-				glVertex3fv(point);
-			}
-		}
-		for (x=0; x<2; x++) {
-			for (z=0; z<2; z++) {
-				float point[3];
-				point[0] = (x==0) ? bboxCenter[0] - bboxSize[0] : bboxCenter[0] + bboxSize[0];
-				point[1] = bboxCenter[1] - bboxSize[1];
-				point[2] = (z==0) ? bboxCenter[2] - bboxSize[2] : bboxCenter[2] + bboxSize[2];
-				glVertex3fv(point);
-				point[1] = bboxCenter[1] + bboxSize[1];
-				glVertex3fv(point);
-			}
-		}
-		for (y=0; y<2; y++) {
-			for (z=0; z<2; z++) {
-				float point[3];
-				point[0] = bboxCenter[0] - bboxSize[0];
-				point[1] = (y==0) ? bboxCenter[1] - bboxSize[1] : bboxCenter[1] + bboxSize[1];
-				point[2] = (z==0) ? bboxCenter[2] - bboxSize[2] : bboxCenter[2] + bboxSize[2];
-				glVertex3fv(point);
-				point[0] = bboxCenter[0] + bboxSize[0];
-				glVertex3fv(point);
-			}
-		}
-		glEnd();
-
-		glEnable(GL_LIGHTING);
-//		glEnable(GL_COLOR_MATERIAL);
-		glEnable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
-	}
-
-	glPopMatrix();
 }
 
 
@@ -680,19 +587,15 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
     ScopedContext context(context_pool, 0);
     context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
         context.context.get_fbo(active_viewpoint.left.render_target->texture()));
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    context.context.gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-    glViewport(0, 0, active_viewpoint.left.viewport_width, active_viewpoint.left.viewport_height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
+    context.context.gl->glViewport(0, 0, active_viewpoint.left.viewport_width, active_viewpoint.left.viewport_height);
 
-    glMultMatrixd(&active_viewpoint.left.projection[0][0]);
+    Material& material = get_material("default");
+    int pipeline = context.context.get_pipeline(material);
+    context.context.sso->glBindProgramPipeline(pipeline);
 
     const int drawMode = OGL_RENDERING_TEXTURE;
-
-	/////////////////////////////////
-	//	Headlight 
-	/////////////////////////////////
 
 	NavigationInfoNode *navInfo = sg->getNavigationInfoNode();
 	if (navInfo == NULL)
@@ -710,36 +613,13 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 		sg->addNode(&headLight);
 	}
 
-	/////////////////////////////////
-	//	Viewpoint 
-	/////////////////////////////////
-
 	ViewpointNode *view = sg->getViewpointNode();
 	if (view == NULL)
 		view = sg->getDefaultViewpointNode();
 
-	/////////////////////////////////
-	//	Rendering 
-	/////////////////////////////////
-
 	glEnable(GL_DEPTH_TEST);
-	switch (drawMode) {
-	case OGL_RENDERING_WIRE:
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		break;
-	default:
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
 	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
-
-    glEnable(GL_LIGHTING);
-//	glShadeModel (GL_FLAT);
-	glShadeModel (GL_SMOOTH);
-
-	/////////////////////////////////
-	//	Background 
-	/////////////////////////////////
 
 	float clearColor[] = {0.0f, 0.0f, 0.0f};
 	
@@ -755,42 +635,18 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	if (!view)
 		return;
 
-	/////////////////////////////////
-	//	Viewpoint Matrix
-	/////////////////////////////////
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	float	m4[4][4];
-	view->getMatrix(m4);
-	glMultMatrixf((float *)m4);
-
-	/////////////////////////////////
-	//	Light
-	/////////////////////////////////
-
-	GLint	nMaxLightMax;
-	glGetIntegerv(GL_MAX_LIGHTS, &nMaxLightMax);
-	for (int n = 0; n < nMaxLightMax; n++)
-		glDisable(GL_LIGHT0+n);
-	gnLights = 0;
-
-	/////////////////////////////////
-	//	General Node
-	/////////////////////////////////
+    float view_matrix[4][4];
+    view->getMatrix(view_matrix);
+    //&active_viewpoint.left.view_offset[0][0]
+    context.context.gl->glUniformMatrix4fv(1, 1, GL_FALSE, &view_matrix[0][0]);
+    context.context.gl->glUniformMatrix4fv(0, 1, GL_FALSE, &active_viewpoint.left.projection[0][0]);
+    float view_proj[16];
+    __gluMultMatrices(view_matrix, active_viewpoint.left.projection, view_proj);
+    context.context.gl->glUniformMatrix4fv(2, 1, GL_FALSE, &view_proj[0]);
 
 	DrawNode(sg, sg->getNodes(), drawMode);
 
-	/////////////////////////////////
-	//	Headlight 
-	/////////////////////////////////
-
-	headLight.remove();
-
-	/////////////////////////////////
-	//	glFlush 
-	/////////////////////////////////
+    headLight.remove();
 
 	glFlush();
 

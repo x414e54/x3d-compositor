@@ -6,11 +6,14 @@ namespace CyberX3D
     class SceneGraph;
 }
 
+typedef float Scalar;
+
 class X3DRenderer
 {
 public:
-    virtual void set_projection(double fovy, double aspect, double zNear, double zFar) = 0;
-    virtual bool get_ray(double x, double y, const float (&model)[4][4], double (&from)[3], double (&to)[3]) = 0;
+    virtual ~X3DRenderer() {}
+    virtual void set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar) = 0;
+    virtual bool get_ray(Scalar x, Scalar y, const Scalar (&model)[4][4], Scalar (&from)[3], Scalar (&to)[3]) = 0;
     virtual void render(CyberX3D::SceneGraph *sg) = 0;
 };
 
