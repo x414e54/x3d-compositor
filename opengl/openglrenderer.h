@@ -26,6 +26,9 @@ public:
 protected:
     QOpenGLBuffer* get_buffer(const VertexFormat& format);
     Material& get_material(const std::string& name);
+    void create_material(const std::string& name,
+                         const std::string& vert,
+                         const std::string& frag, int pass);
     void set_render_target_size(RenderTarget& rt, size_t width, size_t height);
 
     static void render_viewpoint(OpenGLRenderer* renderer, const RenderOuputGroup& output, int context_id);
@@ -36,8 +39,8 @@ protected:
     Viewpoint active_viewpoint;
     ContextPool context_pool;
     float clear_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    std::vector<ShaderPass> passes;
 private:
-    std::vector<int> render_targets;
     VertexFormatBufferMap buffers;
 };
 

@@ -13,6 +13,7 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QThreadPool>
+#include <QFile>
 
 #include "opengloutput.h"
 
@@ -46,37 +47,46 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 {
     ScopedContext context(renderer->context_pool, context_id);
 
-    context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
-        context.context.get_fbo(output.g_buffer));
-    GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-                        GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-    context.context.gl->glDrawBuffers(output.g_buffer.num_attachments, buffers);
-    context.context.gl->glViewport(0, 0, output.g_buffer.width, output.g_buffer.height);
+    for (std::vector<ShaderPass>::iterator pass_it = renderer->passes.begin(); pass_it != renderer->passes.end(); ++pass_it) {
+        const RenderTarget& target = output.get_render_target(pass_it->out);
 
-    context.context.gl->glEnable(GL_DEPTH_TEST);
-    context.context.gl->glCullFace(GL_BACK);
-    context.context.gl->glEnable(GL_CULL_FACE);
-    context.context.gl->glClearColor(renderer->clear_color[0], renderer->clear_color[1],
-                                     renderer->clear_color[2], renderer->clear_color[3]);
-    context.context.gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
+            context.context.get_fbo(target));
+        GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                            GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+        context.context.gl->glDrawBuffers(target.num_attachments, buffers);
 
-    //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, output.uniform_offset);
-    context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms);
-    context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls);
+        context.context.gl->glViewport(0, 0, target.width, target.height);
 
-    for (std::map<std::string, Material>::iterator material_it = renderer->materials.begin(); material_it != renderer->materials.end(); ++material_it) {
-        context.context.sso->glBindProgramPipeline(context.context.get_pipeline(material_it->second));
-        //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, material_it->params, 0, sizeof(node));
-        context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 1, material_it->second.params);
-        for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {
-            context.context.gl->glBindVertexArray(context.context.get_vao(batch_it->format));
-            QOpenGLBuffer* vbo = renderer->get_buffer(batch_it->format);
-            context.context.vab->glBindVertexBuffer(0, vbo->bufferId(), 0, batch_it->format_stride);
+        context.context.gl->glEnable(GL_DEPTH_TEST);
+        context.context.gl->glCullFace(GL_BACK);
+        context.context.gl->glEnable(GL_CULL_FACE);
+        context.context.gl->glClearColor(renderer->clear_color[0], renderer->clear_color[1],
+                                         renderer->clear_color[2], renderer->clear_color[3]);
+        context.context.gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
+        //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, output.uniform_offset);
+        context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms);
+        context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls);
+
+        for (std::map<std::string, Material>::iterator material_it = renderer->materials.begin(); material_it != renderer->materials.end(); ++material_it) {
+            // TODO make this more efficient
+            if (material_it->second.pass != pass_it->pass_id) {
+                continue;
+            }
+
+            context.context.sso->glBindProgramPipeline(context.context.get_pipeline(material_it->second));
+            //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, material_it->params, 0, sizeof(node));
+            context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 1, material_it->second.params);
+            for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {
+                context.context.gl->glBindVertexArray(context.context.get_vao(batch_it->format));
+                QOpenGLBuffer* vbo = renderer->get_buffer(batch_it->format);
+                context.context.vab->glBindVertexBuffer(0, vbo->bufferId(), 0, batch_it->format_stride);
+
+                context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
+            }
         }
     }
-
     context.context.gl->glBindFramebuffer(GL_READ_FRAMEBUFFER,
         context.context.get_fbo(output.g_buffer));
     context.context.gl->glBindFramebuffer(GL_DRAW_FRAMEBUFFER,
@@ -123,6 +133,7 @@ void OpenGLRenderer::set_viewpoint_view(int, const float (&view)[4][4])
     active_viewpoint.right.uniform_offset = sizeof(params[1]);
 }
 
+// Move to helpers
 Material& OpenGLRenderer::get_material(const std::string& name)
 {
     std::map<std::string, Material>::iterator it = materials.find(name);
@@ -131,6 +142,49 @@ Material& OpenGLRenderer::get_material(const std::string& name)
     } else {
         return it->second;
     }
+}
+
+void OpenGLRenderer::create_material(const std::string& name,
+                                     const std::string& vert_filename,
+                                     const std::string& frag_filename,
+                                     int pass)
+{
+    ScopedContext context(context_pool, 0);
+    Material& material = get_material(name);
+    if (material.frag != 0 || material.vert != 0) {
+        return;
+    }
+
+    material.pass = pass;
+
+    QFile vert(vert_filename.c_str());
+    QFile frag(frag_filename.c_str());
+
+    if (!vert.open(QIODevice::ReadOnly) ||
+        !frag.open(QIODevice::ReadOnly)) {
+        throw;
+    }
+
+    QByteArray vert_data = vert.readAll();
+    QByteArray frag_data = frag.readAll();
+
+    if (vert_data.size() == 0 || frag_data.size() == 0) {
+        throw;
+    }
+
+    const char* vert_list[1] = {vert_data.constData()};
+    const char* frag_list[1] = {frag_data.constData()};
+    // TODO cache shader program by filename these
+    material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vert_list);
+    material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
+    context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
+    context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
+    context.context.gl->glUniformBlockBinding(material.frag, 0, 1);
+
+    // TODO convert to one ssbo?
+    context.context.gl->glGenBuffers(1, &material.params);
+    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
+    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 512, nullptr, GL_DYNAMIC_DRAW);
 }
 
 QOpenGLBuffer* OpenGLRenderer::get_buffer(const VertexFormat& format)
@@ -147,7 +201,7 @@ QOpenGLBuffer* OpenGLRenderer::get_buffer(const VertexFormat& format)
         return it->second;
     }
 }
-
+//
 
 void OpenGLRenderer::set_render_target_size(RenderTarget& rt, size_t width, size_t height)
 {

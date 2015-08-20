@@ -3,5 +3,7 @@
         <file alias="home.x3d">home.x3d</file>
         <file>shaders/default.frag</file>
         <file>shaders/default.vert</file>
+        <file>shaders/default-light.frag</file>
+        <file>shaders/default-light.vert</file>
     </qresource>
 </RCC>

@@ -20,7 +20,6 @@ using namespace CyberX3D;
 #include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QtGui/QOpenGLFramebufferObject>
-#include <QFile>
 
 #include <math.h>
 
@@ -230,34 +229,10 @@ struct X3DTextureTransformNode
 
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
-    ScopedContext context(context_pool, 0);
-    Material& material = get_material("x3d-default");
-    QFile vert(":/shaders/default.vert");
-    QFile frag(":/shaders/default.frag");
-
-    if (!vert.open(QIODevice::ReadOnly) ||
-        !frag.open(QIODevice::ReadOnly)) {
-        throw;
-    }
-
-    QByteArray vert_data = vert.readAll();
-    QByteArray frag_data = frag.readAll();
-
-    if (vert_data.size() == 0 || frag_data.size() == 0) {
-        throw;
-    }
-
-    const char* vert_list[1] = {vert_data.constData()};
-    const char* frag_list[1] = {frag_data.constData()};
-    material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vert_list);
-    material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
-    context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
-    context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
-    context.context.gl->glUniformBlockBinding(material.frag, 0, 1);
-
-    context.context.gl->glGenBuffers(1, &material.params);
-    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
-    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
+    passes.push_back(ShaderPass(0, -1, 1));
+    passes.push_back(ShaderPass(1, 1, 0));
+    create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
+    //create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()

@@ -140,8 +140,12 @@ public:
 
 class ShaderPass
 {
-    int render_target_in;
-    int render_target_out;
+public:
+    ShaderPass(size_t pass_id, ssize_t in, ssize_t out)
+        : pass_id(pass_id), in(in), out(out) {}
+    size_t pass_id;
+    ssize_t in;
+    ssize_t out;
 };
 
 class Material
@@ -149,6 +153,7 @@ class Material
 public:
     std::string name;
     std::vector<DrawBatch> batches;
+    unsigned int pass;
     unsigned int frag;
     unsigned int vert;
     unsigned int params;
@@ -210,6 +215,14 @@ public:
     {
         reset(projection);
         reset(view_offset);
+    }
+
+    inline const RenderTarget& get_render_target(size_t id) const
+    {
+        if (id == 0) {
+            return back_buffer;
+        }
+        return g_buffer;
     }
 
     Scalar projection[4][4];
