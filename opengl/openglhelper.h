@@ -158,7 +158,7 @@ class RenderOuputGroup
 {
 public:
     RenderOuputGroup() :  enabled(false), render_target(nullptr),
-        viewport_width(0), viewport_height(0)
+        viewport_width(0), viewport_height(0), uniform_offset(0)
     {
         reset(projection);
         reset(view_offset);
@@ -170,6 +170,7 @@ public:
     QOpenGLFramebufferObject* render_target;
     size_t viewport_width;
     size_t viewport_height;
+    size_t uniform_offset;
 };
 
 class Viewpoint

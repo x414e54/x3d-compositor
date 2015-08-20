@@ -58,7 +58,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
                  renderer->clear_color[2], renderer->clear_color[3]);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, sizeof(GlobalParameters));
+    //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, output.uniform_offset);
     context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms);
     context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls);
 
@@ -127,6 +127,8 @@ void OpenGLRenderer::set_viewpoint_view(int, const float (&view)[4][4])
     void* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(GlobalParameters) * 2, GL_MAP_WRITE_BIT);
     memcpy(data, params, sizeof(params));
     context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+    active_viewpoint.right.uniform_offset = sizeof(params[1]);
 }
 
 Material& OpenGLRenderer::get_material(const std::string& name)
