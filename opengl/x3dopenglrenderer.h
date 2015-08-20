@@ -7,6 +7,7 @@
 
 namespace CyberX3D
 {
+    class LightNode;
     class ShapeNode;
     class Node;
 }
@@ -20,8 +21,9 @@ public:
     bool get_ray(Scalar x, Scalar y, const Scalar (&model)[4][4], Scalar (&from)[3], Scalar (&to)[3]);
     void render(CyberX3D::SceneGraph *sg);
 private:
-    void DrawShapeNode(CyberX3D::SceneGraph *sg, CyberX3D::ShapeNode *shape, int drawMode);
-    void DrawNode(CyberX3D::SceneGraph *sceneGraph, CyberX3D::Node *firstNode, int drawMode);
+    void process_light_node(CyberX3D::LightNode *light);
+    void process_shape_node(CyberX3D::ShapeNode *shape, bool selected);
+    void process_node(CyberX3D::SceneGraph *sg, CyberX3D::Node *root);
 };
 
 #endif // X3DOPENGLRENDERER_H

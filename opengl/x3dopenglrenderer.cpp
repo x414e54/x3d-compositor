@@ -183,13 +183,45 @@ bool to_ray(const Scalar (&finalMatrix)[16], const Scalar (&in)[4], Scalar (&out
     return true;
 }
 
+bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
+                          const Scalar (&model)[4][4],
+                          Scalar (&from)[3], Scalar (&to)[3])
+{
+    Scalar finalMatrix[16];
+    Scalar in[4];
+
+    __gluMultMatrices(model, active_viewpoint.left.projection, finalMatrix);
+    if (!__gluInvertMatrix(finalMatrix, finalMatrix)) return false;
+
+    in[0]=x;
+    in[1]=y;
+    in[2]=0.0;
+    in[3]=1.0;
+
+    /* Map x and y from window coordinates */
+    in[0] = in[0] / active_viewpoint.left.viewport_width;
+    in[1] = in[1] / active_viewpoint.left.viewport_height;
+
+    /* Map to range -1 to 1 */
+    in[0] = in[0] * 2 - 1;
+    in[1] = in[1] * 2 - 1;
+    in[2] = in[2] * 2 - 1;
+
+    bool has_ray = to_ray(finalMatrix, in, from);
+    in[2]=1.0;
+    has_ray &= to_ray(finalMatrix, in, to);
+
+    return has_ray;
+}
+// end glu
+
 struct X3DMaterialNode
 {
-    float ambientIntensity = 0.8*0.2;
-    float diffuseColor[4] = {0.8, 0.8, 0.8};
-    float emissiveColor[3] = {0.0, 0.0, 0.0};
+    float ambient_intensity = 0.8*0.2;
+    float diffuse_color[4] = {0.8, 0.8, 0.8};
+    float emissive_color[3] = {0.0, 0.0, 0.0};
     float shininess = 0.2*128.0;
-    float specularColor[3] = {0.0, 0.0, 0.0};
+    float specular_color[3] = {0.0, 0.0, 0.0};
 };
 
 struct GlobalParameters
@@ -207,10 +239,10 @@ struct X3DNode
 
 struct X3DTextureTransformNode
 {
-    float texCenter[2];
-    float texScale[2];
-    float texTranslation[2];
-    float texRotation;
+    float center[2];
+    float scale[2];
+    float translation[2];
+    float totation;
 };
 
 X3DOpenGLRenderer::X3DOpenGLRenderer()
@@ -258,58 +290,20 @@ X3DOpenGLRenderer::~X3DOpenGLRenderer()
 
 }
 
-bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
-                          const Scalar (&model)[4][4],
-                          Scalar (&from)[3], Scalar (&to)[3])
-{
-    Scalar finalMatrix[16];
-    Scalar in[4];
-
-    __gluMultMatrices(model, active_viewpoint.left.projection, finalMatrix);
-    if (!__gluInvertMatrix(finalMatrix, finalMatrix)) return false;
-
-    in[0]=x;
-    in[1]=y;
-    in[2]=0.0;
-    in[3]=1.0;
-
-    /* Map x and y from window coordinates */
-    in[0] = in[0] / active_viewpoint.left.viewport_width;
-    in[1] = in[1] / active_viewpoint.left.viewport_height;
-
-    /* Map to range -1 to 1 */
-    in[0] = in[0] * 2 - 1;
-    in[1] = in[1] * 2 - 1;
-    in[2] = in[2] * 2 - 1;
-
-    bool has_ray = to_ray(finalMatrix, in, from);
-    in[2]=1.0;
-    has_ray &= to_ray(finalMatrix, in, to);
-
-    return has_ray;
-}
-// end glu
-
 void X3DOpenGLRenderer::set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar)
 {
     create_projection(active_viewpoint.left.projection, fovy, aspect, zNear, zFar);
 }
 
-////////////////////////////////////////////////////////// 
-//  render
-////////////////////////////////////////////////////////// 
-
-static int gnLights;
-static PointLightNode headLight;
-
-void PushLightNode(LightNode *lightNode)
+void X3DOpenGLRenderer::process_light_node(LightNode *lightNode)
 {
     return;
-	if (!lightNode->isOn()) 
+/*	if (!lightNode->isOn())
 		return;
 
 	GLint	nMaxLightMax;
 	glGetIntegerv(GL_MAX_LIGHTS, &nMaxLightMax);
+
 
 	if (nMaxLightMax < gnLights) {
 		gnLights++;
@@ -417,22 +411,7 @@ void PushLightNode(LightNode *lightNode)
 		glLightf(GL_LIGHT0+gnLights, GL_QUADRATIC_ATTENUATION, attenuation[2]);
 
 		gnLights++;
-	}
-}
-
-void PopLightNode(LightNode *lightNode)
-{
-    return;
-	if (!lightNode->isOn()) 
-		return;
-
-	GLint	nMaxLightMax;
-	glGetIntegerv(GL_MAX_LIGHTS, &nMaxLightMax);
-
-	gnLights--;
-	
-	if (gnLights < nMaxLightMax)
-		glDisable(GL_LIGHT0+gnLights);
+    }*/
 }
 
 VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
@@ -458,7 +437,7 @@ VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
     return new_format;
 }
 
-void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int drawMode)
+void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 {
     ScopedContext context(this->context_pool, 0);
     auto gl = context.context.gl;
@@ -536,12 +515,12 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 				glDisable(GL_BLEND);
 			}
 
-            material->getDiffuseColor(node.material.diffuseColor);
-            node.material.diffuseColor[3] = 1 - material->getTransparency();
-            material->getSpecularColor(node.material.specularColor);
-            material->getEmissiveColor(node.material.emissiveColor);
+            material->getDiffuseColor(node.material.diffuse_color);
+            node.material.diffuse_color[3] = 1 - material->getTransparency();
+            material->getSpecularColor(node.material.specular_color);
+            material->getEmissiveColor(node.material.emissive_color);
             node.material.shininess = material->getShininess();
-            node.material.ambientIntensity = material->getAmbientIntensity();
+            node.material.ambient_intensity = material->getAmbientIntensity();
 		}
     }
 
@@ -586,35 +565,30 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
                 batch.buffer_offset = 0;
                 default_material.batches.push_back(batch);
             }
-/**/
         }
 	}
 
 }
 
-
-void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int drawMode)
+void X3DOpenGLRenderer::process_node(SceneGraph *sg, Node *root)
 {
-	if (!firstNode)
-		return;
-
-	Node	*node;
-
-    for (node = firstNode; node; node=node->next()) {
-        if (node->isLightNode())
-            PushLightNode((LightNode *)node);
+    if (!root) {
+        return;
     }
 
-	for (node = firstNode; node; node=node->next()) {
-		if (node->isShapeNode()) 
-			DrawShapeNode(sceneGraph, (ShapeNode *)node, drawMode);
-		else
-			DrawNode(sceneGraph, node->getChildNodes(), drawMode);
-	}
+    Node* node;
+    for (node = root; node; node = node->next()) {
+        if (node->isLightNode()) {
+            process_light_node((LightNode *)node);
+        }
+    }
 
-    for (node = firstNode; node; node=node->next()) {
-        if (node->isLightNode())
-            PopLightNode((LightNode *)node);
+    for (node = root; node; node = node->next()) {
+        if (node->isShapeNode()) {
+            process_shape_node((ShapeNode *)node, sg->getSelectedShapeNode() == node);
+        } else {
+            process_node(sg, node->getChildNodes());
+        }
     }
 }
 
@@ -622,11 +596,11 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
     ScopedContext context(context_pool, 0);
 
-    const int drawMode = OGL_RENDERING_TEXTURE;
-
 	NavigationInfoNode *navInfo = sg->getNavigationInfoNode();
 	if (navInfo == NULL)
 		navInfo = sg->getDefaultNavigationInfoNode();
+
+    PointLightNode headLight;
 
 	if (navInfo->getHeadlight()) {
 		float	location[3];
@@ -669,7 +643,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-	DrawNode(sg, sg->getNodes(), drawMode);
+    process_node(sg, sg->getNodes());
 
     headLight.remove();
 
