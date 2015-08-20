@@ -192,6 +192,19 @@ struct X3DMaterialNode
     float specularColor[3] = {0.0, 0.0, 0.0};
 };
 
+struct GlobalParameters
+{
+    float view[4][4];
+    float projection[4][4];
+    float view_projection[4][4];
+};
+
+struct X3DNode
+{
+    float transform[4][4];
+    X3DMaterialNode material;
+};
+
 struct X3DTextureTransformNode
 {
     float texCenter[2];
@@ -223,10 +236,17 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     const char* frag_list[1] = {frag_data.constData()};
     material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vert_list);
     material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
+    context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
+    context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
+    context.context.gl->glUniformBlockBinding(material.frag, 0, 1);
+
     context.context.gl->glGenBuffers(1, &material.params);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-    context.context.gl->glUniformBlockBinding(material.frag, 0, 0);
+
+    context.context.gl->glGenBuffers(1, &this->global_uniforms);
+    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
+    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -448,7 +468,7 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 
 	bool				bEnableTexture = false;
 
-    X3DMaterialNode node;
+    X3DNode node;
 
     if (appearance) {
 		TextureTransformNode *texTransform = appearance->getTextureTransformNodes();
@@ -512,27 +532,24 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
 				glDisable(GL_BLEND);
 			}
 
-            material->getDiffuseColor(node.diffuseColor);
-            node.diffuseColor[3] = 1 - material->getTransparency();
-            material->getSpecularColor(node.specularColor);
-            material->getEmissiveColor(node.emissiveColor);
-            node.shininess = material->getShininess();
-            node.ambientIntensity = material->getAmbientIntensity();
+            material->getDiffuseColor(node.material.diffuseColor);
+            node.material.diffuseColor[3] = 1 - material->getTransparency();
+            material->getSpecularColor(node.material.specularColor);
+            material->getEmissiveColor(node.material.emissiveColor);
+            node.material.shininess = material->getShininess();
+            node.material.ambientIntensity = material->getAmbientIntensity();
 		}
     }
 
     Material& default_material = get_material("default");
 
-    float transform[4][4];
-    shape->getTransformMatrix(transform);
-    sso->glProgramUniformMatrix4fv(default_material.vert, 3, 1, GL_FALSE, &transform[0][0]);
-
+    shape->getTransformMatrix(node.transform);
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DMaterialNode), GL_MAP_WRITE_BIT);
-    memcpy(data, &node, sizeof(X3DMaterialNode));
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DNode), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-    gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, default_material.params, 0, sizeof(X3DMaterialNode));
+    gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, default_material.params, 0, sizeof(node));
 
 	Geometry3DNode *gnode = shape->getGeometry3D();
     if (gnode) {
@@ -646,14 +663,22 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	if (!view)
 		return;
 
-    float view_matrix[4][4];
-    view->getMatrix(view_matrix);
+    GlobalParameters params;
+    view->getMatrix(params.view);
     //&active_viewpoint.left.view_offset[0][0]
-    context.context.sso->glProgramUniformMatrix4fv(material.vert, 0, 1, GL_FALSE, &view_matrix[0][0]);
-    context.context.sso->glProgramUniformMatrix4fv(material.vert, 1, 1, GL_FALSE, &active_viewpoint.left.projection[0][0]);
     float view_proj[16];
-    __gluMultMatrices(view_matrix, active_viewpoint.left.projection, view_proj);
-    context.context.sso->glProgramUniformMatrix4fv(material.vert, 2, 1, GL_FALSE, &view_proj[0]);
+    __gluMultMatrices(params.view, active_viewpoint.left.projection, view_proj);
+
+    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
+    char* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(GlobalParameters), GL_MAP_WRITE_BIT);
+    memcpy(data, params.view, sizeof(params.view));
+    memcpy(data + sizeof(params.view), active_viewpoint.left.projection, sizeof(params.projection));
+    memcpy(data + sizeof(params.view) + sizeof(params.projection),
+           view_proj, sizeof(params.view_projection));
+
+    context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+    context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, sizeof(GlobalParameters));
 
 	DrawNode(sg, sg->getNodes(), drawMode);
 

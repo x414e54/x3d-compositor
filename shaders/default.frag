@@ -14,6 +14,7 @@ struct X3DMaterialNode
 
 layout(std140, location = 0) uniform ShaderParameters
 {
+    mat4 transform;
     X3DMaterialNode material;
 };
 
