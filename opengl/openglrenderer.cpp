@@ -144,7 +144,10 @@ int ContextPoolContext::get_pipeline(const Material& material)
 {
     MaterialPipelineMap::iterator it = pipelines.find(material);
     if (it == pipelines.end()) {
-        int pipeline = 0;
+        unsigned int pipeline = 0;
+        sso->glGenProgramPipelines(1, &pipeline);
+        sso->glUseProgramStages(pipeline, GL_VERTEX_SHADER_BIT, material.vert);
+        sso->glUseProgramStages(pipeline, GL_FRAGMENT_SHADER_BIT, material.frag);
         pipelines[material] = pipeline;
         return pipeline;
     } else {
