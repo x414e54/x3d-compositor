@@ -33,9 +33,6 @@ X3DScene::X3DScene(X3DRenderer* renderer)
 
 X3DScene::~X3DScene()
 {
-    if (m_renderer != NULL) {
-        delete m_renderer;
-    }
     if (m_root != NULL) {
         delete m_root;
     }
