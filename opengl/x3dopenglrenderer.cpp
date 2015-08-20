@@ -211,8 +211,8 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     char* vert_list[1] = {vert_data.data()};
     QByteArray frag_data = frag.readAll();
     char* frag_list[1] = {frag_data.data()};
-    material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_PROGRAM_ARB, 1, vert_list);
-    material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_PROGRAM_ARB, 1, frag_list);
+    material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vert_list);
+    material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
     context.context.gl->glGenBuffers(1, &material.params);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.params);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
