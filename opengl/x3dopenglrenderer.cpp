@@ -213,18 +213,19 @@ struct X3DMaterialNode
     float specular_color[3] = {0.0, 0.0, 0.0};
 };
 
-struct X3DNode
-{
-    float transform[4][4];
-    X3DMaterialNode material;
-};
-
 struct X3DTextureTransformNode
 {
     float center[2];
     float scale[2];
     float translation[2];
-    float totation;
+    float rotation;
+};
+
+struct X3DNode
+{
+    float transform[4][4];
+    X3DMaterialNode material;
+    X3DTextureTransformNode tex_transform;
 };
 
 X3DOpenGLRenderer::X3DOpenGLRenderer()
@@ -232,7 +233,7 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     passes.push_back(ShaderPass(0, -1, 1));
     passes.push_back(ShaderPass(1, 1, 0));
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
-    //create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
+    create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -392,87 +393,36 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 {
     ScopedContext context(this->context_pool, 0);
     auto gl = context.context.gl;
-    auto vab = context.context.vab;
-    auto sso = context.context.sso;
-
-	AppearanceNode			*appearance = shape->getAppearanceNodes();
-	MaterialNode			*material = NULL;
-	ImageTextureNode		*imgTexture = NULL;
-	TextureTransformNode	*texTransform = NULL;
-
-	bool				bEnableTexture = false;
 
     X3DNode node;
 
+    AppearanceNode *appearance = shape->getAppearanceNodes();
     if (appearance) {
-		TextureTransformNode *texTransform = appearance->getTextureTransformNodes();
-		if (texTransform) {
-			float texCenter[2];
-			float texScale[2];
-			float texTranslation[2];
-			float texRotation;
-
-            texTransform->getTranslation(texTranslation);
-            texTransform->getCenter(texCenter);
-            texRotation = texTransform->getRotation();
-            texTransform->getScale(texScale);
+        TextureTransformNode *transform = appearance->getTextureTransformNodes();
+        if (transform) {
+            transform->getTranslation(node.tex_transform.translation);
+            transform->getCenter(node.tex_transform.center);
+            node.tex_transform.rotation = transform->getRotation();
+            transform->getScale(node.tex_transform.scale);
         }
 
 		// Texture
         /*imgTexture = appearance->getImageTextureNodes();
-		if (imgTexture && drawMode == OGL_RENDERING_TEXTURE) {
-
-			int width = imgTexture->getWidth();
-			int height = imgTexture->getHeight();
-			RGBAColor32 *color = imgTexture->getImage();
-
-		if (imgTexture->getTextureName() != 0)
-				bEnableTexture = true;
-
-			if (bEnableTexture == true) {
-				if (imgTexture->hasTransparencyColor() == true) {
-					glEnable(GL_BLEND);
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				}
-				else
-					glDisable(GL_BLEND);
-
+        if (imgTexture) {
+        if (imgTexture->getTextureName() != 0)
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 				glBindTexture(GL_TEXTURE_2D, imgTexture->getTextureName());
-
-				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-				glEnable(GL_TEXTURE_2D);
-
-				glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-				glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-				glEnable(GL_COLOR_MATERIAL);
-			}
-			else {
-                glDisable(GL_TEXTURE_2D);
-			}
-		}
-		else {
-            glDisable(GL_TEXTURE_2D);
         }*/
 
-		// Material
-        material = appearance->getMaterialNodes();
+        MaterialNode *material = appearance->getMaterialNodes();
         if (material) {
-
-			if (material->getTransparency() != 0.0) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			} else if (!bEnableTexture) {
-				glDisable(GL_BLEND);
-			}
-
             material->getDiffuseColor(node.material.diffuse_color);
             node.material.diffuse_color[3] = 1 - material->getTransparency();
             material->getSpecularColor(node.material.specular_color);
             material->getEmissiveColor(node.material.emissive_color);
             node.material.shininess = material->getShininess();
             node.material.ambient_intensity = material->getAmbientIntensity();
-		}
+        }
     }
 
     Material& default_material = get_material("x3d-default");
@@ -493,17 +443,23 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             QOpenGLBuffer* vbo = get_buffer(format);
             vbo->bind();
             vbo->allocate(array.getBufferSize());
-            void *data = vbo->map(QOpenGLBuffer::ReadWrite);
+            void *data = vbo->mapRange(0, array.getBufferSize(), QOpenGLBuffer::RangeWrite);
             if (gnode->isBoxNode()) {
                 ((BoxNode*)gnode)->getVertexData(0, data);
             }
             vbo->unmap();
 
             if (array.getNumElements() > 0) {
-
+                // TODO elements draw
+                throw;
             } else {
+                // TODO too many draws
+                if (draw_calls_pos + sizeof(DrawArraysIndirectCommand) > 65535) {
+                    throw;
+                }
+
                 gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
-                void* data = gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT);
+                void* data = gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, draw_calls_pos, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT);
                 DrawArraysIndirectCommand cmd = {array.getNumVertices(), 1, 0, 0};
                 memcpy(data, &cmd, sizeof(cmd));
                 gl->glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
@@ -513,7 +469,8 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
                 batch.format = format;
                 batch.primitive_type = GL_TRIANGLES;
                 batch.num_draws = 1;
-                batch.buffer_offset = 0;
+                batch.buffer_offset = draw_calls_pos;
+                draw_calls_pos += sizeof(DrawArraysIndirectCommand);
                 default_material.batches.push_back(batch);
             }
         }

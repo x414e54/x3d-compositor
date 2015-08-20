@@ -19,6 +19,8 @@
 
 OpenGLRenderer::OpenGLRenderer()
 {
+    draw_calls_pos = 0;
+
     ScopedContext context(context_pool, 0);
     context.context.gl->glGenBuffers(1, &this->global_uniforms);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
@@ -269,4 +271,5 @@ void OpenGLRenderer::render_viewpoints()
 
         material_it->second.batches.clear();
     }
+    draw_calls_pos = 0;
 }
