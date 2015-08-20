@@ -553,8 +553,6 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
     memcpy(data, &node, sizeof(X3DNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-    gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, default_material.params, 0, sizeof(node));
-
 	Geometry3DNode *gnode = shape->getGeometry3D();
     if (gnode) {
         if (gnode->getNumVertexArrays() > 0) {
@@ -562,20 +560,14 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
             gnode->getVertexArray(array, 0);
             VertexFormat format = convert_to_internal(array.getFormat());
 
-/* this will be done elsewhere*/
-            gl->glBindVertexArray(context.context.get_vao(format));
             QOpenGLBuffer* vbo = get_buffer(format);
             vbo->bind();
             vbo->allocate(array.getBufferSize());
             void *data = vbo->map(QOpenGLBuffer::ReadWrite);
-/* only this part will be done here */
             if (gnode->isBoxNode()) {
                 ((BoxNode*)gnode)->getVertexData(0, data);
             }
-/*  */
             vbo->unmap();
-
-            vab->glBindVertexBuffer(0, vbo->bufferId(), 0, array.getFormat().getSize());
 
             if (array.getNumElements() > 0) {
 
@@ -586,10 +578,14 @@ void X3DOpenGLRenderer::DrawShapeNode(SceneGraph *sg, ShapeNode *shape, int draw
                 memcpy(data, &cmd, sizeof(cmd));
                 gl->glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
                 DrawBatch batch;
+                batch.format_stride = array.getFormat().getSize();
+                batch.draw_stride = 0;
+                batch.format = format;
                 batch.primitive_type = GL_TRIANGLES;
                 batch.num_draws = 1;
                 batch.buffer_offset = 0;
-                context.context.indirect->glMultiDrawArraysIndirect(batch.primitive_type, (const void*)batch.buffer_offset, batch.num_draws, 0);
+                default_material.batches.push_back(batch);
+                //context.context.indirect->glMultiDrawArraysIndirect(batch.primitive_type, (const void*)batch.buffer_offset, batch.num_draws, 0);
             }
 /**/
         }
@@ -626,15 +622,6 @@ void X3DOpenGLRenderer::DrawNode(SceneGraph *sceneGraph, Node *firstNode, int dr
 void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
     ScopedContext context(context_pool, 0);
-    context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
-        context.context.get_fbo(active_viewpoint.left.render_target->texture()));
-    context.context.gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-    context.context.gl->glViewport(0, 0, active_viewpoint.left.viewport_width, active_viewpoint.left.viewport_height);
-
-    Material& material = get_material("default");
-    int pipeline = context.context.get_pipeline(material);
-    context.context.sso->glBindProgramPipeline(pipeline);
 
     const int drawMode = OGL_RENDERING_TEXTURE;
 
@@ -657,21 +644,13 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	ViewpointNode *view = sg->getViewpointNode();
 	if (view == NULL)
 		view = sg->getDefaultViewpointNode();
-
-	glEnable(GL_DEPTH_TEST);
-	glCullFace(GL_BACK);
-	glEnable(GL_CULL_FACE);
-
-	float clearColor[] = {0.0f, 0.0f, 0.0f};
 	
 	BackgroundNode *bg = sg->getBackgroundNode();
 	if (bg != NULL) {
-		if (0 < bg->getNSkyColors())
-			bg->getSkyColor(0, clearColor);
+        if (0 < bg->getNSkyColors()) {
+            bg->getSkyColor(0, clear_color);
+        }
 	}
-
-	glClearColor(clearColor[0], clearColor[1], clearColor[2], 1.0f);
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	if (!view)
 		return;
@@ -690,8 +669,6 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
            view_proj, sizeof(params.view_projection));
 
     context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-    context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, sizeof(GlobalParameters));
 
 	DrawNode(sg, sg->getNodes(), drawMode);
 

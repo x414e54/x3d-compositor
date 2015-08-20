@@ -103,6 +103,7 @@ class DrawBatch
 {
 public:
     VertexFormat format;
+    int format_stride;
     int buffer_offset;
     int num_draws;
     int draw_stride;
@@ -270,6 +271,7 @@ protected:
     unsigned int draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;
+    float clear_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 private:
     std::vector<int> render_targets;
     VertexFormatBufferMap buffers;

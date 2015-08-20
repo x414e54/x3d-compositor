@@ -264,12 +264,34 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 {
     ScopedContext context(renderer->context_pool, context_id);
 
+    context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
+        context.context.get_fbo(output.render_target->texture()));
+    context.context.gl->glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    context.context.gl->glViewport(0, 0, output.viewport_width, output.viewport_height);
+
+    glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+    glClearColor(renderer->clear_color[0], renderer->clear_color[1],
+                 renderer->clear_color[2], renderer->clear_color[3]);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, sizeof(GlobalParameters));
+    context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms);
+    context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls);
+
     for (std::map<std::string, Material>::iterator material_it = renderer->materials.begin(); material_it != renderer->materials.end(); ++material_it) {
         context.context.sso->glBindProgramPipeline(context.context.get_pipeline(material_it->second));
+        //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, material_it->params, 0, sizeof(node));
+        context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 1, material_it->second.params);
         for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {
             context.context.gl->glBindVertexArray(context.context.get_vao(batch_it->format));
+            QOpenGLBuffer* vbo = renderer->get_buffer(batch_it->format);
+            context.context.vab->glBindVertexBuffer(0, vbo->bufferId(), 0, batch_it->format_stride);
+
             context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
         }
+        material_it->second.batches.empty();
     }
 }
 
