@@ -1,13 +1,14 @@
-#version 150
-#extension ARB_separate_shader_objects : require
+#version 150 
+#extension GL_ARB_separate_shader_objects: require
+#extension GL_ARB_explicit_attrib_location: require
 
 struct X3DMaterialNode
 {
-    float ambientIntensity;
-    vec4 diffuseColor;
-    vec3 emissiveColor;
+    float ambient_intensity;
+    vec4 diffuse_color;
+    vec3 emissive_color;
     float shininess;
-    vec3 specularColor;
+    vec3 specular_color;
 };
 
 layout(std140, location = 0) uniform ShaderParameters
@@ -17,22 +18,22 @@ layout(std140, location = 0) uniform ShaderParameters
 
 //sampler2D texture;
 
-layout(location = 0) in vertex
+layout(location = 0) in _vertex
 {
     vec3 position;
     vec3 normal;
     vec2 texcoord;
-};
+} vertex;
 
-layout(location = 0) out position;
-layout(location = 1) out normal;
-layout(location = 2) out diffuse;
+layout(location = 0) out vec4 rt0;
+layout(location = 1) out vec4 rt1;
+layout(location = 2) out vec4 rt2;
 
-int main()
+void main()
 {
     // Be wasteful for now
-    gl_FragData[0].rgb = vertex.position;
-    gl_FragData[1].rgb = vertex.normal;
-    gl_FragData[2].rgb = diffuseColor;
+    rt0.rgb = vertex.position;
+    rt1.rgb = vertex.normal;
+    rt2.rgb = material.diffuse_color.rgb;
 }
 
