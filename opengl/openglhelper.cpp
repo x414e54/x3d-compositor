@@ -171,10 +171,16 @@ int ContextPoolContext::get_vao(const VertexFormat& format)
         unsigned int vao = 0;
         gl->glGenVertexArrays(1, &vao);
         gl->glBindVertexArray(vao);
-        for (size_t i = 0; i < format.num_attribs; ++i) {
-            const Attribute& attrib = format.attribs[i];
+
+        // First is always draw information
+        gl->glEnableVertexAttribArray(0);
+        vab->glVertexAttribBinding(0, 0);
+        vab->glVertexAttribFormat(0, 4, GL_UNSIGNED_INT, false, 0);
+
+        for (size_t i = 1; i < format.num_attribs + 1; ++i) {
+            const Attribute& attrib = format.attribs[i - 1];
             gl->glEnableVertexAttribArray(i);
-            vab->glVertexAttribBinding(i, 0);
+            vab->glVertexAttribBinding(i, 1);
             vab->glVertexAttribFormat(i, attrib.components, attrib.type, attrib.normalized, attrib.offset);
         }
         vaos[format] = vao;

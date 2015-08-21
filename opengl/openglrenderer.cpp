@@ -84,7 +84,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {
                 context.context.gl->glBindVertexArray(context.context.get_vao(batch_it->format));
                 VertexBuffer& vbo = renderer->get_buffer(batch_it->format);
-                context.context.vab->glBindVertexBuffer(0, vbo.buffer, vbo.offset, batch_it->format_stride);
+                context.context.vab->glBindVertexBuffer(1, vbo.buffer, vbo.offset, batch_it->format_stride);
 
                 context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
             }
