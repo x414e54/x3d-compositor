@@ -130,6 +130,11 @@ public:
 class DrawBatch
 {
 public:
+    DrawBatch(const VertexFormat& format, int format_stride, int buffer_offset,
+              int num_draws, int draw_stride, int primitive_type)
+        : format(format), format_stride(format_stride), buffer_offset(buffer_offset),
+          num_draws(num_draws), draw_stride(draw_stride), primitive_type(primitive_type)
+    {}
     VertexFormat format;
     int format_stride;
     int buffer_offset;

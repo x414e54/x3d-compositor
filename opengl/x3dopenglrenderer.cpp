@@ -50,6 +50,29 @@ struct X3DShapeNode
     X3DTextureTransformNode tex_transform;
 };
 
+static VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
+{
+    VertexFormat new_format;
+    for (size_t i = 0; i < format.getNumAttributes(); ++i) {
+        const GeometryRenderInfo::Attribute* attrib = format.getAttribute(i);
+        GLenum type = GL_INVALID_ENUM;
+        const std::type_info& cpp_type = attrib->getType();
+        if (cpp_type == typeid(int) || cpp_type == typeid(unsigned int)) {
+            type = GL_UNSIGNED_INT;
+        } else if (cpp_type == typeid(short) || cpp_type == typeid(unsigned short)) {
+            type = GL_UNSIGNED_SHORT;
+        } else if (cpp_type == typeid(char) || cpp_type == typeid(unsigned char)) {
+            type = GL_UNSIGNED_BYTE;
+        } else if (cpp_type == typeid(float)) {
+            type = GL_FLOAT;
+        } else if (cpp_type == typeid(double)) {
+            type = GL_DOUBLE;
+        }
+        new_format.addAttribute(type, attrib->getComponents(), attrib->getNormalized(), attrib->getOffset());
+    }
+    return new_format;
+}
+
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
     passes.push_back(ShaderPass(0, -1, 1));
@@ -98,6 +121,8 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         //point_light->getLocation(pos);
 
         reset(node.transform);
+
+        process_geometry_node(&sphere, default_material);
     } /*else if (light_node->isDirectionalLightNode()) {
         DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
         node.type = 1;
@@ -123,30 +148,34 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode), GL_MAP_WRITE_BIT);
     memcpy(data, &node, sizeof(X3DLightNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
-
 }
 
-VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
+void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material)
 {
-    VertexFormat new_format;
-    for (size_t i = 0; i < format.getNumAttributes(); ++i) {
-        const GeometryRenderInfo::Attribute* attrib = format.getAttribute(i);
-        GLenum type = GL_INVALID_ENUM;
-        const std::type_info& cpp_type = attrib->getType();
-        if (cpp_type == typeid(int) || cpp_type == typeid(unsigned int)) {
-            type = GL_UNSIGNED_INT;
-        } else if (cpp_type == typeid(short) || cpp_type == typeid(unsigned short)) {
-            type = GL_UNSIGNED_SHORT;
-        } else if (cpp_type == typeid(char) || cpp_type == typeid(unsigned char)) {
-            type = GL_UNSIGNED_BYTE;
-        } else if (cpp_type == typeid(float)) {
-            type = GL_FLOAT;
-        } else if (cpp_type == typeid(double)) {
-            type = GL_DOUBLE;
+    if (geometry != nullptr) {
+        if (geometry->isInstanceNode())
+        {
+            // TODO implement instancing
+            throw;
+        } else if (geometry->getNumVertexArrays() > 0) {
+            if (geometry->getNumVertexArrays() > 1) {
+                // TODO handle multiple arrays
+                throw;
+            }
+
+            GeometryRenderInfo::VertexArray array;
+            geometry->getVertexArray(array, 0);
+            VertexFormat format = convert_to_internal(array.getFormat());
+
+            QOpenGLBuffer* vbo = get_buffer(format);
+            vbo->bind();
+            vbo->allocate(array.getBufferSize());
+            void *data = vbo->mapRange(0, array.getBufferSize(), QOpenGLBuffer::RangeWrite);
+            geometry->getVertexData(0, data);
+            vbo->unmap();
+            add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), 0);
         }
-        new_format.addAttribute(type, attrib->getComponents(), attrib->getNormalized(), attrib->getOffset());
     }
-    return new_format;
 }
 
 void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
@@ -190,49 +219,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
     memcpy(data, &node, sizeof(X3DShapeNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-    Geometry3DNode *geometry = shape->getGeometry3D();
-    if (geometry != nullptr) {
-        if (geometry->getNumVertexArrays() > 0) {
-            GeometryRenderInfo::VertexArray array;
-            geometry->getVertexArray(array, 0);
-            VertexFormat format = convert_to_internal(array.getFormat());
-
-            QOpenGLBuffer* vbo = get_buffer(format);
-            vbo->bind();
-            vbo->allocate(array.getBufferSize());
-            void *data = vbo->mapRange(0, array.getBufferSize(), QOpenGLBuffer::RangeWrite);
-            if (geometry->isBoxNode()) {
-                ((BoxNode*)geometry)->getVertexData(0, data);
-            }
-            vbo->unmap();
-
-            if (array.getNumElements() > 0) {
-                // TODO elements draw
-                throw;
-            } else {
-                // TODO too many draws
-                if (draw_calls_pos + sizeof(DrawArraysIndirectCommand) > 65535) {
-                    throw;
-                }
-
-                gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
-                void* data = gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, draw_calls_pos, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT);
-                DrawArraysIndirectCommand cmd = {array.getNumVertices(), 1, 0, 0};
-                memcpy(data, &cmd, sizeof(cmd));
-                gl->glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
-                DrawBatch batch;
-                batch.format_stride = array.getFormat().getSize();
-                batch.draw_stride = 0;
-                batch.format = format;
-                batch.primitive_type = GL_TRIANGLES;
-                batch.num_draws = 1;
-                batch.buffer_offset = draw_calls_pos;
-                draw_calls_pos += sizeof(DrawArraysIndirectCommand);
-                default_material.batches.push_back(batch);
-            }
-        }
-	}
-
+    process_geometry_node(shape->getGeometry3D(), default_material);
 }
 
 void X3DOpenGLRenderer::process_node(SceneGraph *sg, Node *root)

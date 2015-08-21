@@ -203,6 +203,31 @@ QOpenGLBuffer* OpenGLRenderer::get_buffer(const VertexFormat& format)
         return it->second;
     }
 }
+
+void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements)
+{
+    ScopedContext context(this->context_pool, 0);
+    const auto gl = context.context.gl;
+
+    if (elements > 0) {
+        // TODO elements draw
+        throw;
+    } else {
+        if (draw_calls_pos + sizeof(DrawArraysIndirectCommand) > 65535) {
+            // TODO too many draws
+            throw;
+        }
+
+        gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
+        void* data = gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, draw_calls_pos, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT);
+        DrawArraysIndirectCommand cmd = {verts, 1, 0, 0};
+        memcpy(data, &cmd, sizeof(cmd));
+        gl->glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+        DrawBatch batch(format, stride, draw_calls_pos, 1, 0, GL_TRIANGLES);
+        draw_calls_pos += sizeof(DrawArraysIndirectCommand);
+        material.batches.push_back(batch);
+    }
+}
 //
 
 void OpenGLRenderer::set_render_target_size(RenderTarget& rt, size_t width, size_t height)
