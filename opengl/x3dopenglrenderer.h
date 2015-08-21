@@ -7,6 +7,7 @@
 
 namespace CyberX3D
 {
+    class BackgroundNode;
     class Geometry3DNode;
     class LightNode;
     class ShapeNode;
@@ -23,6 +24,7 @@ public:
     void render(CyberX3D::SceneGraph *sg);
 private:
     void process_geometry_node(CyberX3D::Geometry3DNode *geometry, Material& material);
+    void process_background_node(CyberX3D::BackgroundNode *background);
     void process_light_node(CyberX3D::LightNode *light);
     void process_shape_node(CyberX3D::ShapeNode *shape, bool selected);
     void process_node(CyberX3D::SceneGraph *sg, CyberX3D::Node *root);

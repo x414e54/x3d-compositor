@@ -92,6 +92,11 @@ void X3DOpenGLRenderer::set_projection(Scalar fovy, Scalar aspect, Scalar zNear,
     create_projection(active_viewpoint.right.projection, fovy, aspect, zNear, zFar);
 }
 
+void X3DOpenGLRenderer::process_background_node(BackgroundNode *background)
+{
+
+}
+
 void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 {
     ScopedContext context(this->context_pool, 0);
@@ -250,6 +255,8 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
         }
     }
 
+    process_background_node(sg->getBackgroundNode());
+
     float matrix[4][4];
     view->getMatrix(matrix);
     set_viewpoint_view(0, matrix);
@@ -269,8 +276,6 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
         headlight.setIntensity(0.7f);
         process_light_node(&headlight);
 	}
-
-    // TODO sky/ground
 
     process_node(sg, sg->getNodes());
     render_viewpoints();
