@@ -17,10 +17,10 @@ layout(std140, location = 0) uniform ShaderParameters
     X3DLightNode light[1024];
 };
 
-uniform sampler2D in_rt0;
-uniform sampler2D in_rt1;
-uniform sampler2D in_rt2;
-uniform sampler2D in_rt3;
+layout(binding = 0) uniform sampler2D in_rt0;
+layout(binding = 1) uniform sampler2D in_rt1;
+layout(binding = 2) uniform sampler2D in_rt2;
+layout(binding = 3) uniform sampler2D in_rt3;
 
 layout(location = 0) in _vertex
 {
@@ -38,6 +38,6 @@ layout(location = 0) out vec4 rt0;
 
 void main()
 {
-    rt0 = vec4(in_rt1.rgb, 1.0);
+    rt0 = texture(in_rt0, gl_fragCoord.xy);
 }
 
