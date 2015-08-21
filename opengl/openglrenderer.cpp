@@ -89,6 +89,8 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             }
         }
     }
+
+// Temporary
     context.context.gl->glBindFramebuffer(GL_READ_FRAMEBUFFER,
         context.context.get_fbo(output.g_buffer));
     context.context.gl->glBindFramebuffer(GL_DRAW_FRAMEBUFFER,
@@ -98,6 +100,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
     context.context.gl->glBlitFramebuffer(0, 0, output.g_buffer.width, output.g_buffer.height,
                                           0, 0, output.back_buffer.width, output.back_buffer.height,
                                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
+// Temporary
 }
 
 void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
