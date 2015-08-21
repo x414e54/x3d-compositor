@@ -323,15 +323,16 @@ void X3DScene::update()
     view->getMatrix(this->view);
 }
 
-void X3DScene::render(const QSize &viewportSize)
+void X3DScene::render(const QSize &viewport_size)
 {
-    double aspect = (double)viewportSize.width()/(double)viewportSize.height();
+    Scalar aspect = (Scalar)viewport_size.width()/(Scalar)viewport_size.height();
 
     ViewpointNode *view = m_root->getViewpointNode();
-    if (view == NULL)
+    if (view == nullptr) {
         view = m_root->getDefaultViewpointNode();
+    }
 
-    double fov = (view->getFieldOfView() / 3.14) * 180.0;
+    Scalar fov = (view->getFieldOfView() / 3.14) * 180.0;
 
     m_renderer->set_projection(fov, aspect, 0.1f, 10000.0f);
     m_renderer->render(m_root);
