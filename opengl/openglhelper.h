@@ -175,7 +175,7 @@ public:
     unsigned int frag_params;
     size_t total_objects;
     bool operator<(const Material& b) const {
-        return this->name.compare(b.name);
+        return this->name.compare(b.name) < 0;
     }
 };
 

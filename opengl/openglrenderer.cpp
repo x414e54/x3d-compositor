@@ -139,7 +139,9 @@ Material& OpenGLRenderer::get_material(const std::string& name)
 {
     std::map<std::string, Material>::iterator it = materials.find(name);
     if (it == materials.end()) {
-        return materials[name];
+        Material& mat = materials[name];
+        mat.name = name;
+        return mat;
     } else {
         return it->second;
     }
