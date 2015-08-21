@@ -56,6 +56,13 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 
     for (std::vector<ShaderPass>::iterator pass_it = renderer->passes.begin(); pass_it != renderer->passes.end(); ++pass_it) {
         const RenderTarget& target = output.get_render_target(pass_it->out);
+        if (pass_it->in >= 0) {
+            const RenderTarget& in_target = output.get_render_target(pass_it->in);
+            for (size_t i = 0; i< in_target.num_attachments; ++i) {
+                glActiveTexture(GL_TEXTURE0 + i);
+                glBindTexture(GL_TEXTURE_2D, in_target.attachments[i]);
+            }
+        }
 
         context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
             context.context.get_fbo(target));

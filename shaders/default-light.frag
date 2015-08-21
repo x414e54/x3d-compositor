@@ -38,6 +38,6 @@ layout(location = 0) out vec4 rt0;
 
 void main()
 {
-    rt0 = vec4(in_rt3.rgb, 0);
+    rt0 = vec4(in_rt1.rgb, 1.0);
 }
 
