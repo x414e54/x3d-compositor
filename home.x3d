@@ -27,6 +27,14 @@
         <Cone/>
       </Shape>
     </Transform>
+    <Transform translation='0 0 6'>
+      <Shape>
+        <Appearance>
+          <Material diffuseColor='1 0 0' specularColor='0 1 0' transparency='.8'/>
+        </Appearance>
+        <Box/>
+      </Shape>
+    </Transform>
     <Transform translation='0 0 -6'>
       <Shape>
         <Appearance>

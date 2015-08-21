@@ -368,7 +368,7 @@ typedef struct {
 } DrawArraysIndirectCommand;
 
 
-inline float calc_light_radius(float intensity, float const_att, float linear_att, float quad_att)
+inline float calc_light_radius(float cutoff, float intensity, float const_att, float linear_att, float quad_att)
 {
     return 1.0;
 }

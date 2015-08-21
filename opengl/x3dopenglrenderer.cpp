@@ -122,48 +122,53 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.light.type = 0;
 
-        float attenuation [3];
+        float attenuation[3];
         point_light->getAttenuation(attenuation);
 
         SphereNode sphere;
-        sphere.setRadius(calc_light_radius(point_light->getIntensity(),
+        sphere.setRadius(calc_light_radius(0, point_light->getIntensity(),
                                            attenuation[0], attenuation[1], attenuation[2]));
         //point_light->getLocation(pos);
 
         reset(node.transform);
-
-      //  process_geometry_node(&sphere, default_material);
-    } /*else if (light_node->isDirectionalLightNode()) {
+        ++default_material.total_objects;
+        process_geometry_node(&sphere, default_material);
+    } else if (light_node->isDirectionalLightNode()) {
         DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
         node.light.type = 1;
 
         BoxNode box;
-        box
-        dLight->getDirection(pos); pos[3] = 0.0f;
-        calc_light(1.0, 0.0, 0.0);
+        reset(node.transform);
+        ++default_material.total_objects;
+        process_geometry_node(&box, default_material);
     } else if (light_node->isSpotLightNode()) {
         SpotLightNode *spot_light = (SpotLightNode *)light_node;
         node.light.type = 2;
 
         ConeNode cone;
         cone.setBottom(false);
-        box.setSize();
-        spot_light->getLocation(pos); pos[3] = 1.0f;
-        spot_light->getDirection(direction);
+        //spot_light->getLocation(pos);
+        //spot_light->getDirection(direction);
+        float attenuation[3];
         spot_light->getAttenuation(attenuation);
-        sphere.setRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
-                                           attenuation[0], attenuation[1], attenuation[2]));
-    }*/
-/*
-    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode::), GL_MAP_WRITE_BIT);
-    memcpy(data, &node, sizeof(X3DLightNode));
-    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+        cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
+                                               attenuation[0], attenuation[1], attenuation[2]));
+        reset(node.transform);
+        ++default_material.total_objects;
+        process_geometry_node(&cone, default_material);
+    }
 
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode::transform), GL_MAP_WRITE_BIT);
-    memcpy(data, &node, sizeof(X3DLightNode));
-    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);*/
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects - 1) * sizeof(X3DLightNode::transform),
+                                      sizeof(X3DLightNode::transform), GL_MAP_WRITE_BIT);
+    memcpy(data, &node.transform, sizeof(X3DLightNode::transform));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
+    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects - 1) * sizeof(X3DLightNode::light),
+                                sizeof(X3DLightNode::light), GL_MAP_WRITE_BIT);
+    memcpy(data, &node.light, sizeof(X3DLightNode::light));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 }
 
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material)
