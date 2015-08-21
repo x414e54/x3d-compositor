@@ -127,6 +127,16 @@ public:
     }
 };
 
+class VertexBuffer
+{
+public:
+    unsigned int buffer;
+    size_t offset; // meant of offset into vbo e.g. per frame
+    size_t max_bytes;
+    size_t num_verts; // current vertex count
+    size_t current_pos; // current position in bytes from offset
+};
+
 class DrawBatch
 {
 public:
@@ -247,7 +257,7 @@ public:
     OpenGLOutput* output;
 };
 
-typedef std::map<VertexFormat, QOpenGLBuffer*> VertexFormatBufferMap;
+typedef std::map<VertexFormat, VertexBuffer> VertexFormatBufferMap;
 typedef std::map<VertexFormat, int> VertexFormatVaoMap;
 typedef std::map<RenderTarget, int> RenderTargetFboMap;
 typedef std::map<Material, int> MaterialPipelineMap;

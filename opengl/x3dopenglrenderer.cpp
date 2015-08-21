@@ -141,6 +141,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.type = 2;
 
         ConeNode cone;
+        cone.setBottom(false);
         box.setSize();
         spot_light->getLocation(pos); pos[3] = 1.0f;
         spot_light->getDirection(direction);
@@ -157,6 +158,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material)
 {
+    ScopedContext context(this->context_pool, 0);
+    const auto gl = context.context.gl;
+
     if (geometry != nullptr) {
         if (geometry->isInstanceNode())
         {
@@ -172,13 +176,20 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
             geometry->getVertexArray(array, 0);
             VertexFormat format = convert_to_internal(array.getFormat());
 
-            QOpenGLBuffer* vbo = get_buffer(format);
-            vbo->bind();
-            vbo->allocate(array.getBufferSize());
-            void *data = vbo->mapRange(0, array.getBufferSize(), QOpenGLBuffer::RangeWrite);
+            VertexBuffer& vbo = get_buffer(format);
+            if (vbo.current_pos + array.getBufferSize() >= vbo.max_bytes) {
+                // TODO buffer full
+                throw;
+            }
+
+            gl->glBindBuffer(GL_ARRAY_BUFFER, vbo.buffer);
+            void* data = gl->glMapBufferRange(GL_ARRAY_BUFFER, vbo.offset + vbo.current_pos, array.getBufferSize(), GL_MAP_WRITE_BIT);
             geometry->getVertexData(0, data);
-            vbo->unmap();
-            add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), 0);
+            gl->glUnmapBuffer(GL_ARRAY_BUFFER);
+
+            add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), 0, vbo.num_verts, 0);
+            vbo.current_pos += array.getBufferSize();
+            vbo.num_verts += array.getNumVertices();
         }
     }
 }

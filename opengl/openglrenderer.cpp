@@ -20,6 +20,7 @@
 OpenGLRenderer::OpenGLRenderer()
 {
     draw_calls_pos = 0;
+    frame_num = 0;
 
     ScopedContext context(context_pool, 0);
     context.context.gl->glGenBuffers(1, &this->global_uniforms);
@@ -82,8 +83,8 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 1, material_it->second.params);
             for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {
                 context.context.gl->glBindVertexArray(context.context.get_vao(batch_it->format));
-                QOpenGLBuffer* vbo = renderer->get_buffer(batch_it->format);
-                context.context.vab->glBindVertexBuffer(0, vbo->bufferId(), 0, batch_it->format_stride);
+                VertexBuffer& vbo = renderer->get_buffer(batch_it->format);
+                context.context.vab->glBindVertexBuffer(0, vbo.buffer, vbo.offset, batch_it->format_stride);
 
                 context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
             }
@@ -192,22 +193,33 @@ void OpenGLRenderer::create_material(const std::string& name,
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 512, nullptr, GL_DYNAMIC_DRAW);
 }
 
-QOpenGLBuffer* OpenGLRenderer::get_buffer(const VertexFormat& format)
+VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 {
     VertexFormatBufferMap::iterator it = buffers.find(format);
     if (it == buffers.end()) {
-        QOpenGLBuffer* vbo = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-        vbo->create();
-        vbo->bind();
-        buffers[format] = vbo;
-        return vbo;
+        ScopedContext context(context_pool);
+        VertexBuffer buffer;
+        context.context.gl->glGenBuffers(1, &buffer.buffer);
+        context.context.gl->glBindBuffer(GL_ARRAY_BUFFER, buffer.buffer);
+        buffer.max_bytes = 1024 * 1024;
+        context.context.gl->glBufferData(GL_ARRAY_BUFFER, buffer.max_bytes * 3, nullptr, GL_STREAM_DRAW);
+        buffer.current_pos = 0;
+        buffer.num_verts = 0;
+        buffer.offset = buffer.max_bytes * frame_num;
+        buffers[format] = buffer;
+        return buffers[format];
     } else {
+        VertexBuffer& buffer = it->second;
+        if (buffer.offset != buffer.max_bytes * frame_num) {
+            buffer.current_pos = 0;
+            buffer.num_verts = 0;
+            buffer.offset = buffer.max_bytes * frame_num;
+        }
         return it->second;
     }
 }
 
-void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements)
+void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
 {
     ScopedContext context(this->context_pool, 0);
     const auto gl = context.context.gl;
@@ -223,7 +235,7 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
 
         gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->draw_calls);
         void* data = gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, draw_calls_pos, sizeof(DrawArraysIndirectCommand), GL_MAP_WRITE_BIT);
-        DrawArraysIndirectCommand cmd = {verts, 1, 0, 0};
+        DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, 0};
         memcpy(data, &cmd, sizeof(cmd));
         gl->glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
         DrawBatch batch(format, stride, draw_calls_pos, 1, 0, GL_TRIANGLES);
@@ -300,4 +312,6 @@ void OpenGLRenderer::render_viewpoints()
         material_it->second.batches.clear();
     }
     draw_calls_pos = 0;
+
+    ++frame_num %= 3;
 }
