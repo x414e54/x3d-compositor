@@ -24,18 +24,20 @@ uniform sampler2D in_rt3;
 
 layout(location = 0) in _vertex
 {
-    flat vec4 draw_info;
     vec3 position;
     vec3 normal;
     vec2 texcoord;
 } vertex;
 
+layout(location = 1) in _object
+{
+    int draw_id;
+} object;
+
 layout(location = 0) out vec4 rt0;
 
 void main()
 {
-    int draw_id = int(vertex.draw_info[0]);
-    // Be wasteful for now
-    rt0.rgb = vertex.position;
+    rt0 = vec4(in_rt3.rgb, 0);
 }
 

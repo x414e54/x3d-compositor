@@ -22,11 +22,15 @@ layout(std140, location = 1) uniform ShaderParameters
 
 layout(location = 0) out _vertex
 {
-    flat vec4 draw_info;
     vec3 position;
     vec3 normal;
     vec2 texcoord;
 } vertex;
+
+layout(location = 1) out _object
+{
+    int draw_id;
+} object;
 
 void main()
 {
@@ -36,5 +40,5 @@ void main()
     vertex.position = (view * transform * vec4(position, 1.0)).rgb;
     vertex.normal = normal;
     vertex.texcoord = texcoord;
-    vertex.draw_info = draw_info;
+    object.draw_id = draw_id;
 }

@@ -31,7 +31,6 @@ layout(location = 1) in _object
     int draw_id;
 } object;
 
-
 layout(location = 0) out vec4 rt0;
 layout(location = 1) out vec4 rt1;
 layout(location = 2) out vec4 rt2;
