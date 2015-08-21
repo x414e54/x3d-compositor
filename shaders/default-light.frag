@@ -39,10 +39,10 @@ layout(location = 0) out vec4 rt0;
 
 void main()
 {
-    vec4 pos = texture(in_rt0, gl_fragCoord.xy);
-    vec4 norm = texture(in_rt1, gl_fragCoord.xy);
-    vec4 color = texture(in_rt2, gl_fragCoord.xy);
-    vec4 other = texture(in_rt3, gl_fragCoord.xy);
+    vec4 pos = texture(in_rt0, gl_FragCoord.xy);
+    vec4 norm = texture(in_rt1, gl_FragCoord.xy);
+    vec4 color = texture(in_rt2, gl_FragCoord.xy);
+    vec4 other = texture(in_rt3, gl_FragCoord.xy);
     rt0 = vec4(pos.x, norm.y, other.z, color.a);
 }
 

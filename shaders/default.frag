@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects: require
 #extension GL_ARB_explicit_attrib_location: require
 #extension GL_ARB_explicit_uniform_location: require
+#extension GL_ARB_shading_language_420pack: require
 
 struct X3DMaterialNode
 {
@@ -17,7 +18,10 @@ layout(std140, location = 0) uniform ShaderParameters
     X3DMaterialNode material[1024];
 };
 
-//sampler2D texture;
+uniform sampler2D in_rt0;
+uniform sampler2D in_rt1;
+uniform sampler2D in_rt2;
+uniform sampler2D in_rt3;
 
 layout(location = 0) in _vertex
 {
