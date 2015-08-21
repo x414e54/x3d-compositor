@@ -1,13 +1,3 @@
-/******************************************************************
-*
-*	CyberX3D for C++
-*
-*	Copyright (C) Satoshi Konno 1996-2003
-*
-*	File:	X3DBrowserFunc.cpp
-*
-******************************************************************/
-
 #include "x3dopenglrenderer.h"
 #define CX3D_SUPPORT_OPENGL
 #include <cybergarage/x3d/CyberX3D.h>
@@ -204,6 +194,16 @@ bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
 }
 // end glu
 
+struct X3DLightNode
+{
+    int type;
+    float transform[4][4];
+    float intensity = 0.8*0.2;
+    float color[4] = {0.8, 0.8, 0.8};
+    float diffuse_color[4] = {0.8, 0.8, 0.8};
+    float ambient_color[3] = {0.0, 0.0, 0.0};
+};
+
 struct X3DMaterialNode
 {
     float ambient_intensity = 0.8*0.2;
@@ -221,7 +221,7 @@ struct X3DTextureTransformNode
     float rotation;
 };
 
-struct X3DNode
+struct X3DShapeNode
 {
     float transform[4][4];
     X3DMaterialNode material;
@@ -249,121 +249,59 @@ void X3DOpenGLRenderer::set_projection(Scalar fovy, Scalar aspect, Scalar zNear,
 
 void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 {
-    return;
-/*	if (!lightNode->isOn())
+    ScopedContext context(this->context_pool, 0);
+    const auto gl = context.context.gl;
+
+    if (!light_node->isOn()) {
 		return;
+    }
 
-	GLint	nMaxLightMax;
-	glGetIntegerv(GL_MAX_LIGHTS, &nMaxLightMax);
+    X3DLightNode node;
+    light_node->getAmbientColor(node.ambient_color);
+    light_node->getDiffuseColor(node.diffuse_color);
+    light_node->getColor(node.color);
 
+    Material& default_material = get_material("x3d-default-light");
 
-	if (nMaxLightMax < gnLights) {
-		gnLights++;
-		return;
-	}
+    if (light_node->isPointLightNode()) {
+        PointLightNode *point_light = (PointLightNode *)light_node;
+        node.type = 0;
 
-	float	color[4];
-	float	pos[4];
-	float	attenuation[3];
-	float	direction[3];
-	float	intensity;
+        float attenuation [3];
+        point_light->getAttenuation(attenuation);
 
-	if (lightNode->isPointLightNode()) {
-		
-		PointLightNode *pLight = (PointLightNode *)lightNode;
+        SphereNode sphere;
+        sphere.setRadius(calc_light_radius(point_light->getIntensity(),
+                                           attenuation[0], attenuation[1], attenuation[2]));
+        //point_light->getLocation(pos);
 
-		glEnable(GL_LIGHT0+gnLights);
-		
-		pLight->getAmbientColor(color);
-		glLightfv(GL_LIGHT0+gnLights, GL_AMBIENT, color);
+        reset(node.transform);
+    } /*else if (light_node->isDirectionalLightNode()) {
+        DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
+        node.type = 1;
 
-		pLight->getColor(color);
-		intensity = pLight->getIntensity();
-		color[0] *= intensity; 
-		color[1] *= intensity; 
-		color[2] *= intensity; 
-		glLightfv(GL_LIGHT0+gnLights, GL_DIFFUSE, color);
-		glLightfv(GL_LIGHT0+gnLights, GL_SPECULAR, color);
+        BoxNode box;
+        box
+        dLight->getDirection(pos); pos[3] = 0.0f;
+        calc_light(1.0, 0.0, 0.0);
+    } else if (light_node->isSpotLightNode()) {
+        SpotLightNode *spot_light = (SpotLightNode *)light_node;
+        node.type = 2;
 
-		pLight->getLocation(pos); pos[3] = 1.0f;
-		glLightfv(GL_LIGHT0+gnLights, GL_POSITION, pos);
-
-		direction[0] = 0.0f; direction[0] = 0.0f; direction[0] = 0.0f;
-		glLightfv(GL_LIGHT0+gnLights, GL_SPOT_DIRECTION, direction);
-		glLightf(GL_LIGHT0+gnLights, GL_SPOT_EXPONENT, 0.0f);
-		glLightf(GL_LIGHT0+gnLights, GL_SPOT_CUTOFF, 180.0f);
-
-		pLight->getAttenuation(attenuation);
-		glLightf(GL_LIGHT0+gnLights, GL_CONSTANT_ATTENUATION, attenuation[0]);
-		glLightf(GL_LIGHT0+gnLights, GL_LINEAR_ATTENUATION, attenuation[1]);
-		glLightf(GL_LIGHT0+gnLights, GL_QUADRATIC_ATTENUATION, attenuation[2]);
-		
-		gnLights++;
-	}
-	else if (lightNode->isDirectionalLightNode()) {
-
-		DirectionalLightNode *dLight = (DirectionalLightNode *)lightNode;
-		
-		glEnable(GL_LIGHT0+gnLights);
-		
-		dLight->getAmbientColor(color);
-		glLightfv(GL_LIGHT0+gnLights, GL_AMBIENT, color);
-
-		dLight->getColor(color);
-		intensity = dLight->getIntensity();
-		color[0] *= intensity; 
-		color[1] *= intensity; 
-		color[2] *= intensity; 
-		glLightfv(GL_LIGHT0+gnLights, GL_DIFFUSE, color);
-		glLightfv(GL_LIGHT0+gnLights, GL_SPECULAR, color);
-
-		dLight->getDirection(pos); pos[3] = 0.0f;
-		glLightfv(GL_LIGHT0+gnLights, GL_POSITION, pos);
-
-		direction[0] = 0.0f; direction[0] = 0.0f; direction[0] = 0.0f;
-		glLightfv(GL_LIGHT0+gnLights, GL_SPOT_DIRECTION, direction);
-		glLightf(GL_LIGHT0+gnLights, GL_SPOT_EXPONENT, 0.0f);
-		glLightf(GL_LIGHT0+gnLights, GL_SPOT_CUTOFF, 180.0f);
-
-		glLightf(GL_LIGHT0+gnLights, GL_CONSTANT_ATTENUATION, 1.0);
-		glLightf(GL_LIGHT0+gnLights, GL_LINEAR_ATTENUATION, 0.0);
-		glLightf(GL_LIGHT0+gnLights, GL_QUADRATIC_ATTENUATION, 0.0);
-
-		gnLights++;
-	}
-	else if (lightNode->isSpotLightNode()) {
-
-		SpotLightNode *sLight = (SpotLightNode *)lightNode;
-
-		glEnable(GL_LIGHT0+gnLights);
-		
-		sLight->getAmbientColor(color);
-		glLightfv(GL_LIGHT0+gnLights, GL_AMBIENT, color);
-
-		sLight->getColor(color);
-		intensity = sLight->getIntensity();
-		color[0] *= intensity; 
-		color[1] *= intensity; 
-		color[2] *= intensity; 
-		glLightfv(GL_LIGHT0+gnLights, GL_DIFFUSE, color);
-		glLightfv(GL_LIGHT0+gnLights, GL_SPECULAR, color);
-
-		sLight->getLocation(pos); pos[3] = 1.0f;
-		glLightfv(GL_LIGHT0+gnLights, GL_POSITION, pos);
-
-		sLight->getDirection(direction);
-		glLightfv(GL_LIGHT0+gnLights, GL_SPOT_DIRECTION, direction);
-
-		glLightf(GL_LIGHT0+gnLights, GL_SPOT_EXPONENT, 0.0f);
-		glLightf(GL_LIGHT0+gnLights, GL_SPOT_CUTOFF, sLight->getCutOffAngle());
-
-		sLight->getAttenuation(attenuation);
-		glLightf(GL_LIGHT0+gnLights, GL_CONSTANT_ATTENUATION, attenuation[0]);
-		glLightf(GL_LIGHT0+gnLights, GL_LINEAR_ATTENUATION, attenuation[1]);
-		glLightf(GL_LIGHT0+gnLights, GL_QUADRATIC_ATTENUATION, attenuation[2]);
-
-		gnLights++;
+        ConeNode cone;
+        box.setSize();
+        spot_light->getLocation(pos); pos[3] = 1.0f;
+        spot_light->getDirection(direction);
+        spot_light->getAttenuation(attenuation);
+        sphere.setRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
+                                           attenuation[0], attenuation[1], attenuation[2]));
     }*/
+
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DLightNode));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
 }
 
 VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
@@ -392,30 +330,27 @@ VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
 void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 {
     ScopedContext context(this->context_pool, 0);
-    auto gl = context.context.gl;
+    const auto gl = context.context.gl;
 
-    X3DNode node;
+    X3DShapeNode node;
 
     AppearanceNode *appearance = shape->getAppearanceNodes();
-    if (appearance) {
+    if (appearance != nullptr) {
         TextureTransformNode *transform = appearance->getTextureTransformNodes();
-        if (transform) {
+        if (transform != nullptr) {
             transform->getTranslation(node.tex_transform.translation);
             transform->getCenter(node.tex_transform.center);
             node.tex_transform.rotation = transform->getRotation();
             transform->getScale(node.tex_transform.scale);
         }
 
-		// Texture
-        /*imgTexture = appearance->getImageTextureNodes();
-        if (imgTexture) {
-        if (imgTexture->getTextureName() != 0)
-				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-				glBindTexture(GL_TEXTURE_2D, imgTexture->getTextureName());
-        }*/
+        ImageTextureNode *texture = appearance->getImageTextureNodes();
+        if (texture != nullptr && texture->getTextureName() != 0) {
+                // make resident, add to ssbo
+        }
 
         MaterialNode *material = appearance->getMaterialNodes();
-        if (material) {
+        if (material != nullptr) {
             material->getDiffuseColor(node.material.diffuse_color);
             node.material.diffuse_color[3] = 1 - material->getTransparency();
             material->getSpecularColor(node.material.specular_color);
@@ -429,23 +364,23 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 
     shape->getTransformMatrix(node.transform);
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DNode), GL_MAP_WRITE_BIT);
-    memcpy(data, &node, sizeof(X3DNode));
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DShapeNode), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DShapeNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-	Geometry3DNode *gnode = shape->getGeometry3D();
-    if (gnode) {
-        if (gnode->getNumVertexArrays() > 0) {
+    Geometry3DNode *geometry = shape->getGeometry3D();
+    if (geometry != nullptr) {
+        if (geometry->getNumVertexArrays() > 0) {
             GeometryRenderInfo::VertexArray array;
-            gnode->getVertexArray(array, 0);
+            geometry->getVertexArray(array, 0);
             VertexFormat format = convert_to_internal(array.getFormat());
 
             QOpenGLBuffer* vbo = get_buffer(format);
             vbo->bind();
             vbo->allocate(array.getBufferSize());
             void *data = vbo->mapRange(0, array.getBufferSize(), QOpenGLBuffer::RangeWrite);
-            if (gnode->isBoxNode()) {
-                ((BoxNode*)gnode)->getVertexData(0, data);
+            if (geometry->isBoxNode()) {
+                ((BoxNode*)geometry)->getVertexData(0, data);
             }
             vbo->unmap();
 
@@ -480,19 +415,14 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 
 void X3DOpenGLRenderer::process_node(SceneGraph *sg, Node *root)
 {
-    if (!root) {
+    if (root == nullptr || sg == nullptr) {
         return;
     }
 
-    Node* node;
-    for (node = root; node; node = node->next()) {
+    for (Node *node = root; node != nullptr; node = node->next()) {
         if (node->isLightNode()) {
             process_light_node((LightNode *)node);
-        }
-    }
-
-    for (node = root; node; node = node->next()) {
-        if (node->isShapeNode()) {
+        } else if (node->isShapeNode()) {
             process_shape_node((ShapeNode *)node, sg->getSelectedShapeNode() == node);
         } else {
             process_node(sg, node->getChildNodes());
@@ -504,47 +434,35 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
     ScopedContext context(context_pool, 0);
 
-	NavigationInfoNode *navInfo = sg->getNavigationInfoNode();
-	if (navInfo == NULL)
-		navInfo = sg->getDefaultNavigationInfoNode();
-
-    PointLightNode headLight;
-
-	if (navInfo->getHeadlight()) {
-		float	location[3];
-		ViewpointNode *view = sg->getViewpointNode();
-		if (view == NULL)
-			view = sg->getDefaultViewpointNode();
-		view->getPosition(location);
-		headLight.setLocation(location);
-		headLight.setAmbientIntensity(0.3f);
-		headLight.setIntensity(0.7f);
-		sg->addNode(&headLight);
-	}
-
-	ViewpointNode *view = sg->getViewpointNode();
-	if (view == NULL)
-		view = sg->getDefaultViewpointNode();
-	
-	BackgroundNode *bg = sg->getBackgroundNode();
-	if (bg != NULL) {
-        if (0 < bg->getNSkyColors()) {
-            bg->getSkyColor(0, clear_color);
+    ViewpointNode *view = sg->getViewpointNode();
+    if (view == nullptr) {
+        if ((view = sg->getDefaultViewpointNode()) == nullptr) {
+            return;
         }
-	}
-
-	if (!view)
-		return;
+    }
 
     float matrix[4][4];
     view->getMatrix(matrix);
     set_viewpoint_view(0, matrix);
 
+    NavigationInfoNode *nav_info = sg->getNavigationInfoNode();
+    if (nav_info == nullptr) {
+        nav_info = sg->getDefaultNavigationInfoNode();
+    }
+
+    if (nav_info != nullptr &&
+        nav_info->getHeadlight()) {
+        PointLightNode headlight;
+        float location[3];
+		view->getPosition(location);
+        headlight.setLocation(location);
+        headlight.setAmbientIntensity(0.3f);
+        headlight.setIntensity(0.7f);
+        process_light_node(&headlight);
+	}
+
+    // TODO sky/ground
+
     process_node(sg, sg->getNodes());
-
-    headLight.remove();
-
-	glFlush();
-
     render_viewpoints();
 }

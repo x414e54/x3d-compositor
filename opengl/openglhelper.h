@@ -350,5 +350,11 @@ typedef struct {
     uint  baseInstance;
 } DrawArraysIndirectCommand;
 
+
+inline float calc_light_radius(float intensity, float const_att, float linear_att, float quad_att)
+{
+    return 1.0;
+}
+
 #endif // OPENGLRENDERER_H
 
