@@ -16,14 +16,19 @@ using namespace CyberX3D;
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QtGui/QOpenGLFramebufferObject>
 
-struct X3DLightNode
+struct X3DLightNodeInfo
 {
     int type;
-    float transform[4][4];
     float intensity = 0.8*0.2;
     float color[4] = {0.8, 0.8, 0.8};
     float diffuse_color[4] = {0.8, 0.8, 0.8};
     float ambient_color[3] = {0.0, 0.0, 0.0};
+};
+
+struct X3DLightNode
+{
+    float transform[4][4];
+    X3DLightNodeInfo light;
 };
 
 struct X3DMaterialNode
@@ -107,15 +112,15 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     }
 
     X3DLightNode node;
-    light_node->getAmbientColor(node.ambient_color);
-    light_node->getDiffuseColor(node.diffuse_color);
-    light_node->getColor(node.color);
+    light_node->getAmbientColor(node.light.ambient_color);
+    light_node->getDiffuseColor(node.light.diffuse_color);
+    light_node->getColor(node.light.color);
 
     Material& default_material = get_material("x3d-default-light");
 
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
-        node.type = 0;
+        node.light.type = 0;
 
         float attenuation [3];
         point_light->getAttenuation(attenuation);
@@ -127,10 +132,10 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         reset(node.transform);
 
-        process_geometry_node(&sphere, default_material);
+      //  process_geometry_node(&sphere, default_material);
     } /*else if (light_node->isDirectionalLightNode()) {
         DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
-        node.type = 1;
+        node.light.type = 1;
 
         BoxNode box;
         box
@@ -138,7 +143,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         calc_light(1.0, 0.0, 0.0);
     } else if (light_node->isSpotLightNode()) {
         SpotLightNode *spot_light = (SpotLightNode *)light_node;
-        node.type = 2;
+        node.light.type = 2;
 
         ConeNode cone;
         cone.setBottom(false);
@@ -149,11 +154,16 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         sphere.setRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                            attenuation[0], attenuation[1], attenuation[2]));
     }*/
-
-    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode), GL_MAP_WRITE_BIT);
+/*
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode::), GL_MAP_WRITE_BIT);
     memcpy(data, &node, sizeof(X3DLightNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DLightNode::transform), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DLightNode));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);*/
 }
 
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material)
@@ -229,12 +239,25 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 
     Material& default_material = get_material("x3d-default");
 
+    if (default_material.total_objects >= 1024) {
+        // TODO too many objects, covnert to SSBO and instance any nodes
+        throw;
+    }
+
     shape->getTransformMatrix(node.transform);
-    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(X3DShapeNode), GL_MAP_WRITE_BIT);
-    memcpy(data, &node, sizeof(X3DShapeNode));
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(X3DShapeNode::transform),
+                                      sizeof(X3DShapeNode::transform), GL_MAP_WRITE_BIT);
+    memcpy(data, &node.transform, sizeof(X3DShapeNode::transform));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
+    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(X3DShapeNode::material),
+                                sizeof(X3DShapeNode::material), GL_MAP_WRITE_BIT);
+    memcpy(data, &node.material, sizeof(X3DShapeNode::material));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+    ++default_material.total_objects;
     process_geometry_node(shape->getGeometry3D(), default_material);
 }
 

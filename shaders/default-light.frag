@@ -3,39 +3,39 @@
 #extension GL_ARB_explicit_attrib_location: require
 #extension GL_ARB_explicit_uniform_location: require
 
-struct X3DMaterialNode
+struct X3DLightNode
 {
-    float ambient_intensity;
+    int type;
+    float intensity;
+    vec4 color;
     vec4 diffuse_color;
-    vec3 emissive_color;
-    float shininess;
-    vec3 specular_color;
+    vec3 ambient_color;
 };
 
 layout(std140, location = 0) uniform ShaderParameters
 {
-    mat4 transform;
-    X3DMaterialNode material;
+    X3DLightNode light[1024];
 };
 
-//sampler2D texture;
+uniform sampler2D in_rt0;
+uniform sampler2D in_rt1;
+uniform sampler2D in_rt2;
+uniform sampler2D in_rt3;
 
 layout(location = 0) in _vertex
 {
+    flat vec4 draw_info;
     vec3 position;
     vec3 normal;
     vec2 texcoord;
 } vertex;
 
 layout(location = 0) out vec4 rt0;
-layout(location = 1) out vec4 rt1;
-layout(location = 2) out vec4 rt2;
 
 void main()
 {
+    int draw_id = int(vertex.draw_info[0]);
     // Be wasteful for now
     rt0.rgb = vertex.position;
-    rt1.rgb = vertex.normal;
-    rt2.rgb = material.diffuse_color.rgb;
 }
 

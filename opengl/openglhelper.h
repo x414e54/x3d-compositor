@@ -171,7 +171,9 @@ public:
     unsigned int pass;
     unsigned int frag;
     unsigned int vert;
-    unsigned int params;
+    unsigned int vert_params;
+    unsigned int frag_params;
+    size_t total_objects;
     bool operator<(const Material& b) const {
         return this->name.compare(b.name);
     }

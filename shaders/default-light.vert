@@ -17,11 +17,12 @@ layout(std140, location = 0) uniform GlobalParameters
 
 layout(std140, location = 1) uniform ShaderParameters
 {
-    mat4 transform;
+    mat4 transforms[1024];
 };
 
 layout(location = 0) out _vertex
 {
+    flat vec4 draw_info;
     vec3 position;
     vec3 normal;
     vec2 texcoord;
@@ -29,8 +30,11 @@ layout(location = 0) out _vertex
 
 void main()
 {
+    int draw_id = int(draw_info[0]);
+    mat4 transform = transforms[draw_id];
     gl_Position = view_projection * transform * vec4(position, 1.0);
     vertex.position = (view * transform * vec4(position, 1.0)).rgb;
     vertex.normal = normal;
     vertex.texcoord = texcoord;
+    vertex.draw_info = draw_info;
 }

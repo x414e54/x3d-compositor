@@ -14,14 +14,14 @@ struct X3DMaterialNode
 
 layout(std140, location = 0) uniform ShaderParameters
 {
-    mat4 transform;
-    X3DMaterialNode material;
+    X3DMaterialNode material[1024];
 };
 
 //sampler2D texture;
 
 layout(location = 0) in _vertex
 {
+    flat vec4 draw_info;
     vec3 position;
     vec3 normal;
     vec2 texcoord;
@@ -33,9 +33,10 @@ layout(location = 2) out vec4 rt2;
 
 void main()
 {
+    int draw_id = int(vertex.draw_info[0]);
     // Be wasteful for now
     rt0.rgb = vertex.position;
     rt1.rgb = vertex.normal;
-    rt2.rgb = material.diffuse_color.rgb;
+    rt2.rgb = material[draw_id].diffuse_color.rgb;
 }
 

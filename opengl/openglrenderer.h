@@ -30,7 +30,8 @@ protected:
     std::map<std::string, Material> materials;
     unsigned int global_uniforms;
     unsigned int draw_calls;
-    size_t draw_calls_pos;
+    unsigned int draw_info;
+    size_t num_draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;
     float clear_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
