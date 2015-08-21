@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects: require
 #extension GL_ARB_explicit_attrib_location: require
 #extension GL_ARB_explicit_uniform_location: require
+#extension GL_ARB_shading_language_420pack: require
 
 struct X3DLightNode
 {
@@ -38,6 +39,10 @@ layout(location = 0) out vec4 rt0;
 
 void main()
 {
-    rt0 = texture(in_rt0, gl_fragCoord.xy);
+    vec4 pos = texture(in_rt0, gl_fragCoord.xy);
+    vec4 norm = texture(in_rt1, gl_fragCoord.xy);
+    vec4 color = texture(in_rt2, gl_fragCoord.xy);
+    vec4 other = texture(in_rt3, gl_fragCoord.xy);
+    rt0 = vec4(pos.x, norm.y, other.z, color.a);
 }
 
