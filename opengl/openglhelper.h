@@ -184,6 +184,8 @@ struct GlobalParameters
     float view[4][4];
     float projection[4][4];
     float view_projection[4][4];
+    int width;
+    int height;
 };
 
 class RenderTarget

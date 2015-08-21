@@ -132,6 +132,10 @@ void OpenGLRenderer::set_viewpoint_view(int, const float (&view)[4][4])
     mult(params[0].view, active_viewpoint.left.projection, params[0].view_projection);
     mult(view, active_viewpoint.right.view_offset, params[1].view);
     mult(params[1].view, active_viewpoint.right.projection, params[1].view_projection);
+    params[0].width = active_viewpoint.left.back_buffer.width;
+    params[0].height = active_viewpoint.left.back_buffer.height;
+    params[1].width = active_viewpoint.right.back_buffer.width;
+    params[1].height = active_viewpoint.right.back_buffer.height;
 
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
     void* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(GlobalParameters) * 2, GL_MAP_WRITE_BIT);
@@ -189,7 +193,8 @@ void OpenGLRenderer::create_material(const std::string& name,
     material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
     context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
     context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
-    context.context.gl->glUniformBlockBinding(material.frag, 0, 2);
+    context.context.gl->glUniformBlockBinding(material.frag, 0, 0);
+    context.context.gl->glUniformBlockBinding(material.frag, 1, 2);
 
     // TODO convert to one ssbo?
     context.context.gl->glGenBuffers(1, &material.vert_params);

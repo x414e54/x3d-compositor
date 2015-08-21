@@ -13,6 +13,8 @@ layout(std140, location = 0) uniform GlobalParameters
     mat4 view;
     mat4 projection;
     mat4 view_projection;
+    int width;
+    int height;
 };
 
 layout(std140, location = 1) uniform ShaderParameters

@@ -4,6 +4,15 @@
 #extension GL_ARB_explicit_uniform_location: require
 #extension GL_ARB_shading_language_420pack: require
 
+layout(std140, location = 0) uniform GlobalParameters
+{
+    mat4 view;
+    mat4 projection;
+    mat4 view_projection;
+    int width;
+    int height;
+};
+
 struct X3DLightNode
 {
     int type;
@@ -13,7 +22,7 @@ struct X3DLightNode
     vec3 ambient_color;
 };
 
-layout(std140, location = 0) uniform ShaderParameters
+layout(std140, location = 1) uniform ShaderParameters
 {
     X3DLightNode light[1024];
 };
@@ -39,10 +48,11 @@ layout(location = 0) out vec4 rt0;
 
 void main()
 {
-    vec4 pos = texture(in_rt0, gl_FragCoord.xy);
-    vec4 norm = texture(in_rt1, gl_FragCoord.xy);
-    vec4 color = texture(in_rt2, gl_FragCoord.xy);
-    vec4 other = texture(in_rt3, gl_FragCoord.xy);
+    vec2 texcoord = gl_FragCoord.xy / vec2(width, height);
+    vec4 pos = texture(in_rt0, texcoord);
+    vec4 norm = texture(in_rt1, texcoord);
+    vec4 color = texture(in_rt2, texcoord);
+    vec4 other = texture(in_rt3, texcoord);
     rt0 = vec4(pos.x, norm.y, other.z, color.a);
 }
 

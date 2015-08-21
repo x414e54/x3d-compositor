@@ -4,6 +4,13 @@
 #extension GL_ARB_explicit_uniform_location: require
 #extension GL_ARB_shading_language_420pack: require
 
+layout(std140, location = 0) uniform GlobalParameters
+{
+    mat4 view;
+    mat4 projection;
+    mat4 view_projection;
+};
+
 struct X3DMaterialNode
 {
     float ambient_intensity;
@@ -13,7 +20,7 @@ struct X3DMaterialNode
     vec3 specular_color;
 };
 
-layout(std140, location = 0) uniform ShaderParameters
+layout(std140, location = 1) uniform ShaderParameters
 {
     X3DMaterialNode material[1024];
 };

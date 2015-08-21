@@ -35,7 +35,7 @@
         <Box/>
       </Shape>
     </Transform>
-    <Transform translation='0 0 -6'>
+    <Transform translation='0 0 -5'>
       <Shape>
         <Appearance>
           <Material ambientIntensity='.8' diffuseColor='0 0 1'/>
