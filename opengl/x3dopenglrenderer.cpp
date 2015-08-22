@@ -339,5 +339,18 @@ bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
                           const Scalar (&model)[4][4],
                           Scalar (&from)[3], Scalar (&to)[3])
 {
-    return false;
+    glm::mat4x4 matrix = glm::make_mat4x4(&model[0][0]);
+
+    glm::vec4 viewport(0, 0, active_viewpoint.left.back_buffer.width,
+                       active_viewpoint.left.back_buffer.height);
+
+    glm::vec3 glm_from = glm::unProject(glm::vec3(x, y, 0.0),
+                            matrix,
+                            active_viewpoint.left.projection, viewport);
+    glm::vec3 glm_to = glm::unProject(glm::vec3(x, y, 1.0),
+                            matrix,
+                            active_viewpoint.left.projection, viewport);
+    from[0] = glm_from.x; from[1] = glm_from.y; from[2] = glm_from.z;
+    to[0] = glm_to.x; to[1] = glm_to.y; to[2] = glm_to.z;
+    return true;
 }
