@@ -23,6 +23,9 @@ struct X3DLightNodeInfo
     float color[4] = {0.8, 0.8, 0.8};
     float diffuse_color[4] = {0.8, 0.8, 0.8};
     float ambient_color[3] = {0.0, 0.0, 0.0};
+    float attenuation[3] = {0.0, 0.0, 0.0};
+    float ambient_intensity = 0.8*0.2;
+    float position[3] = {0.0, 0.0, 0.0};
 };
 
 struct X3DLightNode
@@ -115,23 +118,26 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     light_node->getAmbientColor(node.light.ambient_color);
     light_node->getDiffuseColor(node.light.diffuse_color);
     light_node->getColor(node.light.color);
+    node.light.intensity = light_node->getIntensity();
+    node.light.ambient_intensity = light_node->getAmbientIntensity();
 
     Material& default_material = get_material("x3d-default-light");
 
-    float location[3];
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.light.type = 0;
 
-        float attenuation[3];
-        point_light->getAttenuation(attenuation);
+        point_light->getAttenuation(node.light.attenuation);
 
         SphereNode sphere;
-        sphere.setRadius(calc_light_radius(0, point_light->getIntensity(),
-                                           attenuation[0], attenuation[1], attenuation[2]));
-        point_light->getLocation(location);
+        sphere.setRadius(calc_light_radius(0, node.light.intensity,
+                                           node.light.attenuation[0],
+                                           node.light.attenuation[1],
+                                           node.light.attenuation[2]));
 
-        translate(node.transform, location);
+        point_light->getLocation(node.light.position);
+
+        translate(node.transform, node.light.position);
         ++default_material.total_objects;
         process_geometry_node(&sphere, default_material);
     } else if (light_node->isDirectionalLightNode()) {
@@ -148,13 +154,13 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         ConeNode cone;
         cone.setBottom(false);
-        spot_light->getLocation(location);
+        spot_light->getLocation(node.light.position);
         //spot_light->getDirection(direction);
         float attenuation[3];
         spot_light->getAttenuation(attenuation);
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
-        translate(node.transform, location);
+        translate(node.transform, node.light.position);
         ++default_material.total_objects;
         process_geometry_node(&cone, default_material);
     }
