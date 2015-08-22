@@ -16,7 +16,7 @@ using namespace CyberX3D;
 #include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QtGui/QOpenGLFramebufferObject>
-#include "tmp_glu_internal.h"
+
 struct X3DLightNodeInfo
 {
     int type;
@@ -26,12 +26,12 @@ struct X3DLightNodeInfo
     float ambient_color[3] = {0.0, 0.0, 0.0};
     float attenuation[3] = {0.0, 0.0, 0.0};
     float ambient_intensity = 0.8*0.2;
-    float position[3] = {0.0, 0.0, 0.0};
+    glm::vec3 position = {0.0, 0.0, 0.0};
 };
 
 struct X3DLightNode
 {
-    float transform[4][4];
+    glm::mat4x4 transform;
     X3DLightNodeInfo light;
 };
 
@@ -136,14 +136,10 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
                                            node.light.attenuation[0],
                                            node.light.attenuation[1],
                                            node.light.attenuation[2]));
-                point_light->getLocation(node.light.position);
+        point_light->getLocation(location);
 
-                translate(node.transform, node.light.position);
-
-        //point_light->getLocation(location);
-
-        //node.light.position = glm::make_vec3(&location[0]);
-        //node.transform = glm::translate(node.transform, node.light.position);
+        node.light.position = glm::make_vec3(&location[0]);
+        node.transform = glm::translate(node.transform, node.light.position);
         ++default_material.total_objects;
         process_geometry_node(&sphere, default_material);
     } else if (light_node->isDirectionalLightNode()) {
@@ -162,13 +158,13 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         spot_light->getLocation(location);
 
-        //node.light.position = glm::make_vec3(&location[0]);
+        node.light.position = glm::make_vec3(&location[0]);
         //spot_light->getDirection(direction);
         float attenuation[3];
         spot_light->getAttenuation(attenuation);
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
-        //node.transform = glm::translate(node.transform, node.light.position);
+        node.transform = glm::translate(node.transform, node.light.position);
         ++default_material.total_objects;
         process_geometry_node(&cone, default_material);
     }
@@ -328,6 +324,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
         PointLightNode headlight;
         float location[3];
 		view->getPosition(location);
+        location[2] -= 2;
         headlight.setLocation(location);
         headlight.setAmbientIntensity(0.3f);
         headlight.setIntensity(0.7f);

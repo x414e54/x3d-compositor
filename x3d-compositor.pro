@@ -8,7 +8,6 @@ HEADERS += \
     opengl/openglrenderer.h \
     opengl/openglhelper.h \
     opengl/x3dopenglrenderer.h \
-    opengl/tmp_glu_internal.h \
     compositor/wayland/qwindowcompositor.h \
     x3d/x3dscene.h \
     x3d/x3drenderer.h \
