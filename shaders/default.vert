@@ -37,8 +37,8 @@ void main()
     int draw_id = draw_info[0];
     mat4 transform = transforms[draw_id];
     gl_Position = view_projection * transform * vec4(position, 1.0);
-    vertex.position = (view * transform * vec4(position, 1.0)).rgb;
-    vertex.normal = normal;
+    vertex.position = (transform * vec4(position, 1.0)).xyz;
+    vertex.normal = (transform * vec4(normal, 1.0)).xyz;
     vertex.texcoord = texcoord;
     object.draw_id = draw_id;
 }
