@@ -3,6 +3,9 @@
 #include <thread>
 #include <iostream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <QtGui/QOpenGLShaderProgram>
 #include <QtGui/QOpenGLVertexArrayObject>
 #include <QtGui/QOpenGLBuffer>
@@ -134,15 +137,20 @@ void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
     }
 }
 
-void OpenGLRenderer::set_viewpoint_view(int, const float (&view)[4][4])
+void OpenGLRenderer::set_viewpoint_view(int, const glm::mat4x4 &view)
 {
     ScopedContext context(this->context_pool, 0);
 
     GlobalParameters params[2];
-    mult(view, active_viewpoint.left.view_offset, params[0].view);
-    mult(params[0].view, active_viewpoint.left.projection, params[0].view_projection);
-    mult(view, active_viewpoint.right.view_offset, params[1].view);
-    mult(params[1].view, active_viewpoint.right.projection, params[1].view_projection);
+    params[0].view = view * active_viewpoint.left.view_offset;
+    params[0].projection = active_viewpoint.left.projection;
+    params[0].view_projection = active_viewpoint.left.projection * params[0].view;
+    //params[0].position = glm::inverse(params[0].view).;
+
+    params[1].view = view * active_viewpoint.right.view_offset;
+    params[1].projection = active_viewpoint.left.projection;
+    params[1].view_projection = active_viewpoint.right.projection * params[0].view;
+
     params[0].width = active_viewpoint.left.back_buffer.width;
     params[0].height = active_viewpoint.left.back_buffer.height;
     params[1].width = active_viewpoint.right.back_buffer.width;

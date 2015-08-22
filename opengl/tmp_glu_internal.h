@@ -112,7 +112,22 @@ static void __gluMultMatrixVec(const Scalar matrix[16], const Scalar in[4],
 }
 
 #define __glPi 3.14159265358979323846
+inline void reset(Scalar (&o)[4][4])
+{
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            o[i][j] = (j - i == 0) ? 1.0 : 0.0;
+        }
+    }
+}
 
+inline void translate(Scalar (&o)[4][4], const Scalar (&t)[3])
+{
+    reset(o);
+    o[0][3] = t[0];
+    o[1][3] = t[1];
+    o[2][3] = t[2];
+}
 static void create_projection(Scalar (&m)[4][4], Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar)
 {
     Scalar sine, cotangent, deltaZ;
@@ -142,35 +157,4 @@ bool to_ray(const Scalar (&finalMatrix)[16], const Scalar (&in)[4], Scalar (&out
     out[1] /= out[3];
     out[2] /= out[3];
     return true;
-}
-
-bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
-                          const Scalar (&model)[4][4],
-                          Scalar (&from)[3], Scalar (&to)[3])
-{
-    Scalar finalMatrix[16];
-    Scalar in[4];
-
-    __gluMultMatrices(model, active_viewpoint.left.projection, finalMatrix);
-    if (!__gluInvertMatrix(finalMatrix, finalMatrix)) return false;
-
-    in[0]=x;
-    in[1]=y;
-    in[2]=0.0;
-    in[3]=1.0;
-
-    /* Map x and y from window coordinates */
-    in[0] = in[0] / active_viewpoint.left.back_buffer.width;
-    in[1] = in[1] / active_viewpoint.left.back_buffer.height;
-
-    /* Map to range -1 to 1 */
-    in[0] = in[0] * 2 - 1;
-    in[1] = in[1] * 2 - 1;
-    in[2] = in[2] * 2 - 1;
-
-    bool has_ray = to_ray(finalMatrix, in, from);
-    in[2]=1.0;
-    has_ray &= to_ray(finalMatrix, in, to);
-
-    return has_ray;
 }

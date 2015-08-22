@@ -6,6 +6,9 @@
 #include <functional>
 #include <vector>
 #include <atomic>
+
+#include <glm/glm.hpp>
+
 #include <QThreadStorage>
 #include <QOffscreenSurface>
 
@@ -21,38 +24,6 @@ class QOpenGLExtension_ARB_debug_output;
 class QOpenGLFunctions_3_2_Core;
 
 typedef float Scalar;
-typedef Scalar Mat4x4[4][4];
-
-// Split this into smaller headers
-
-inline void mult(const Mat4x4& a, const Mat4x4& b, Mat4x4& o)
-{
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            o[i][j] = 0;
-            for (int k = 0; k < 4; ++k) {
-                o[i][j] += a[i][k] * b[k][j];
-            }
-        }
-    }
-}
-
-inline void reset(Mat4x4& o)
-{
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            o[i][j] = (j - i == 0) ? 1.0 : 0.0;
-        }
-    }
-}
-
-inline void translate(Mat4x4& o, const Scalar (&t)[3])
-{
-    reset(o);
-    o[0][3] = t[0];
-    o[1][3] = t[1];
-    o[2][3] = t[2];
-}
 
 class Attribute
 {
@@ -190,9 +161,10 @@ public:
 
 struct GlobalParameters
 {
-    float view[4][4];
-    float projection[4][4];
-    float view_projection[4][4];
+    glm::mat4x4 view;
+    glm::mat4x4 projection;
+    glm::mat4x4 view_projection;
+    float position[3];
     int width;
     int height;
 };
@@ -241,8 +213,6 @@ public:
     RenderOuputGroup() :  enabled(false), uniform_offset(0),
         g_buffer(4, true), back_buffer(1, true)
     {
-        reset(projection);
-        reset(view_offset);
     }
 
     inline const RenderTarget& get_render_target(size_t id) const
@@ -253,8 +223,9 @@ public:
         return g_buffer;
     }
 
-    Scalar projection[4][4];
-    Scalar view_offset[4][4];
+    glm::mat4x4 projection;
+    glm::mat4x4 view_offset;
+
     bool enabled;
     size_t uniform_offset;
     RenderTarget g_buffer;

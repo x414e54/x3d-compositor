@@ -1,8 +1,9 @@
 #include "x3dopenglrenderer.h"
 
 #include <math.h>
-
-#include "tmp_glu_internal.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #define CX3D_SUPPORT_OPENGL
 #include <cybergarage/x3d/CyberX3D.h>
@@ -15,7 +16,7 @@ using namespace CyberX3D;
 #include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtOpenGLExtensions/QOpenGLExtensions>
 #include <QtGui/QOpenGLFramebufferObject>
-
+#include "tmp_glu_internal.h"
 struct X3DLightNodeInfo
 {
     int type;
@@ -53,7 +54,7 @@ struct X3DTextureTransformNode
 
 struct X3DShapeNode
 {
-    float transform[4][4];
+    glm::mat4x4 transform;
     X3DMaterialNode material;
     X3DTextureTransformNode tex_transform;
 };
@@ -94,10 +95,10 @@ X3DOpenGLRenderer::~X3DOpenGLRenderer()
 
 }
 
-void X3DOpenGLRenderer::set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar)
+void X3DOpenGLRenderer::set_projection(Scalar fov, Scalar aspect, Scalar near, Scalar far)
 {
-    create_projection(active_viewpoint.left.projection, fovy, aspect, zNear, zFar);
-    create_projection(active_viewpoint.right.projection, fovy, aspect, zNear, zFar);
+    active_viewpoint.left.projection = glm::perspective(fov, aspect, near, far);
+    active_viewpoint.right.projection = glm::perspective(fov, aspect, near, far);
 }
 
 void X3DOpenGLRenderer::process_background_node(BackgroundNode *background)
@@ -123,21 +124,26 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
     Material& default_material = get_material("x3d-default-light");
 
+    float location[3];
+
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.light.type = 0;
 
         point_light->getAttenuation(node.light.attenuation);
-
         SphereNode sphere;
         sphere.setRadius(calc_light_radius(0, node.light.intensity,
                                            node.light.attenuation[0],
                                            node.light.attenuation[1],
                                            node.light.attenuation[2]));
+                point_light->getLocation(node.light.position);
 
-        point_light->getLocation(node.light.position);
+                translate(node.transform, node.light.position);
 
-        translate(node.transform, node.light.position);
+        //point_light->getLocation(location);
+
+        //node.light.position = glm::make_vec3(&location[0]);
+        //node.transform = glm::translate(node.transform, node.light.position);
         ++default_material.total_objects;
         process_geometry_node(&sphere, default_material);
     } else if (light_node->isDirectionalLightNode()) {
@@ -145,7 +151,6 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.light.type = 1;
 
         BoxNode box;
-        reset(node.transform);
         ++default_material.total_objects;
         process_geometry_node(&box, default_material);
     } else if (light_node->isSpotLightNode()) {
@@ -154,13 +159,16 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         ConeNode cone;
         cone.setBottom(false);
-        spot_light->getLocation(node.light.position);
+
+        spot_light->getLocation(location);
+
+        //node.light.position = glm::make_vec3(&location[0]);
         //spot_light->getDirection(direction);
         float attenuation[3];
         spot_light->getAttenuation(attenuation);
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
-        translate(node.transform, node.light.position);
+        //node.transform = glm::translate(node.transform, node.light.position);
         ++default_material.total_objects;
         process_geometry_node(&cone, default_material);
     }
@@ -256,7 +264,10 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
         throw;
     }
 
-    shape->getTransformMatrix(node.transform);
+    float matrix[4][4];
+    shape->getTransformMatrix(matrix);
+    node.transform = glm::make_mat4x4(&matrix[0][0]);
+
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
     void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(X3DShapeNode::transform),
                                       sizeof(X3DShapeNode::transform), GL_MAP_WRITE_BIT);
@@ -305,7 +316,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     float matrix[4][4];
     view->getMatrix(matrix);
-    set_viewpoint_view(0, matrix);
+    set_viewpoint_view(0, glm::make_mat4x4(&matrix[0][0]));
 
     NavigationInfoNode *nav_info = sg->getNavigationInfoNode();
     if (nav_info == nullptr) {
@@ -325,4 +336,11 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     process_node(sg, sg->getNodes());
     render_viewpoints();
+}
+
+bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
+                          const Scalar (&model)[4][4],
+                          Scalar (&from)[3], Scalar (&to)[3])
+{
+    return false;
 }
