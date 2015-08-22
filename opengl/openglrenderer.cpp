@@ -72,7 +72,18 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 
         context.context.gl->glViewport(0, 0, target.width, target.height);
 
-        context.context.gl->glEnable(GL_DEPTH_TEST);
+        if (pass_it->depth_test) {
+            context.context.gl->glEnable(GL_DEPTH_TEST);
+        } else {
+            context.context.gl->glDisable(GL_DEPTH_TEST);
+        }
+
+        if (pass_it->depth_write) {
+            context.context.gl->glDepthMask(GL_TRUE);
+        } else {
+            context.context.gl->glDepthMask(GL_FALSE);
+        }
+
         context.context.gl->glCullFace(GL_BACK);
         context.context.gl->glEnable(GL_CULL_FACE);
         context.context.gl->glClearColor(renderer->clear_color[0], renderer->clear_color[1],

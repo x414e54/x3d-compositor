@@ -37,7 +37,6 @@ inline void mult(const Mat4x4& a, const Mat4x4& b, Mat4x4& o)
     }
 }
 
-
 inline void reset(Mat4x4& o)
 {
     for (int i = 0; i < 4; ++i) {
@@ -45,6 +44,14 @@ inline void reset(Mat4x4& o)
             o[i][j] = (j - i == 0) ? 1.0 : 0.0;
         }
     }
+}
+
+inline void translate(Mat4x4& o, const Scalar (&t)[3])
+{
+    reset(o);
+    o[0][3] = t[0];
+    o[1][3] = t[1];
+    o[2][3] = t[2];
 }
 
 class Attribute
@@ -156,11 +163,13 @@ public:
 class ShaderPass
 {
 public:
-    ShaderPass(size_t pass_id, ssize_t in, ssize_t out)
-        : pass_id(pass_id), in(in), out(out) {}
+    ShaderPass(size_t pass_id, ssize_t in, ssize_t out, bool depth_write, bool depth_test)
+        : pass_id(pass_id), in(in), out(out), depth_write(depth_write), depth_test(depth_test) {}
     size_t pass_id;
     ssize_t in;
     ssize_t out;
+    bool depth_write;
+    bool depth_test;
 };
 
 class Material

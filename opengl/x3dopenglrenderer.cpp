@@ -80,8 +80,8 @@ static VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& 
 
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
-    passes.push_back(ShaderPass(0, -1, 1));
-    passes.push_back(ShaderPass(1, 1, 0));
+    passes.push_back(ShaderPass(0, -1, 1, true, true));
+    passes.push_back(ShaderPass(1, 1, 0, false, false));
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
 }
@@ -118,6 +118,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
     Material& default_material = get_material("x3d-default-light");
 
+    float location[3];
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.light.type = 0;
@@ -128,9 +129,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         SphereNode sphere;
         sphere.setRadius(calc_light_radius(0, point_light->getIntensity(),
                                            attenuation[0], attenuation[1], attenuation[2]));
-        //point_light->getLocation(pos);
+        point_light->getLocation(location);
 
-        reset(node.transform);
+        translate(node.transform, location);
         ++default_material.total_objects;
         process_geometry_node(&sphere, default_material);
     } else if (light_node->isDirectionalLightNode()) {
@@ -147,13 +148,13 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         ConeNode cone;
         cone.setBottom(false);
-        //spot_light->getLocation(pos);
+        spot_light->getLocation(location);
         //spot_light->getDirection(direction);
         float attenuation[3];
         spot_light->getAttenuation(attenuation);
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
-        reset(node.transform);
+        translate(node.transform, location);
         ++default_material.total_objects;
         process_geometry_node(&cone, default_material);
     }

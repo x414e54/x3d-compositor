@@ -53,6 +53,6 @@ void main()
     vec4 norm = texture(in_rt1, texcoord);
     vec4 color = texture(in_rt2, texcoord);
     vec4 other = texture(in_rt3, texcoord);
-    rt0 = vec4(pos.x, norm.y, other.z, color.a);
+    rt0 = vec4(pos.x, norm.y, other.z, color.a) + vec4(0.1,0.1,0.1,1);
 }
 
