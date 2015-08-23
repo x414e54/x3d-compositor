@@ -9,6 +9,7 @@ struct X3DLightNode
     vec4 color_intensity;
     vec4 attenuation_ambient_intensity;
     vec4 position;
+    vec4 direction;
     int type;
 };
 
@@ -37,7 +38,7 @@ layout(location = 0) flat in int draw_id;
 layout(location = 0) out vec4 rt0;
 
 // Calculations from X3D spec at 
-// http://www.web3d.org/documents/specifications/19775-2/V3.0/Part01/components/lighting.html#t-spotlightfactor
+// http://www.web3d.org/documents/specifications/19775-2/V3.0/Part01/components/lighting.html
 
 vec3 x3d_light_ambient(float light_ambient_intensity, vec3 mat_color,
                        float mat_ambient_intensity)
@@ -92,7 +93,7 @@ void main()
 
     if (light.type == 1) {
         // TODO check this?
-        light_normal = -light_direction;
+        light_normal = -light.direction.xyz;
     }
     
     float attenuation = x3d_light_attenuation(distance, light.attenuation_ambient_intensity.xyz);

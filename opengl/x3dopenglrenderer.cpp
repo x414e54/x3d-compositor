@@ -24,6 +24,7 @@ struct X3DLightNodeInfo
     // Attenuation + ambient intensity
     float attenuation_ambient_intensity[4] = {0.0, 0.0, 0.0, 0.8*0.2};
     glm::vec4 position = {0.0, 0.0, 0.0, 1.0};
+    glm::vec4 direction = {0.0, 0.0, 0.0, 1.0};
     int type;
 };
 
@@ -144,6 +145,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.light.type = 1;
 
         BoxNode box;
+
+        direction_light->getDirection(location);
+        node.light.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         ++default_material.total_objects;
         process_geometry_node(&box, default_material);
     } else if (light_node->isSpotLightNode()) {
@@ -318,13 +322,10 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     if (nav_info != nullptr &&
         nav_info->getHeadlight()) {
-        PointLightNode headlight;
-        float location[3];
-		view->getPosition(location);
-        location[2] -= 2;
-        headlight.setLocation(location);
-        headlight.setAmbientIntensity(0.3f);
-        headlight.setIntensity(0.7f);
+        DirectionalLightNode headlight;
+        headlight.setAmbientIntensity(0.0);
+        headlight.setIntensity(1.0);
+        headlight.setDirection(0, 0, -1.0);
         process_light_node(&headlight);
 	}
 
