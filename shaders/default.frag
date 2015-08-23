@@ -39,8 +39,9 @@ layout(location = 3) out vec4 rt3;
 void main()
 {
     // Be wasteful for now
-    rt0 = vec4(vertex_position , 1.0);
-    rt1 = vec4(normalize(vertex_normal), 1.0);
+    rt0 = vec4(vertex_position, specular_color.r);
+    rt1 = vec4(normalize(vertex_normal), specular_color.g);
     rt2 = material[draw_id].diffuse_color;
+    rt3 = vec4(material[draw_id].emissive_color, specular_color.b);
 }
 
