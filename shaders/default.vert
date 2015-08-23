@@ -20,25 +20,18 @@ layout(std140, location = 1) uniform ShaderParameters
     mat4 transforms[1024];
 };
 
-layout(location = 0) out _vertex
-{
-    vec3 position;
-    vec3 normal;
-    vec2 texcoord;
-} vertex;
+layout(location = 0) out vec3 vertex_position;
+layout(location = 1) out vec3 vertex_normal;
+layout(location = 2) out vec2 vertex_texcoord;
 
-layout(location = 1) out _object
-{
-    flat int draw_id;
-} object;
+layout(location = 3) flat out int draw_id;
 
 void main()
 {
-    int draw_id = draw_info[0];
+    draw_id = draw_info[0];
     mat4 transform = transforms[draw_id];
     gl_Position = view_projection * transform * vec4(position, 1.0);
-    vertex.position = (transform * vec4(position, 1.0)).xyz;
-    vertex.normal = (transform * vec4(normal, 0.0)).xyz;
-    vertex.texcoord = texcoord;
-    object.draw_id = draw_id;
+    vertex_position = (transform * vec4(position, 1.0)).xyz;
+    vertex_normal = (transform * vec4(normal, 0.0)).xyz;
+    vertex_texcoord = texcoord;
 }

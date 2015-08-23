@@ -24,33 +24,23 @@ layout(std140, location = 1) uniform ShaderParameters
 {
     X3DMaterialNode material[1024];
 };
+ 
+layout(location = 0) in vec3 vertex_position;
+layout(location = 1) in vec3 vertex_normal;
+layout(location = 2) in vec2 vertex_texcoord; 
 
-uniform sampler2D in_rt0;
-uniform sampler2D in_rt1;
-uniform sampler2D in_rt2;
-uniform sampler2D in_rt3;
-
-layout(location = 0) in _vertex
-{
-    vec3 position;
-    vec3 normal;
-    vec2 texcoord;
-} vertex;
-
-layout(location = 1) in _object
-{
-    flat int draw_id;
-} object;
+layout(location = 3) flat in int draw_id;
 
 layout(location = 0) out vec4 rt0;
 layout(location = 1) out vec4 rt1;
 layout(location = 2) out vec4 rt2;
+layout(location = 3) out vec4 rt3;
 
 void main()
 {
     // Be wasteful for now
-    rt0.rgb = vertex.position;
-    rt1.rgb = vertex.normal;
-    rt2.rgb = material[object.draw_id].diffuse_color.rgb;
+    rt0 = vec4(vertex_position , 1.0);
+    rt1 = vec4(vertex_normal, 1.0);
+    rt2 = material[draw_id].diffuse_color;
 }
 
