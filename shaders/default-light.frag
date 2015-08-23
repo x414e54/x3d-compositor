@@ -6,12 +6,10 @@
 
 struct X3DLightNode
 {
-    int type;
-    float intensity;
-    vec3 color;
-    vec3 attenuation;
-    float ambient_intensity;
+    vec4 color_intensity;
+    vec4 attenuation_ambient_intensity;
     vec3 position;
+    int type;
 };
 
 layout(std140, location = 0) uniform GlobalParameters
@@ -76,14 +74,14 @@ vec4 x3d_light(vec3 mat_emissive, float attenuation, float spoti,
 
 void main()
 {
-    X3DLightNode light = lights[0];//raw_id];
+    X3DLightNode light = lights[draw_id];
 
     vec2 texcoord = gl_FragCoord.xy / vec2(width, height);
     vec4 pos = texture(in_rt0, texcoord);
     vec4 norm = texture(in_rt1, texcoord);
     vec4 color = texture(in_rt2, texcoord);
     float ambient_intensity = color.a;
-    float shininess = 0.0;
+    float shininess = 0.2;
     vec4 emissive = texture(in_rt3, texcoord);
     vec3 specular_color = vec3(pos.a, norm.a, emissive.a);
 
@@ -97,15 +95,15 @@ void main()
         light_normal = -light_direction;
     }
     
-    float attenuation = x3d_light_attenuation(distance, light.attenuation);
-    vec3 ambient = x3d_light_ambient(light.ambient_intensity, color.rgb, ambient_intensity);
-    vec3 diffuse = x3d_light_diffuse(light.intensity, color.rgb, norm.xyz, light_normal);
-    vec3 specular = x3d_light_specular(light.intensity, shininess, specular_color, norm.xyz, light_normal, eye_normal);
+    float attenuation = x3d_light_attenuation(distance, light.attenuation_ambient_intensity.xyz);
+    vec3 ambient = x3d_light_ambient(light.attenuation_ambient_intensity.w, color.rgb, ambient_intensity);
+    vec3 diffuse = x3d_light_diffuse(light.color_intensity.a, color.rgb, norm.xyz, light_normal);
+    vec3 specular = x3d_light_specular(light.color_intensity.a, shininess, specular_color, norm.xyz, light_normal, eye_normal);
 
     float spoti = 1;
     if (light.type == 2) {
         // TODO calculate spoti;
     }
-    rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color.rgb, ambient, diffuse, specular);
+    rt0 = vec4(color.rgb, 1.0);//x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient, diffuse, specular);
 }
 

@@ -13,11 +13,9 @@ layout(std140, location = 0) uniform GlobalParameters
 
 struct X3DMaterialNode
 {
-    float ambient_intensity;
     vec4 diffuse_color;
-    vec3 emissive_color;
-    float shininess;
-    vec3 specular_color;
+    vec4 emissive_ambient_intensity;
+    vec4 specular_shininess;
 };
 
 layout(std140, location = 1) uniform ShaderParameters
@@ -40,9 +38,9 @@ void main()
 {
     // Be wasteful for now
     X3DMaterialNode material = materials[draw_id];
-    rt0 = vec4(vertex_position, material.specular_color.r);
-    rt1 = vec4(normalize(vertex_normal), material.specular_color.g);
-    rt2 = material.diffuse_color;
-    rt3 = vec4(material.emissive_color, material.specular_color.b);
+    rt0 = vec4(vertex_position, material.specular_shininess.r);
+    rt1 = vec4(normalize(vertex_normal), material.specular_shininess.g);
+    rt2 = vec4(material.diffuse_color.rgb, material.emissive_ambient_intensity.a);
+    rt3 = vec4(material.emissive_ambient_intensity.rgb, material.specular_shininess.b);
 }
 

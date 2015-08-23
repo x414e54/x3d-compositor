@@ -19,12 +19,12 @@ using namespace CyberX3D;
 
 struct X3DLightNodeInfo
 {
-    int type;
-    float intensity = 0.8*0.2;
-    float color[3] = {1.0, 1.0, 1.0};
-    float attenuation[3] = {0.0, 0.0, 0.0};
-    float ambient_intensity = 0.8*0.2;
+    // RGB + intensity
+    float color_intensity[4] = {1.0, 1.0, 1.0, 0.8*0.2};
+    // Attenuation + ambient intensity
+    float attenuation_ambient_intensity[4] = {0.0, 0.0, 0.0, 0.8*0.2};
     glm::vec3 position = {0.0, 0.0, 0.0};
+    int type;
 };
 
 struct X3DLightNode
@@ -35,11 +35,12 @@ struct X3DLightNode
 
 struct X3DMaterialNode
 {
-    float ambient_intensity = 0.8*0.2;
-    float diffuse_color[4] = {0.8, 0.8, 0.8};
-    float emissive_color[3] = {0.0, 0.0, 0.0};
-    float shininess = 0.2;
-    float specular_color[3] = {0.0, 0.0, 0.0};
+    // RGBA
+    float diffuse_color[4] = {0.8, 0.8, 0.8, 1.0};
+    // Emissive RGB + ambient_intensity
+    float emissive_ambient_intensity[4] = {0.0, 0.0, 0.0, 0.8};
+    // Specular RGB + shininess
+    float specular_shininess[4] = {0.0, 0.0, 0.0, 0.2};
 };
 
 struct X3DTextureTransformNode
@@ -114,9 +115,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     }
 
     X3DLightNode node;
-    light_node->getColor(node.light.color);
-    node.light.intensity = light_node->getIntensity();
-    node.light.ambient_intensity = light_node->getAmbientIntensity();
+    light_node->getColor(node.light.color_intensity);
+    node.light.color_intensity[3] = light_node->getIntensity();
+    node.light.attenuation_ambient_intensity[3] = light_node->getAmbientIntensity();
 
     Material& default_material = get_material("x3d-default-light");
 
@@ -126,12 +127,12 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.light.type = 0;
 
-        point_light->getAttenuation(node.light.attenuation);
+        point_light->getAttenuation(node.light.attenuation_ambient_intensity);
         SphereNode sphere;
-        sphere.setRadius(calc_light_radius(0, node.light.intensity,
-                                           node.light.attenuation[0],
-                                           node.light.attenuation[1],
-                                           node.light.attenuation[2]));
+        sphere.setRadius(calc_light_radius(0, node.light.color_intensity[3],
+                                           node.light.attenuation_ambient_intensity[0],
+                                           node.light.attenuation_ambient_intensity[1],
+                                           node.light.attenuation_ambient_intensity[2]));
         point_light->getLocation(location);
 
         node.light.position = glm::make_vec3(&location[0]);
@@ -242,10 +243,10 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
         if (material != nullptr) {
             material->getDiffuseColor(node.material.diffuse_color);
             node.material.diffuse_color[3] = 1 - material->getTransparency();
-            material->getSpecularColor(node.material.specular_color);
-            material->getEmissiveColor(node.material.emissive_color);
-            node.material.shininess = material->getShininess();
-            node.material.ambient_intensity = material->getAmbientIntensity();
+            material->getSpecularColor(node.material.specular_shininess);
+            node.material.specular_shininess[3] = material->getShininess();
+            material->getEmissiveColor(node.material.emissive_ambient_intensity);
+            node.material.emissive_ambient_intensity[3] = material->getAmbientIntensity();
         }
     }
 
