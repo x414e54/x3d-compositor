@@ -40,7 +40,7 @@ void main()
 {
     // Be wasteful for now
     rt0 = vec4(vertex_position , 1.0);
-    rt1 = vec4(vertex_normal, 1.0);
+    rt1 = vec4(normalize(vertex_normal), 1.0);
     rt2 = material[draw_id].diffuse_color;
 }
 
