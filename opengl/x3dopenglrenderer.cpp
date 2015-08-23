@@ -31,6 +31,7 @@ struct X3DLightNodeInfo
 struct X3DLightNode
 {
     glm::mat4x4 transform;
+    int type;
     X3DLightNodeInfo light;
 };
 
@@ -170,10 +171,11 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         process_geometry_node(&cone, default_material);
     }
 
+    node.type = node.light.type;
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects - 1) * sizeof(X3DLightNode::transform),
-                                      sizeof(X3DLightNode::transform), GL_MAP_WRITE_BIT);
-    memcpy(data, &node.transform, sizeof(X3DLightNode::transform));
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects - 1) * (sizeof(X3DLightNode) - sizeof(X3DLightNode::light)),
+                                      sizeof(X3DLightNode) - sizeof(X3DLightNode::light), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DLightNode) - sizeof(X3DLightNode::light));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
