@@ -55,8 +55,8 @@ vec3 x3d_light_diffuse(float intensity, vec3 mat_color, vec3 normal,
 vec3 x3d_light_specular(float intensity, float shininess, vec3 spec_color,
                         vec3 normal, vec3 light_normal, vec3 eye_normal)
 {
-    vec3 lv = light_normal + eye_normal;
-    return intensity * spec_color * pow(dot(normal, lv / length(lv)),
+    vec3 lv = normalize(light_normal + eye_normal);
+    return intensity * spec_color * pow(dot(normal, lv),
                                         shininess * 128);
 }
 
@@ -89,7 +89,7 @@ void main()
     vec3 light_direction = pos.xyz - light.position.xyz;
     float distance = length(light_direction);
     vec3 light_normal = normalize(light_direction);
-    vec3 eye_normal = normalize(position.xyz);
+    vec3 eye_normal = normalize(position.xyz - pos.xyz);
 
     if (light.type == 1) {
         // TODO check this?
