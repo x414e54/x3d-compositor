@@ -39,7 +39,7 @@ layout(location = 0) in _vertex
 
 layout(location = 1) in _object
 {
-    int draw_id;
+    flat int draw_id;
 } object;
 
 layout(location = 0) out vec4 rt0;

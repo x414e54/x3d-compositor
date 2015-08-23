@@ -29,7 +29,7 @@ layout(location = 0) out _vertex
 
 layout(location = 1) out _object
 {
-    int draw_id;
+    flat int draw_id;
 } object;
 
 void main()
@@ -38,7 +38,7 @@ void main()
     mat4 transform = transforms[draw_id];
     gl_Position = view_projection * transform * vec4(position, 1.0);
     vertex.position = (transform * vec4(position, 1.0)).xyz;
-    vertex.normal = (transform * vec4(normal, 1.0)).xyz;
+    vertex.normal = (transform * vec4(normal, 0.0)).xyz;
     vertex.texcoord = texcoord;
     object.draw_id = draw_id;
 }
