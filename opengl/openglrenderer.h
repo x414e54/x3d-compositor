@@ -30,7 +30,7 @@ protected:
     std::map<std::string, Material> materials;
     unsigned int global_uniforms;
     unsigned int draw_calls;
-    unsigned int draw_info;
+    VertexBuffer draw_info;
     size_t num_draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;

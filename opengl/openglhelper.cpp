@@ -64,6 +64,7 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     if (!sso->initializeOpenGLFunctions()) {
         throw;
     }
+    buffer = (QOpenGLExtension_ARB_buffer_storage)context->getProcAddress("glBufferStorage");
     debug = new QOpenGLExtension_ARB_debug_output();
     if (!debug->initializeOpenGLFunctions()) {
         throw;

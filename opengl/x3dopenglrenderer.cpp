@@ -211,10 +211,8 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
                 throw;
             }
 
-            gl->glBindBuffer(GL_ARRAY_BUFFER, vbo.buffer);
-            void* data = gl->glMapBufferRange(GL_ARRAY_BUFFER, vbo.offset + vbo.current_pos, array.getBufferSize(), GL_MAP_WRITE_BIT);
+            char* data = (char*)vbo.data + vbo.current_pos + vbo.offset;
             geometry->getVertexData(0, data);
-            gl->glUnmapBuffer(GL_ARRAY_BUFFER);
 
             add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), 0, vbo.num_verts, 0);
             vbo.current_pos += array.getBufferSize();

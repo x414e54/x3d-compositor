@@ -21,6 +21,7 @@ class QOpenGLExtension_ARB_multi_draw_indirect;
 class QOpenGLExtension_ARB_vertex_attrib_binding;
 class QOpenGLExtension_ARB_separate_shader_objects;
 class QOpenGLExtension_ARB_debug_output;
+typedef void (*QOpenGLExtension_ARB_buffer_storage) (int target, ptrdiff_t size, const void *data, int flags);
 class QOpenGLFunctions_3_2_Core;
 
 typedef float Scalar;
@@ -113,6 +114,7 @@ public:
     size_t max_bytes;
     size_t num_verts; // current vertex count
     size_t current_pos; // current position in bytes from offset
+    void *data;
 };
 
 class DrawBatch
@@ -267,6 +269,7 @@ public:
         reserved = old.reserved;
         vab = old.vab;
         sso = old.sso;
+        buffer = old.buffer;
         debug = old.debug;
         old.reserved = false;
         old.surface = nullptr;
@@ -274,6 +277,7 @@ public:
         old.gl = nullptr;
         old.indirect = nullptr;
         old.sso = nullptr;
+        old.buffer = nullptr;
         old.debug = nullptr;
         old.vab = nullptr;
         old.used.clear();
@@ -292,6 +296,7 @@ public:
     QOpenGLExtension_ARB_multi_draw_indirect* indirect;
     QOpenGLExtension_ARB_vertex_attrib_binding* vab;
     QOpenGLExtension_ARB_separate_shader_objects* sso;
+    QOpenGLExtension_ARB_buffer_storage buffer;
     QOpenGLExtension_ARB_debug_output* debug;
     QOpenGLFunctions_3_2_Core* gl;
     RenderTargetFboMap fbos;
