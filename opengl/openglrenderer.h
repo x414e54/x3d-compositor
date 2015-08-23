@@ -19,6 +19,7 @@ public:
     void render_viewpoints();
 protected:
     VertexBuffer& get_buffer(const VertexFormat& format);
+    DrawBuffer& get_draw_buffer();
     Material& get_material(const std::string& name);
     void create_material(const std::string& name,
                          const std::string& vert,
@@ -29,7 +30,7 @@ protected:
 
     std::map<std::string, Material> materials;
     unsigned int global_uniforms;
-    unsigned int draw_calls;
+    DrawBuffer draw_calls;
     VertexBuffer draw_info;
     size_t num_draw_calls;
     Viewpoint active_viewpoint;

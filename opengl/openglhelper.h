@@ -106,15 +106,30 @@ public:
     }
 };
 
-class VertexBuffer
+class StreamedBuffer
 {
 public:
+    StreamedBuffer() : buffer(0), offset(0),
+        max_bytes(0), current_pos(0), data(nullptr) {}
     unsigned int buffer;
-    size_t offset; // meant of offset into vbo e.g. per frame
+    size_t offset; // meant of offset into buffer e.g. per frame
     size_t max_bytes;
-    size_t num_verts; // current vertex count
     size_t current_pos; // current position in bytes from offset
     void *data;
+};
+
+class DrawBuffer : public StreamedBuffer
+{
+public:
+    DrawBuffer() : num_draws(0) {}
+    size_t num_draws; // current draw count
+};
+
+class VertexBuffer : public StreamedBuffer
+{
+public:
+    VertexBuffer() : num_verts(0) {}
+    size_t num_verts; // current vertex count
 };
 
 class DrawBatch
