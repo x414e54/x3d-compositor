@@ -8,7 +8,7 @@ struct X3DLightNode
 {
     int type;
     float intensity;
-    vec4 color;
+    vec3 color;
     vec3 attenuation;
     float ambient_intensity;
     vec3 position;

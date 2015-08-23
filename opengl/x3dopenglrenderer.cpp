@@ -21,7 +21,7 @@ struct X3DLightNodeInfo
 {
     int type;
     float intensity = 0.8*0.2;
-    float color[4] = {0.8, 0.8, 0.8};
+    float color[3] = {0.8, 0.8, 0.8};
     float attenuation[3] = {0.0, 0.0, 0.0};
     float ambient_intensity = 0.8*0.2;
     glm::vec3 position = {0.0, 0.0, 0.0};
