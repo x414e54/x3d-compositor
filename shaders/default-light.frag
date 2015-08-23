@@ -9,8 +9,6 @@ struct X3DLightNode
     int type;
     float intensity;
     vec4 color;
-    vec4 diffuse_color;
-    vec3 ambient_color;
     vec3 attenuation;
     float ambient_intensity;
     vec3 position;

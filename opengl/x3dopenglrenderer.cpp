@@ -22,8 +22,6 @@ struct X3DLightNodeInfo
     int type;
     float intensity = 0.8*0.2;
     float color[4] = {0.8, 0.8, 0.8};
-    float diffuse_color[4] = {0.8, 0.8, 0.8};
-    float ambient_color[3] = {0.0, 0.0, 0.0};
     float attenuation[3] = {0.0, 0.0, 0.0};
     float ambient_intensity = 0.8*0.2;
     glm::vec3 position = {0.0, 0.0, 0.0};
@@ -116,8 +114,6 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     }
 
     X3DLightNode node;
-    light_node->getAmbientColor(node.light.ambient_color);
-    light_node->getDiffuseColor(node.light.diffuse_color);
     light_node->getColor(node.light.color);
     node.light.intensity = light_node->getIntensity();
     node.light.ambient_intensity = light_node->getAmbientIntensity();

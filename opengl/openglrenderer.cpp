@@ -313,9 +313,10 @@ void OpenGLRenderer::set_render_target_size(RenderTarget& rt, size_t width, size
             context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             context.context.gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F,
-                                             width, height, 0, GL_BGRA, GL_FLOAT, NULL);
+                                             width, height, 0, GL_RGBA, GL_FLOAT, NULL);
         }
-        if (rt.use_depth) {
+        
+	if (rt.use_depth) {
             context.context.gl->glBindTexture(GL_TEXTURE_2D, rt.depth);
             context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             context.context.gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
