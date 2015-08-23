@@ -23,7 +23,7 @@ struct X3DLightNodeInfo
     float color_intensity[4] = {1.0, 1.0, 1.0, 0.8*0.2};
     // Attenuation + ambient intensity
     float attenuation_ambient_intensity[4] = {0.0, 0.0, 0.0, 0.8*0.2};
-    glm::vec3 position = {0.0, 0.0, 0.0};
+    glm::vec4 position = {0.0, 0.0, 0.0, 1.0};
     int type;
 };
 
@@ -135,8 +135,8 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
                                            node.light.attenuation_ambient_intensity[2]));
         point_light->getLocation(location);
 
-        node.light.position = glm::make_vec3(&location[0]);
-        node.transform = glm::translate(node.transform, node.light.position);
+        node.light.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
+        node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         ++default_material.total_objects;
         process_geometry_node(&sphere, default_material);
     } else if (light_node->isDirectionalLightNode()) {
@@ -155,13 +155,13 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         spot_light->getLocation(location);
 
-        node.light.position = glm::make_vec3(&location[0]);
+        node.light.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         //spot_light->getDirection(direction);
         float attenuation[3];
         spot_light->getAttenuation(attenuation);
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
-        node.transform = glm::translate(node.transform, node.light.position);
+        node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         ++default_material.total_objects;
         process_geometry_node(&cone, default_material);
     }

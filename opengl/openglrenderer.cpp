@@ -145,12 +145,12 @@ void OpenGLRenderer::set_viewpoint_view(int, const glm::mat4x4 &view)
     params[0].view = view * active_viewpoint.left.view_offset;
     params[0].projection = active_viewpoint.left.projection;
     params[0].view_projection = active_viewpoint.left.projection * params[0].view;
-    params[0].position = glm::vec3(glm::inverse(params[0].view)[3]);
+    params[0].position = glm::inverse(params[0].view)[3];
 
     params[1].view = view * active_viewpoint.right.view_offset;
     params[1].projection = active_viewpoint.left.projection;
     params[1].view_projection = active_viewpoint.right.projection * params[0].view;
-    params[1].position = glm::vec3(glm::inverse(params[1].view)[3]);
+    params[1].position = glm::inverse(params[1].view)[3];
 
     params[0].width = active_viewpoint.left.back_buffer.width;
     params[0].height = active_viewpoint.left.back_buffer.height;

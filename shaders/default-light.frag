@@ -8,7 +8,7 @@ struct X3DLightNode
 {
     vec4 color_intensity;
     vec4 attenuation_ambient_intensity;
-    vec3 position;
+    vec4 position;
     int type;
 };
 
@@ -17,7 +17,7 @@ layout(std140, location = 0) uniform GlobalParameters
     mat4 view;
     mat4 projection;
     mat4 view_projection;
-    vec3 position;
+    vec4 position;
     int width;
     int height;
 };
@@ -85,10 +85,10 @@ void main()
     vec4 emissive = texture(in_rt3, texcoord);
     vec3 specular_color = vec3(pos.a, norm.a, emissive.a);
 
-    vec3 light_direction = pos.xyz - light.position;
+    vec3 light_direction = pos.xyz - light.position.xyz;
     float distance = length(light_direction);
     vec3 light_normal = normalize(light_direction);
-    vec3 eye_normal = normalize(position);
+    vec3 eye_normal = normalize(position.xyz);
 
     if (light.type == 1) {
         // TODO check this?
@@ -104,6 +104,6 @@ void main()
     if (light.type == 2) {
         // TODO calculate spoti;
     }
-    rt0 = vec4(color.rgb, 1.0);//x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient, diffuse, specular);
+    rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient, diffuse, specular);
 }
 

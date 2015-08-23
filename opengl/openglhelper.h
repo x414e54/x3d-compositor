@@ -164,7 +164,7 @@ struct GlobalParameters
     glm::mat4x4 view;
     glm::mat4x4 projection;
     glm::mat4x4 view_projection;
-    glm::vec3 position;
+    glm::vec4 position;
     int width;
     int height;
 };
