@@ -22,7 +22,7 @@ struct X3DMaterialNode
 
 layout(std140, location = 1) uniform ShaderParameters
 {
-    X3DMaterialNode material[1024];
+    X3DMaterialNode materials[1024];
 };
  
 layout(location = 0) in vec3 vertex_position;
@@ -39,9 +39,10 @@ layout(location = 3) out vec4 rt3;
 void main()
 {
     // Be wasteful for now
-    rt0 = vec4(vertex_position, specular_color.r);
-    rt1 = vec4(normalize(vertex_normal), specular_color.g);
-    rt2 = material[draw_id].diffuse_color;
-    rt3 = vec4(material[draw_id].emissive_color, specular_color.b);
+    X3DMaterialNode material = materials[draw_id];
+    rt0 = vec4(vertex_position, material.specular_color.r);
+    rt1 = vec4(normalize(vertex_normal), material.specular_color.g);
+    rt2 = material.diffuse_color;
+    rt3 = vec4(material.emissive_color, material.specular_color.b);
 }
 
