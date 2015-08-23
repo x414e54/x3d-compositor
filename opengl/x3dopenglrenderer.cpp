@@ -313,7 +313,8 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     float matrix[4][4];
     view->getMatrix(matrix);
-    set_viewpoint_view(0, glm::make_mat4x4(&matrix[0][0]));
+    glm::mat4x4 view_mat = glm::make_mat4x4(&matrix[0][0]);
+    set_viewpoint_view(0, view_mat);
 
     NavigationInfoNode *nav_info = sg->getNavigationInfoNode();
     if (nav_info == nullptr) {
@@ -325,7 +326,8 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
         DirectionalLightNode headlight;
         headlight.setAmbientIntensity(0.0);
         headlight.setIntensity(1.0);
-        headlight.setDirection(0, 0, -1.0);
+        glm::vec4 direction = -glm::inverse(view_mat)[2];
+        headlight.setDirection(direction.x, direction.y, direction.z);
         process_light_node(&headlight);
 	}
 
