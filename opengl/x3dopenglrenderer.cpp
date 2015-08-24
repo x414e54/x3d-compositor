@@ -47,24 +47,20 @@ struct X3DMaterialNode
 
 struct X3DTextureTransformNode
 {
-    float center[2];
-    float scale[2];
-    float translation[2];
-    float rotation;
+    float center_scale[4];
+    float translation_rotation[4];
 };
 
 struct X3DTextureNode
 {
-    int offset;
-    int width;
-    int height;
+    int offset_width_height[4];
 };
 
 struct X3DAppearanceNode
 {
     X3DMaterialNode material;
-    X3DTextureNode texture;
     X3DTextureTransformNode tex_transform;
+    X3DTextureNode texture;
 };
 
 struct X3DShapeNode
@@ -250,10 +246,10 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
     if (appearance != nullptr) {
         TextureTransformNode *transform = appearance->getTextureTransformNodes();
         if (transform != nullptr) {
-            transform->getTranslation(node.appearance.tex_transform.translation);
-            transform->getCenter(node.appearance.tex_transform.center);
-            node.appearance.tex_transform.rotation = transform->getRotation();
-            transform->getScale(node.appearance.tex_transform.scale);
+            transform->getTranslation(node.appearance.tex_transform.translation_rotation);
+            transform->getCenter(node.appearance.tex_transform.center_scale);
+            node.appearance.tex_transform.translation_rotation[2] = transform->getRotation();
+            transform->getScale(&node.appearance.tex_transform.center_scale[2]);
         }
 
         ImageTextureNode *texture = appearance->getImageTextureNodes();
@@ -261,9 +257,9 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             // TODO make resident, add to ssbo
             // TODO allow setable texture node width/height
             PixelBuffer& buffer = get_pixel_buffer();
-            node.appearance.texture.width = texture->getWidth();
-            node.appearance.texture.height = texture->getHeight();
-            node.appearance.texture.offset = buffer.offset + buffer.current_pos;
+            node.appearance.texture.offset_width_height[1] = texture->getWidth();
+            node.appearance.texture.offset_width_height[2] = texture->getHeight();
+            node.appearance.texture.offset_width_height[0] = buffer.offset + buffer.current_pos;
             size_t bbp = texture->hasTransparencyColor() + 3;
             size_t num_pixels = texture->getWidth() * texture->getHeight() * bbp;
 
@@ -274,7 +270,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
             gl->glActiveTexture(GL_TEXTURE_2D);
             gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
-            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA8, GL_UNSIGNED_INT, (void*)node.appearance.texture.offset);
+            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA8, GL_UNSIGNED_INT, (void*)buffer.offset + buffer.current_pos);
 
             buffer.current_pos += num_pixels;
             //texture->getRepeatS();
@@ -310,9 +306,9 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
-    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(X3DShapeNode::appearance),
-                                sizeof(X3DShapeNode::appearance), GL_MAP_WRITE_BIT);
-    memcpy(data, &node.appearance, sizeof(X3DShapeNode::appearance));
+    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(node.appearance),
+                                sizeof(node.appearance), GL_MAP_WRITE_BIT);
+    memcpy(data, &node.appearance, sizeof(node.appearance));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
     ++default_material.total_objects;

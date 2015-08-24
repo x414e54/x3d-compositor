@@ -11,6 +11,17 @@ layout(std140, location = 0) uniform GlobalParameters
     mat4 view_projection;
 };
 
+struct X3DTextureTransformNode
+{
+    vec4 center_scale;
+    vec4 translation_rotation;
+};
+
+struct X3DTextureNode
+{
+    ivec4 offset_width_height;
+};
+
 struct X3DMaterialNode
 {
     vec4 diffuse_color;
@@ -18,9 +29,16 @@ struct X3DMaterialNode
     vec4 specular_shininess;
 };
 
+struct X3DAppearanceNode
+{
+    X3DMaterialNode material;
+    X3DTextureTransformNode tex_transform;
+    X3DTextureNode texture;
+};
+
 layout(std140, location = 1) uniform ShaderParameters
 {
-    X3DMaterialNode materials[1024];
+    X3DAppearanceNode apperances[1024];
 };
  
 layout(location = 0) in vec3 vertex_position;
@@ -37,7 +55,7 @@ layout(location = 3) out vec4 rt3;
 void main()
 {
     // Be wasteful for now
-    X3DMaterialNode material = materials[draw_id];
+    X3DMaterialNode material = apperances[draw_id].material;
     rt0 = vec4(vertex_position, material.specular_shininess.r);
     rt1 = vec4(normalize(vertex_normal), material.specular_shininess.g);
     rt2 = vec4(material.diffuse_color.rgb, material.emissive_ambient_intensity.a);
