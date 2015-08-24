@@ -15,6 +15,7 @@ public:
     virtual void swap_buffers();
     virtual void make_current();
     virtual void done_current();
+    virtual void get_eye_matrix(glm::mat4x4 &left, glm::mat4x4 &right);
 protected:
     virtual void resizeEvent(QResizeEvent* event);
 private:

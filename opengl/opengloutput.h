@@ -3,6 +3,8 @@
 
 #include <cstddef>
 
+#include <glm/glm.hpp>
+
 class Output
 {
 public:
@@ -14,6 +16,7 @@ public:
     bool enabled;
     bool is_stereo() { return stereo; }
     bool is_enabled() { return enabled; }
+    virtual void get_eye_matrix(glm::mat4x4 &, glm::mat4x4 &) {}
     virtual void swap_buffers() {}
 };
 

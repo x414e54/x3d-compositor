@@ -331,6 +331,8 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 	}
 
     process_node(sg, sg->getNodes());
+
+    context.context.gl->glFlush();
     render_viewpoints();
 }
 

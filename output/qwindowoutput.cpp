@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <QOpenGLContext>
 #include <QtGui/QOpenGLFunctions_3_2_Core>
 #include <QtGui/QOpenGLVertexArrayObject>
@@ -129,4 +131,10 @@ void QWindowOutput::resizeEvent(QResizeEvent* event)
    QWindow::resizeEvent(event);
    this->output_height = event->size().height();
    this->output_width = event->size().width();
+}
+
+void QWindowOutput::get_eye_matrix(glm::mat4x4 &left, glm::mat4x4 &right)
+{
+    left = glm::translate(glm::mat4x4(), glm::vec3(-0.5, 0.0, 0.0));
+    right = glm::translate(glm::mat4x4(), glm::vec3(0.5, 0.0, 0.0));
 }

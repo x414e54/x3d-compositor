@@ -24,7 +24,7 @@ void OpenGLOutput::submit()
             if (right != 0) {
                 gl->glBindFramebuffer(GL_READ_FRAMEBUFFER, right);
                 gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
-                gl->glBlitFramebuffer(0, 0, fbo_width, fbo_width, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             } else {
                 gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             }
@@ -32,7 +32,7 @@ void OpenGLOutput::submit()
             gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width / 2.0, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             gl->glBindFramebuffer(GL_READ_FRAMEBUFFER, right);
             gl->glReadBuffer(GL_COLOR_ATTACHMENT0);
-            gl->glBlitFramebuffer(output_width / 2.0, 0, fbo_width, fbo_width, 0, 0, output_width / 2.0, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, output_width / 2.0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         } else {
             gl->glDrawBuffer(GL_BACK);
             gl->glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, output_width, output_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);

@@ -51,11 +51,14 @@ OpenGLRenderer::~OpenGLRenderer()
 
 void OpenGLRenderer::set_viewpoint_output(int id, OpenGLOutput& output)
 {
-    ScopedContext context(this->context_pool, 0);
     active_viewpoint.output = &output;
     active_viewpoint.output->init_context(this->context_pool.share_context);
     active_viewpoint.left.enabled = output.is_enabled();
     active_viewpoint.right.enabled = output.is_enabled() && output.is_stereo();
+    if (output.is_stereo()) {
+        active_viewpoint.output->get_eye_matrix(active_viewpoint.left.view_offset,
+                                                active_viewpoint.right.view_offset);
+    }
 }
 
 void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOuputGroup& output, int context_id)
@@ -156,7 +159,7 @@ void OpenGLRenderer::set_viewpoint_view(int, const glm::mat4x4 &view)
 
     GlobalParameters right_params;
     right_params.view = view * active_viewpoint.right.view_offset;
-    right_params.projection = active_viewpoint.left.projection;
+    right_params.projection = active_viewpoint.right.projection;
     right_params.view_projection = active_viewpoint.right.projection * right_params.view;
     right_params.position = glm::inverse(right_params.view)[3];
     right_params.width = active_viewpoint.right.back_buffer.width;
@@ -372,12 +375,14 @@ void OpenGLRenderer::render_viewpoints()
         left_render = QtConcurrent::run(render_viewpoint, this, active_viewpoint.left, 1);
     }
 
+    // TODO render simultaneously - (mesa crashes)
+    left_render.waitForFinished();
+
     QFuture<void> right_render;
     if (active_viewpoint.right.enabled) {
         right_render = QtConcurrent::run(render_viewpoint, this, active_viewpoint.right, 2);
     }
 
-    left_render.waitForFinished();
     right_render.waitForFinished();
 
     if (active_viewpoint.output != nullptr) {
