@@ -85,8 +85,14 @@ static VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& 
 
 X3DOpenGLRenderer::X3DOpenGLRenderer()
 {
-    passes.push_back(ShaderPass(0, -1, 1, true, true));
-    passes.push_back(ShaderPass(1, 1, 0, false, false));
+    passes.push_back(ShaderPass("Geometry", 0, -1, 1, true, true, false,
+                                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_LESS, ShaderPass::DISABLED,
+                                GL_ZERO, GL_ZERO, GL_BACK, ShaderPass::DISABLED));
+
+    passes.push_back(ShaderPass("Lighting", 1, 1, 0, true, false, false,
+                                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, ShaderPass::DISABLED, ShaderPass::DISABLED,
+                                GL_ZERO, GL_ZERO, GL_BACK, ShaderPass::DISABLED));
+
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
 }

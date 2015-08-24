@@ -151,13 +151,36 @@ public:
 class ShaderPass
 {
 public:
-    ShaderPass(size_t pass_id, ssize_t in, ssize_t out, bool depth_write, bool depth_test)
-        : pass_id(pass_id), in(in), out(out), depth_write(depth_write), depth_test(depth_test) {}
+    static const int DISABLED = -1;
+    class StencilOp
+    {
+
+    };
+
+    ShaderPass(const char* name, size_t pass_id, ssize_t in, ssize_t out, bool color_mask, bool depth_mask,
+               bool stencil_mask, int clear, int depth_func, int blend_equation,
+               int blend_dst, int blend_src, int cull_face, int stencil_func)
+        : name(name), pass_id(pass_id), in(in), out(out), color_mask(color_mask), depth_mask(depth_mask),
+          stencil_mask(stencil_mask), clear(clear), depth_func(depth_func), blend_equation(blend_equation),
+          blend_dst(blend_dst), blend_src(blend_src), cull_face(cull_face), stencil_func(stencil_func) {}
+
+    const char* name;
+
     size_t pass_id;
     ssize_t in;
     ssize_t out;
-    bool depth_write;
-    bool depth_test;
+
+    bool color_mask;
+    bool depth_mask;
+    bool stencil_mask;
+
+    int clear;
+    int depth_func;
+    int blend_equation;
+    int blend_dst;
+    int blend_src;
+    int cull_face;
+    int stencil_func;
 };
 
 class Material
@@ -321,6 +344,7 @@ public:
     int get_vao(const VertexFormat& format);
     int get_fbo(const RenderTarget& render_target);
     int get_pipeline(const Material& material);
+    void setup_for_pass(const ShaderPass& pass, const RenderOuputGroup& output);
 
     bool make_current();
     void done_current();

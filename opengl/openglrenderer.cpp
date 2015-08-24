@@ -66,40 +66,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
     ScopedContext context(renderer->context_pool, context_id);
 
     for (std::vector<ShaderPass>::iterator pass_it = renderer->passes.begin(); pass_it != renderer->passes.end(); ++pass_it) {
-        const RenderTarget& target = output.get_render_target(pass_it->out);
-        if (pass_it->in >= 0) {
-            const RenderTarget& in_target = output.get_render_target(pass_it->in);
-            for (size_t i = 0; i< in_target.num_attachments; ++i) {
-                glActiveTexture(GL_TEXTURE0 + i);
-                glBindTexture(GL_TEXTURE_2D, in_target.attachments[i]);
-            }
-        }
-
-        context.context.gl->glBindFramebuffer(GL_FRAMEBUFFER,
-            context.context.get_fbo(target));
-        GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-                            GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-        context.context.gl->glDrawBuffers(target.num_attachments, buffers);
-
-        context.context.gl->glViewport(0, 0, target.width, target.height);
-
-        if (pass_it->depth_test) {
-            context.context.gl->glEnable(GL_DEPTH_TEST);
-        } else {
-            context.context.gl->glDisable(GL_DEPTH_TEST);
-        }
-
-        if (pass_it->depth_write) {
-            context.context.gl->glDepthMask(GL_TRUE);
-        } else {
-            context.context.gl->glDepthMask(GL_FALSE);
-        }
-
-        context.context.gl->glCullFace(GL_BACK);
-        context.context.gl->glEnable(GL_CULL_FACE);
-        context.context.gl->glClearColor(renderer->clear_color[0], renderer->clear_color[1],
-                                         renderer->clear_color[2], renderer->clear_color[3]);
-        context.context.gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        context.context.setup_for_pass(*pass_it, output);
 
         context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms, output.uniform_offset, sizeof(GlobalParameters));
         context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls.buffer);

@@ -35,7 +35,6 @@ protected:
     size_t num_draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;
-    float clear_color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
     std::vector<ShaderPass> passes;
 private:
     size_t frame_num;

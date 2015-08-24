@@ -191,6 +191,78 @@ int ContextPoolContext::get_vao(const VertexFormat& format)
     }
 }
 
+void ContextPoolContext::setup_for_pass(const ShaderPass &pass, const RenderOuputGroup& output)
+{
+    // TODO Capture state object and bind if exists?
+    const RenderTarget& target = output.get_render_target(pass.out);
+    if (pass.in >= 0) {
+        const RenderTarget& in_target = output.get_render_target(pass.in);
+        for (size_t i = 0; i< in_target.num_attachments; ++i) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, in_target.attachments[i]);
+        }
+    }
+
+    gl->glBindFramebuffer(GL_FRAMEBUFFER, get_fbo(target));
+    GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                        GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+    gl->glDrawBuffers(target.num_attachments, buffers);
+    gl->glViewport(0, 0, target.width, target.height);
+
+    if (pass.color_mask) {
+        gl->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    } else {
+        gl->glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    }
+
+    if (pass.depth_mask) {
+        gl->glDepthMask(GL_TRUE);
+    } else {
+        gl->glDepthMask(GL_FALSE);
+    }
+
+    if (pass.stencil_mask) {
+        gl->glStencilMask(GL_TRUE);
+    } else {
+        gl->glStencilMask(GL_FALSE);
+    }
+
+    if (pass.depth_func == ShaderPass::DISABLED) {
+        gl->glDisable(GL_DEPTH_TEST);
+    } else {
+        gl->glEnable(GL_DEPTH_TEST);
+        gl->glDepthFunc(pass.depth_func);
+    }
+
+    if (pass.cull_face == ShaderPass::DISABLED) {
+        gl->glDisable(GL_CULL_FACE);
+    } else {
+        gl->glEnable(GL_CULL_FACE);
+        gl->glCullFace(pass.cull_face);
+    }
+
+    if (pass.blend_equation == ShaderPass::DISABLED) {
+        gl->glDisable(GL_BLEND);
+    } else {
+        gl->glEnable(GL_BLEND);
+        gl->glBlendEquation(pass.blend_equation);
+        gl->glBlendFunc(pass.blend_src, pass.blend_dst);
+    }
+
+    if (pass.stencil_func == ShaderPass::DISABLED) {
+        gl->glDisable(GL_STENCIL_TEST);
+    } else {
+        gl->glEnable(GL_STENCIL_TEST);
+        gl->glStencilFunc(pass.stencil_func, 0, 0);
+        //gl->glStencilOpSeparate(GL_BACK, , , );
+        //gl->glStencilOpSeparate(GL_FRONT, , , );
+    }
+
+    if (pass.clear != ShaderPass::DISABLED) {
+        gl->glClear(pass.clear);
+    }
+}
+
 void ContextPoolContext::done_current()
 {
     if (context != NULL && prev_context != context) {
