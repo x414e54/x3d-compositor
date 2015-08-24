@@ -26,6 +26,9 @@ OpenGLRenderer::OpenGLRenderer()
     frame_num = 0;
 
     ScopedContext context(context_pool, 0);
+
+    context.context.gl->glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniform_alignment);
+
     context.context.gl->glGenBuffers(1, &this->global_uniforms);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
@@ -95,8 +98,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
                                          renderer->clear_color[2], renderer->clear_color[3]);
         context.context.gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, this->global_uniforms, 0, output.uniform_offset);
-        context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms);
+        context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms, output.uniform_offset, sizeof(GlobalParameters));
         context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls.buffer);
 
         for (std::map<std::string, Material>::iterator material_it = renderer->materials.begin(); material_it != renderer->materials.end(); ++material_it) {
@@ -143,28 +145,31 @@ void OpenGLRenderer::set_viewpoint_view(int, const glm::mat4x4 &view)
 {
     ScopedContext context(this->context_pool, 0);
 
-    GlobalParameters params[2];
-    params[0].view = view * active_viewpoint.left.view_offset;
-    params[0].projection = active_viewpoint.left.projection;
-    params[0].view_projection = active_viewpoint.left.projection * params[0].view;
-    params[0].position = glm::inverse(params[0].view)[3];
+    // TODO remove duplication
+    GlobalParameters left_params;
+    left_params.view = view * active_viewpoint.left.view_offset;
+    left_params.projection = active_viewpoint.left.projection;
+    left_params.view_projection = active_viewpoint.left.projection * left_params.view;
+    left_params.position = glm::inverse(left_params.view)[3];
+    left_params.width = active_viewpoint.left.back_buffer.width;
+    left_params.height = active_viewpoint.left.back_buffer.height;
 
-    params[1].view = view * active_viewpoint.right.view_offset;
-    params[1].projection = active_viewpoint.left.projection;
-    params[1].view_projection = active_viewpoint.right.projection * params[0].view;
-    params[1].position = glm::inverse(params[1].view)[3];
+    GlobalParameters right_params;
+    right_params.view = view * active_viewpoint.right.view_offset;
+    right_params.projection = active_viewpoint.left.projection;
+    right_params.view_projection = active_viewpoint.right.projection * right_params.view;
+    right_params.position = glm::inverse(right_params.view)[3];
+    right_params.width = active_viewpoint.right.back_buffer.width;
+    right_params.height = active_viewpoint.right.back_buffer.height;
 
-    params[0].width = active_viewpoint.left.back_buffer.width;
-    params[0].height = active_viewpoint.left.back_buffer.height;
-    params[1].width = active_viewpoint.right.back_buffer.width;
-    params[1].height = active_viewpoint.right.back_buffer.height;
-
+    size_t aligned_size = align(sizeof(GlobalParameters), this->uniform_alignment);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
-    void* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(GlobalParameters) * 2, GL_MAP_WRITE_BIT);
-    memcpy(data, params, sizeof(params));
+    char* data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, aligned_size * 2, GL_MAP_WRITE_BIT);
+    memcpy(data, &left_params, sizeof(GlobalParameters));
+    memcpy(data + aligned_size, &right_params, sizeof(GlobalParameters));
     context.context.gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-    active_viewpoint.right.uniform_offset = sizeof(params[1]);
+    active_viewpoint.right.uniform_offset = aligned_size;
 }
 
 // Move to helpers

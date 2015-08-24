@@ -375,5 +375,10 @@ inline float calc_light_radius(float cutoff, float intensity, float const_att, f
     return 1.0;
 }
 
+inline size_t align(size_t val, size_t alignment)
+{
+    return (val + (alignment - 1)) - ((val + (alignment - 1)) % alignment);
+}
+
 #endif // OPENGLRENDERER_H
 

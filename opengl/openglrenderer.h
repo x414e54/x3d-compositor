@@ -39,6 +39,7 @@ protected:
     std::vector<ShaderPass> passes;
 private:
     size_t frame_num;
+    int uniform_alignment;
     VertexFormatBufferMap buffers;
 };
 
