@@ -261,9 +261,9 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             node.appearance.texture.offset_width_height[2] = texture->getHeight();
             node.appearance.texture.offset_width_height[0] = buffer.offset + buffer.current_pos;
             size_t bbp = texture->hasTransparencyColor() + 3;
-            size_t num_pixels = texture->getWidth() * texture->getHeight() * bbp;
+            size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
 
-            if (buffer.current_pos + num_pixels >= buffer.max_bytes) {
+            if (buffer.current_pos + num_bytes >= buffer.max_bytes) {
                 throw;
             }
 
@@ -271,7 +271,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
             gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, (void*)buffer.offset + buffer.current_pos);
 
-            buffer.current_pos += num_pixels;
+            buffer.current_pos += num_bytes;
             //texture->getRepeatS();
             //texture->getRepeatT();
         }
