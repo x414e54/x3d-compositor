@@ -259,7 +259,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             PixelBuffer& buffer = get_pixel_buffer();
             node.appearance.texture.offset_width_height[1] = texture->getWidth();
             node.appearance.texture.offset_width_height[2] = texture->getHeight();
-            node.appearance.texture.offset_width_height[0] = buffer.offset + buffer.current_pos;
+            node.appearance.texture.offset_width_height[0] = (buffer.offset + buffer.current_pos) / 4;
             size_t bbp = texture->hasTransparencyColor() + 3;
             size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
 
@@ -269,7 +269,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 
             gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
             gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
-            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, (void*)buffer.offset + buffer.current_pos);
+            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)buffer.offset + buffer.current_pos);
 
             buffer.current_pos += num_bytes;
             //texture->getRepeatS();
