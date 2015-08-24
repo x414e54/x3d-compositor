@@ -56,7 +56,7 @@ layout(location = 3) out vec4 rt3;
 
 vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
 {
-    int offset = o_w_h[0] + (int(o_w_h[1] * tex_coord.x) * o_w_h[1]) + int(o_w_h[2] * tex_coord.y);
+    int offset = o_w_h[0] + (int(o_w_h[2] * tex_coord.y) * o_w_h[2]) + int(o_w_h[1] * tex_coord.x);
     return texelFetch(textures, offset);
 }
 
