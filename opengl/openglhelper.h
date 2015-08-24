@@ -21,6 +21,7 @@ class QOpenGLExtension_ARB_multi_draw_indirect;
 class QOpenGLExtension_ARB_vertex_attrib_binding;
 class QOpenGLExtension_ARB_separate_shader_objects;
 class QOpenGLExtension_ARB_debug_output;
+class QOpenGLExtension_ARB_texture_buffer_object;
 typedef void (*QOpenGLExtension_ARB_buffer_storage) (int target, ptrdiff_t size, const void *data, int flags);
 class QOpenGLFunctions_3_2_Core;
 
@@ -135,7 +136,8 @@ public:
 class PixelBuffer : public StreamedBuffer
 {
 public:
-    PixelBuffer() {}
+    PixelBuffer() : texture(0) {}
+    unsigned int texture;
 };
 
 class DrawBatch
@@ -313,6 +315,7 @@ public:
         reserved = old.reserved;
         vab = old.vab;
         sso = old.sso;
+        tex = old.tex;
         buffer = old.buffer;
         debug = old.debug;
         old.reserved = false;
@@ -321,6 +324,7 @@ public:
         old.gl = nullptr;
         old.indirect = nullptr;
         old.sso = nullptr;
+        old.tex = nullptr;
         old.buffer = nullptr;
         old.debug = nullptr;
         old.vab = nullptr;
@@ -341,6 +345,7 @@ public:
     QOpenGLExtension_ARB_vertex_attrib_binding* vab;
     QOpenGLExtension_ARB_separate_shader_objects* sso;
     QOpenGLExtension_ARB_buffer_storage buffer;
+    QOpenGLExtension_ARB_texture_buffer_object* tex;
     QOpenGLExtension_ARB_debug_output* debug;
     QOpenGLFunctions_3_2_Core* gl;
     RenderTargetFboMap fbos;

@@ -28,10 +28,10 @@ layout(std140, location = 1) uniform ShaderParameters
     X3DLightNode lights[1024];
 };
 
-layout(binding = 0) uniform sampler2D in_rt0;
-layout(binding = 1) uniform sampler2D in_rt1;
-layout(binding = 2) uniform sampler2D in_rt2;
-layout(binding = 3) uniform sampler2D in_rt3;
+layout(binding = 1) uniform sampler2D in_rt0;
+layout(binding = 2) uniform sampler2D in_rt1;
+layout(binding = 3) uniform sampler2D in_rt2;
+layout(binding = 4) uniform sampler2D in_rt3;
 
 layout(location = 0) flat in int draw_id;
 

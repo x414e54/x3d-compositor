@@ -65,11 +65,15 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 {
     ScopedContext context(renderer->context_pool, context_id);
 
+    context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms, output.uniform_offset, sizeof(GlobalParameters));
+    context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls.buffer);
+    if (renderer->textures.texture != 0) {
+        context.context.gl->glActiveTexture(GL_TEXTURE0);
+        context.context.gl->glBindTexture(GL_TEXTURE_BUFFER, renderer->textures.texture);
+    }
+
     for (std::vector<ShaderPass>::iterator pass_it = renderer->passes.begin(); pass_it != renderer->passes.end(); ++pass_it) {
         context.context.setup_for_pass(*pass_it, output);
-
-        context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms, output.uniform_offset, sizeof(GlobalParameters));
-        context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls.buffer);
 
         for (std::map<std::string, Material>::iterator material_it = renderer->materials.begin(); material_it != renderer->materials.end(); ++material_it) {
             // TODO make this more efficient
@@ -220,6 +224,9 @@ PixelBuffer& OpenGLRenderer::get_pixel_buffer()
         buffer.current_pos = 0;
         buffer.offset = buffer.max_bytes * frame_num;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, buffer.max_bytes * 3, flags);
+        context.context.gl->glGenTextures(1, &buffer.texture);
+        context.context.gl->glBindTexture(GL_TEXTURE_BUFFER, buffer.texture);
+        context.context.tex->glTexBufferARB(GL_TEXTURE_BUFFER, GL_RGBA8, buffer.buffer);
     } else {
         if (buffer.offset != buffer.max_bytes * frame_num) {
             buffer.current_pos = 0;

@@ -64,6 +64,10 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     if (!sso->initializeOpenGLFunctions()) {
         throw;
     }
+    tex = new QOpenGLExtension_ARB_texture_buffer_object();
+    if (!tex->initializeOpenGLFunctions()) {
+        throw;
+    }
     buffer = (QOpenGLExtension_ARB_buffer_storage)context->getProcAddress("glBufferStorage");
     debug = new QOpenGLExtension_ARB_debug_output();
     if (!debug->initializeOpenGLFunctions()) {
@@ -197,9 +201,9 @@ void ContextPoolContext::setup_for_pass(const ShaderPass &pass, const RenderOupu
     const RenderTarget& target = output.get_render_target(pass.out);
     if (pass.in >= 0) {
         const RenderTarget& in_target = output.get_render_target(pass.in);
-        for (size_t i = 0; i< in_target.num_attachments; ++i) {
+        for (size_t i = 1; i <= in_target.num_attachments; ++i) {
             glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, in_target.attachments[i]);
+            glBindTexture(GL_TEXTURE_2D, in_target.attachments[i - 1]);
         }
     }
 
