@@ -40,6 +40,8 @@ layout(std140, location = 1) uniform ShaderParameters
 {
     X3DAppearanceNode apperances[1024];
 };
+
+layout(binding = 0) uniform samplerBuffer textures;
  
 layout(location = 0) in vec3 vertex_position;
 layout(location = 1) in vec3 vertex_normal;
@@ -52,13 +54,20 @@ layout(location = 1) out vec4 rt1;
 layout(location = 2) out vec4 rt2;
 layout(location = 3) out vec4 rt3;
 
+vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
+{
+    int offset = o_w_h[0] + int(o_w_h[1] * tex_coord.x) + int(o_w_h[2] * tex_coord.y);
+    return texelFetch(textures, offset);
+}
+
 void main()
 {
     // Be wasteful for now
     X3DMaterialNode material = apperances[draw_id].material;
+    vec4 texel = get_texel(apperances[draw_id].texture.offset_width_height, vertex_texcoord);
     rt0 = vec4(vertex_position, material.specular_shininess.r);
     rt1 = vec4(normalize(vertex_normal), material.specular_shininess.g);
-    rt2 = vec4(material.diffuse_color.rgb, material.emissive_ambient_intensity.a);
+    rt2 = vec4(material.diffuse_color.rgb + texel.rgb, material.emissive_ambient_intensity.a);
     rt3 = vec4(material.emissive_ambient_intensity.rgb, material.specular_shininess.b);
 }
 

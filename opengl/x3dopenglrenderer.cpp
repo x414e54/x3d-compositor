@@ -268,9 +268,8 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             }
 
             gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
-            gl->glActiveTexture(GL_TEXTURE_2D);
             gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
-            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA8, GL_UNSIGNED_INT, (void*)buffer.offset + buffer.current_pos);
+            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, (void*)buffer.offset + buffer.current_pos);
 
             buffer.current_pos += num_pixels;
             //texture->getRepeatS();
