@@ -19,6 +19,7 @@ class X3DOpenGLRenderer : public X3DRenderer, public OpenGLRenderer
 public:
     X3DOpenGLRenderer();
     virtual ~X3DOpenGLRenderer();
+    void exec_texture();
     void set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar);
     bool get_ray(Scalar x, Scalar y, const Scalar (&model)[4][4], Scalar (&from)[3], Scalar (&to)[3]);
     void render(CyberX3D::SceneGraph *sg);

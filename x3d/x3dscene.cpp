@@ -120,7 +120,7 @@ void X3DScene::load(const QString& filename)
     physics.restart();
 }
 
-void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, void* data)
+void X3DScene::add_texture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, void* data)
 {
     std::map<void*, NodePhysicsGroup>::iterator found;
     if ((found = nodes.find(data)) == nodes.end()) {
@@ -163,7 +163,7 @@ void X3DScene::addTexture(int textureId, const QRectF &targetRect, const QSize &
     }
 }
 
-void X3DScene::removeTexture(void* data)
+void X3DScene::remove_texture(void* data)
 {
     std::map<void*, NodePhysicsGroup>::iterator found;
     if ((found = nodes.find(data)) != nodes.end()) {

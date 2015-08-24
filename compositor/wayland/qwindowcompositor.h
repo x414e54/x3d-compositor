@@ -54,6 +54,7 @@ QT_BEGIN_NAMESPACE
 class QWaylandSurfaceView;
 class QOpenGLTexture;
 class QWindowOutput;
+
 class QWindowCompositor : public QObject, public QWaylandCompositor, public SceneEventFilter
 {
     Q_OBJECT
@@ -73,21 +74,13 @@ private slots:
 protected:
     void surfaceCommitted(QWaylandSurface *surface);
     void surfaceCreated(QWaylandSurface *surface);
-
-    QWaylandSurfaceView* viewAt(const QPointF &point, QPointF *local = 0);
-
     bool sceneEventFilter(void *obj, const float (&pos)[2]);
     bool eventFilter(QObject *obj, QEvent *event);
-    QPointF toView(QWaylandSurfaceView *view, const QPointF &pos) const;
-
-    void setCursorSurface(QWaylandSurface *surface, int hotspotX, int hotspotY);
 
     void ensureKeyboardFocusSurface(QWaylandSurface *oldSurface);
-    QImage makeBackgroundImage(const QString &fileName);
 
 private slots:
     void sendExpose();
-    void updateCursor(bool hasBuffer);
 
 private:
     void drawSubSurface(const QPoint &offset, QWaylandSurface *surface);
@@ -98,16 +91,6 @@ private:
     GLuint m_surface_fbo;
     QTimer m_renderScheduler;
     QTimer m_updateScheduler;
-
-    //Dragging windows around
-    QWaylandSurfaceView *m_draggingWindow;
-    bool m_dragKeyIsPressed;
-    QPointF m_drag_diff;
-
-    //Cursor
-    QWaylandSurface *m_cursorSurface;
-    int m_cursorHotspotX;
-    int m_cursorHotspotY;
 
     Qt::KeyboardModifiers m_modifiers;
 };

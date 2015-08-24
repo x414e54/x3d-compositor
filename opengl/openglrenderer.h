@@ -20,6 +20,7 @@ public:
 protected:
     VertexBuffer& get_buffer(const VertexFormat& format);
     DrawBuffer& get_draw_buffer();
+    PixelBuffer& get_pixel_buffer();
     Material& get_material(const std::string& name);
     void create_material(const std::string& name,
                          const std::string& vert,
@@ -30,13 +31,14 @@ protected:
 
     std::map<std::string, Material> materials;
     unsigned int global_uniforms;
-    DrawBuffer draw_calls;
-    VertexBuffer draw_info;
     size_t num_draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;
     std::vector<ShaderPass> passes;
 private:
+    DrawBuffer draw_calls;
+    VertexBuffer draw_info;
+    PixelBuffer textures;
     size_t frame_num;
     int uniform_alignment;
     VertexFormatBufferMap buffers;

@@ -64,9 +64,10 @@ QT_BEGIN_NAMESPACE
 class BufferAttacher : public QWaylandBufferAttacher
 {
 public:
-    BufferAttacher()
+    BufferAttacher(OpenGLOutput* output)
         : QWaylandBufferAttacher()
         , shmTex(0)
+        , output(output)
     {
     }
 
@@ -77,6 +78,8 @@ public:
 
     void attach(const QWaylandBufferRef &ref) Q_DECL_OVERRIDE
     {
+        ScopedOutputContext context(*output);
+
         if (bufferRef) {
             if (bufferRef.isShm()) {
                 delete shmTex;
@@ -109,6 +112,7 @@ public:
     QOpenGLTexture *shmTex;
     QWaylandBufferRef bufferRef;
     GLuint texture;
+    OpenGLOutput* output;
 };
 
 QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
@@ -117,13 +121,7 @@ QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
     , m_scene(scene)
     , m_renderScheduler(this)
     , m_updateScheduler(this)
-    , m_draggingWindow(0)
-    , m_dragKeyIsPressed(false)
-    , m_cursorSurface(0)
-    , m_cursorHotspotX(0)
-    , m_cursorHotspotY(0)
     , m_modifiers(Qt::NoModifier)
-
 {
     m_renderScheduler.setSingleShot(true);
     connect(&m_renderScheduler,SIGNAL(timeout()),this,SLOT(render()));
@@ -148,26 +146,6 @@ QWindowCompositor::~QWindowCompositor()
 }
 
 
-QImage QWindowCompositor::makeBackgroundImage(const QString &fileName)
-{
-    Q_ASSERT(m_window);
-
-    int width = m_window->width();
-    int height = m_window->height();
-    QImage baseImage(fileName);
-    QImage patternedBackground(width, height, baseImage.format());
-    QPainter painter(&patternedBackground);
-
-    QSize imageSize = baseImage.size();
-    for (int y = 0; y < height; y += imageSize.height()) {
-        for (int x = 0; x < width; x += imageSize.width()) {
-            painter.drawImage(x, y, baseImage);
-        }
-    }
-
-    return patternedBackground;
-}
-
 void QWindowCompositor::ensureKeyboardFocusSurface(QWaylandSurface *oldSurface)
 {
     QWaylandSurface *kbdFocus = defaultInputDevice()->keyboardFocus();
@@ -180,7 +158,7 @@ void QWindowCompositor::surfaceDestroyed()
     QWaylandSurface *surface = static_cast<QWaylandSurface *>(sender());
 
     foreach (QWaylandSurfaceView *view, surface->views()) {
-        m_scene->removeTexture(view);
+        m_scene->remove_texture(view);
     }
 
     m_surfaces.removeOne(surface);
@@ -224,7 +202,7 @@ void QWindowCompositor::surfaceUnmapped()
     QWaylandSurface *surface = qobject_cast<QWaylandSurface *>(sender());
 
     foreach (QWaylandSurfaceView *view, surface->views()) {
-        m_scene->removeTexture(view);
+        m_scene->remove_texture(view);
     }
 
     if (m_surfaces.removeOne(surface))
@@ -260,7 +238,7 @@ void QWindowCompositor::surfaceCreated(QWaylandSurface *surface)
     connect(surface, SIGNAL(extendedSurfaceReady()), this, SLOT(sendExpose()));
     m_renderScheduler.start(0);
 
-    surface->setBufferAttacher(new BufferAttacher);
+    surface->setBufferAttacher(new BufferAttacher(m_window));
 }
 
 void QWindowCompositor::sendExpose()
@@ -268,58 +246,6 @@ void QWindowCompositor::sendExpose()
     QWaylandSurface *surface = qobject_cast<QWaylandSurface *>(sender());
     surface->sendOnScreenVisibilityChange(true);
 }
-
-void QWindowCompositor::updateCursor(bool hasBuffer)
-{
-    Q_UNUSED(hasBuffer)
-    if (!m_cursorSurface)
-        return;
-
-    QImage image = static_cast<BufferAttacher *>(m_cursorSurface->bufferAttacher())->image();
-
-    QCursor cursor(QPixmap::fromImage(image), m_cursorHotspotX, m_cursorHotspotY);
-    static bool cursorIsSet = false;
-    if (cursorIsSet) {
-        QGuiApplication::changeOverrideCursor(cursor);
-    } else {
-        QGuiApplication::setOverrideCursor(cursor);
-        cursorIsSet = true;
-    }
-}
-
-QPointF QWindowCompositor::toView(QWaylandSurfaceView *view, const QPointF &pos) const
-{
-    return pos - view->pos();
-}
-
-void QWindowCompositor::setCursorSurface(QWaylandSurface *surface, int hotspotX, int hotspotY)
-{
-    if ((m_cursorSurface != surface) && surface)
-        connect(surface, SIGNAL(configure(bool)), this, SLOT(updateCursor(bool)));
-
-    m_cursorSurface = surface;
-    m_cursorHotspotX = hotspotX;
-    m_cursorHotspotY = hotspotY;
-    if (m_cursorSurface && !m_cursorSurface->bufferAttacher())
-        m_cursorSurface->setBufferAttacher(new BufferAttacher);
-}
-
-QWaylandSurfaceView *QWindowCompositor::viewAt(const QPointF &point, QPointF *local)
-{
-    for (int i = m_surfaces.size() - 1; i >= 0; --i) {
-        QWaylandSurface *surface = m_surfaces.at(i);
-        foreach (QWaylandSurfaceView *view, surface->views()) {
-            QRectF geo(view->pos(), surface->size());
-            if (geo.contains(point)) {
-                if (local)
-                    *local = toView(view, point);
-                return view;
-            }
-        }
-    }
-    return 0;
-}
-
 
 static QRectF pixels_to_m(const QRect& in)
 {
@@ -352,7 +278,7 @@ void QWindowCompositor::render()
         GLuint texture = static_cast<BufferAttacher *>(surface->bufferAttacher())->texture;
         foreach (QWaylandSurfaceView *view, surface->views()) {
             QRect geo(view->pos().toPoint(),surface->size());
-            m_scene->addTexture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted(), view);
+            m_scene->add_texture(texture,pixels_to_m(geo),surface->size(),0,false,surface->isYInverted(), view);
             foreach (QWaylandSurface *child, surface->subSurfaces()) {
                 drawSubSurface(view->pos().toPoint(), child);
             }
@@ -363,7 +289,6 @@ void QWindowCompositor::render()
 
     sendFrameCallbacks(surfaces());
 
-    // N.B. Never call glFinish() here as the busylooping with vsync 'feature' of the nvidia binary driver is not desirable.
     m_window->swap_buffers();
 }
 
@@ -373,7 +298,7 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     QWaylandSurfaceView *view = surface->views().first();
     QPoint pos = view->pos().toPoint() + offset;
     QRect geo(pos, surface->size());
-    m_scene->addTexture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted(), view);
+    m_scene->add_texture(texture, pixels_to_m(geo), surface->size(),0, false, surface->isYInverted(), view);
     foreach (QWaylandSurface *child, surface->subSurfaces()) {
         drawSubSurface(pos, child);
     }
@@ -407,24 +332,9 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
         return false;
     }
 
-    QWaylandInputDevice *input = defaultInputDevice();
-
     switch (event->type()) {
     case QEvent::Expose:
         m_renderScheduler.start(0);
-        if (m_window->isExposed()) {
-            // Alt-tabbing away normally results in the alt remaining in
-            // pressed state in the clients xkb state. Prevent this by sending
-            // a release. This is not an issue in a "real" compositor but
-            // is very annoying when running in a regular window on xcb.
-            Qt::KeyboardModifiers mods = QGuiApplication::queryKeyboardModifiers();
-            if (m_modifiers != mods && input->keyboardFocus()) {
-                Qt::KeyboardModifiers stuckMods = m_modifiers ^ mods;
-                if (stuckMods & Qt::AltModifier)
-                    input->sendKeyReleaseEvent(64); // native scancode for left alt
-                m_modifiers = mods;
-            }
-        }
         break;
     case QEvent::MouseButtonPress: {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
@@ -443,11 +353,6 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
         double y = double(me->localPos().y()/m_window->height() - 0.5f);
         m_scene->sendAxisEvent(0, x);
         m_scene->sendAxisEvent(1, y);
-        break;
-    }
-    case QEvent::Wheel: {
-        QWheelEvent *we = static_cast<QWheelEvent *>(event);
-        input->sendMouseWheelEvent(we->orientation(), we->delta());
         break;
     }
     case QEvent::KeyPress: {

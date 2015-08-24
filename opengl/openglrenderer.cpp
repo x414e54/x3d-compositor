@@ -41,7 +41,7 @@ OpenGLRenderer::OpenGLRenderer()
     context.context.buffer(GL_ARRAY_BUFFER, 65536, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
     draw_info.current_pos = 0;
     draw_info.num_verts = 0;
-    draw_info.data = context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, 65536, flags);
+    draw_info.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, 65536, flags);
 }
 
 OpenGLRenderer::~OpenGLRenderer()
@@ -205,6 +205,30 @@ void OpenGLRenderer::create_material(const std::string& name,
     material.total_objects = 0;
 }
 
+PixelBuffer& OpenGLRenderer::get_pixel_buffer()
+{
+    // TODO convert to bindless textures
+    PixelBuffer& buffer = this->textures;
+    if (buffer.buffer == 0) {
+        ScopedContext context(context_pool);
+
+        GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+        context.context.gl->glGenBuffers(1, &buffer.buffer);
+        context.context.gl->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer.buffer);
+        buffer.max_bytes = 100 * 1024 * 1024;
+        context.context.buffer(GL_PIXEL_UNPACK_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        buffer.current_pos = 0;
+        buffer.offset = buffer.max_bytes * frame_num;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, buffer.max_bytes * 3, flags);
+    } else {
+        if (buffer.offset != buffer.max_bytes * frame_num) {
+            buffer.current_pos = 0;
+            buffer.offset = buffer.max_bytes * frame_num;
+        }
+    }
+    return buffer;
+}
+
 DrawBuffer& OpenGLRenderer::get_draw_buffer()
 {
     DrawBuffer& buffer = this->draw_calls;
@@ -219,7 +243,7 @@ DrawBuffer& OpenGLRenderer::get_draw_buffer()
         buffer.current_pos = 0;
         buffer.num_draws = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = context.context.gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, buffer.max_bytes * 3, flags);
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, buffer.max_bytes * 3, flags);
     } else {
         if (buffer.offset != buffer.max_bytes * frame_num) {
             buffer.current_pos = 0;
@@ -245,7 +269,7 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
         buffer.current_pos = 0;
         buffer.num_verts = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes * 3, flags);
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes * 3, flags);
         buffers[format] = buffer;
         return buffers[format];
     } else {

@@ -115,7 +115,7 @@ public:
     size_t offset; // meant of offset into buffer e.g. per frame
     size_t max_bytes;
     size_t current_pos; // current position in bytes from offset
-    void *data;
+    char *data;
 };
 
 class DrawBuffer : public StreamedBuffer
@@ -130,6 +130,12 @@ class VertexBuffer : public StreamedBuffer
 public:
     VertexBuffer() : num_verts(0) {}
     size_t num_verts; // current vertex count
+};
+
+class PixelBuffer : public StreamedBuffer
+{
+public:
+    PixelBuffer() {}
 };
 
 class DrawBatch

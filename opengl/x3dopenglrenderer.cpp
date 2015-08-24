@@ -53,10 +53,16 @@ struct X3DTextureTransformNode
     float rotation;
 };
 
+struct X3DTextureNode
+{
+    int offset;
+};
+
 struct X3DShapeNode
 {
     glm::mat4x4 transform;
     X3DMaterialNode material;
+    X3DTextureNode texture;
     X3DTextureTransformNode tex_transform;
 };
 
@@ -245,7 +251,24 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 
         ImageTextureNode *texture = appearance->getImageTextureNodes();
         if (texture != nullptr && texture->getTextureName() != 0) {
-                // make resident, add to ssbo
+            // TODO make resident, add to ssbo
+            PixelBuffer& buffer = get_pixel_buffer();
+            node.texture.offset = buffer.offset + buffer.current_pos;
+            size_t bbp = texture->hasTransparencyColor() + 3;
+            size_t num_pixels = texture->getWidth() * texture->getHeight() * bbp;
+
+            if (buffer.current_pos + num_pixels >= buffer.max_bytes) {
+                throw;
+            }
+
+            gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
+            gl->glActiveTexture(GL_TEXTURE_2D);
+            gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
+            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA8, GL_UNSIGNED_INT, (void*)node.texture.offset);
+
+            buffer.current_pos += num_pixels;
+            //texture->getRepeatS();
+            //texture->getRepeatT();
         }
 
         MaterialNode *material = appearance->getMaterialNodes();

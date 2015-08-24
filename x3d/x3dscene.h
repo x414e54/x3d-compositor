@@ -39,10 +39,10 @@ public:
     X3DScene(X3DRenderer* renderer);
     ~X3DScene();
     void installEventFilter(SceneEventFilter* filter);
-    void addTexture(int textureId, const QRectF &sourceGeometry,
-                    const QSize &textureSize, int depth,
-                    bool targethasInvertedY, bool sourceHasInvertedY, void* data);
-    void removeTexture(void* data);
+    void add_texture(int textureId, const QRectF &sourceGeometry,
+                     const QSize &textureSize, int depth,
+                     bool targethasInvertedY, bool sourceHasInvertedY, void* data);
+    void remove_texture(void* data);
     void render(const QSize &viewportSize);
     void load(const QString& filename);
     void update();
