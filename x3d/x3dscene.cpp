@@ -120,7 +120,8 @@ void X3DScene::load(const QString& filename)
     physics.restart();
 }
 
-void X3DScene::add_texture(int textureId, const QRectF &targetRect, const QSize &textureSize, int depth, bool targethasInvertedY, bool sourceHasInvertedY, void* data)
+void X3DScene::add_texture(int texture_id, float real_width, float real_height,
+                           size_t width, size_t height, void* data)
 {
     std::map<void*, NodePhysicsGroup>::iterator found;
     if ((found = nodes.find(data)) == nodes.end()) {
@@ -145,11 +146,11 @@ void X3DScene::add_texture(int textureId, const QRectF &targetRect, const QSize 
             ShapeNode* shape = new ShapeNode();
                 AppearanceNode* appearance = new AppearanceNode();
                     ImageTextureNode* texture = new ImageTextureNode();
-                        texture->setTextureName(textureId);
+                        texture->createImageFrom(texture_id, width, height, true);
                     appearance->addChildNode(texture);
                 shape->addChildNode(appearance);
                 BoxNode* box = new BoxNode();
-                box->setSize(targetRect.width(), targetRect.height(), 1.0f/100.0f);
+                box->setSize(real_width, real_height, 1.0f/100.0f);
                 shape->addChildNode(box);
             transform->addChildNode(shape);
         nodes[data].top_node = transform;
@@ -159,7 +160,7 @@ void X3DScene::add_texture(int textureId, const QRectF &targetRect, const QSize 
         addToPhysics(transform);
         nodes[data].bt_rigid_body = (btRigidBody *)transform->getValue();
     } else if (found->second.texture_node != NULL){
-        found->second.texture_node->setTextureName(textureId);
+        found->second.texture_node->setTextureName(texture_id);
     }
 }
 
