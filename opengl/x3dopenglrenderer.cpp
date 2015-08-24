@@ -38,7 +38,7 @@ struct X3DLightNode
 struct X3DMaterialNode
 {
     // RGBA
-    float diffuse_color[4] = {0.8, 0.8, 0.8, 1.0};
+    glm::vec4 diffuse_color = {0.8, 0.8, 0.8, 1.0};
     // Emissive RGB + ambient_intensity
     float emissive_ambient_intensity[4] = {0.0, 0.0, 0.0, 0.8};
     // Specular RGB + shininess
@@ -274,11 +274,12 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
             buffer.current_pos += num_bytes;
             //texture->getRepeatS();
             //texture->getRepeatT();
+            node.appearance.material.diffuse_color = glm::vec4(0.0, 0.0, 0.0, 1.0);
         }
 
         MaterialNode *material = appearance->getMaterialNodes();
         if (material != nullptr) {
-            material->getDiffuseColor(node.appearance.material.diffuse_color);
+            material->getDiffuseColor(&node.appearance.material.diffuse_color[0]);
             node.appearance.material.diffuse_color[3] = 1 - material->getTransparency();
             material->getSpecularColor(node.appearance.material.specular_shininess);
             node.appearance.material.specular_shininess[3] = material->getShininess();
