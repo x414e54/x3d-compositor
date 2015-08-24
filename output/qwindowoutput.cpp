@@ -135,6 +135,7 @@ void QWindowOutput::resizeEvent(QResizeEvent* event)
 
 void QWindowOutput::get_eye_matrix(glm::mat4x4 &left, glm::mat4x4 &right)
 {
-    left = glm::translate(glm::mat4x4(), glm::vec3(-0.5, 0.0, 0.0));
-    right = glm::translate(glm::mat4x4(), glm::vec3(0.5, 0.0, 0.0));
+    const float fake_ipd = 60.0/1000.0;
+    left = glm::translate(glm::mat4x4(), glm::vec3(-fake_ipd, 0.0, 0.0));
+    right = glm::translate(glm::mat4x4(), glm::vec3(fake_ipd, 0.0, 0.0));
 }
