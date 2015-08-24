@@ -1,7 +1,7 @@
 QT += gui gui-private core-private compositor openglextensions
 CONFIG += c++11
 
-LIBS += -L ../../lib
+LIBS += -L ../openvr/lib/linux64
 
 HEADERS += \
     opengl/opengloutput.h \
@@ -25,8 +25,9 @@ SOURCES += main.cpp \
     output/openvroutput.cpp
 
 INCLUDEPATH+=/usr/local/include/CyberX3D-1.0 \
-             /usr/include/bullet
-LIBS += -lcx3d-1.0 -lBulletCollision -lBulletDynamics -lBulletSoftBody -lLinearMath
+             /usr/include/bullet \
+             ../openvr/headers
+LIBS += -lcx3d-1.0 -lBulletCollision -lBulletDynamics -lBulletSoftBody -lLinearMath -lopenvr_api
 
 RESOURCES += x3d-compositor.qrc
 

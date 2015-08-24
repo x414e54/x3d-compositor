@@ -17,6 +17,7 @@ public:
     bool is_stereo() { return stereo; }
     bool is_enabled() { return enabled; }
     virtual void get_eye_matrix(glm::mat4x4 &, glm::mat4x4 &) {}
+    virtual void get_eye_projection_matrix(glm::mat4x4 &, glm::mat4x4 &, float, float) {}
     virtual void swap_buffers() {}
 };
 
