@@ -53,7 +53,7 @@ struct X3DTextureTransformNode
 
 struct X3DTextureNode
 {
-    int offset_width_height[4];
+    int offset_width_height[4] = {0, 0, 0, 0};
 };
 
 struct X3DAppearanceNode
