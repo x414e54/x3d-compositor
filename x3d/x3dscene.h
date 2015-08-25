@@ -34,6 +34,7 @@ public:
     };
 
     virtual bool sceneEventFilter(void *, const float (&pos)[2], SceneEvent state) = 0;
+    virtual bool sceneKeyEventFilter(void *, int key, SceneEvent state) = 0;
 
     static SceneEvent convert_event(bool was_active, bool is_active)
     {

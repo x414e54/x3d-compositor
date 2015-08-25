@@ -75,6 +75,8 @@ protected:
     void surfaceCommitted(QWaylandSurface *surface);
     void surfaceCreated(QWaylandSurface *surface);
     virtual bool sceneEventFilter(void *, const float (&pos)[2], SceneEvent);
+    virtual bool sceneKeyEventFilter(void *, int key, SceneEvent);
+
     bool eventFilter(QObject *obj, QEvent *event);
 
     void ensureKeyboardFocusSurface(QWaylandSurface *oldSurface);

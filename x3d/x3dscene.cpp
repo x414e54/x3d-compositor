@@ -18,6 +18,7 @@ QT_BEGIN_NAMESPACE
 X3DScene::X3DScene(X3DRenderer* renderer)
     : fake_velocity{0.0f, 0.0f, 0.0f}
     , fake_rotation(0.0f)
+    , m_current_key_device(nullptr)
     , m_current_touch(nullptr)
     , m_renderer(renderer)
 {
@@ -148,7 +149,7 @@ void X3DScene::add_texture(int texture_id, float real_width, float real_height,
             KeySensorNode* key_node = new KeySensorNode();
             key_node->setValue(data);
             transform->addChildNode(key_node);
-            m_root->addRoute(touch_node, touch_node->getField("isActive"), key_node, key_node->getField("isEnabled"));
+            m_root->addRoute(touch_node, touch_node->getIsActiveField(), key_node, key_node->getEnabledField());
             ShapeNode* shape = new ShapeNode();
                 AppearanceNode* appearance = new AppearanceNode();
                     ImageTextureNode* texture = new ImageTextureNode();
@@ -175,7 +176,6 @@ void X3DScene::remove_texture(void* data)
     std::map<void*, NodePhysicsGroup>::iterator found;
     if ((found = nodes.find(data)) != nodes.end()) {
         if (found->second.top_node != NULL) {
-            m_root->removeNode(found->second.top_node);
             delete found->second.top_node;
         }
 
@@ -189,43 +189,72 @@ void X3DScene::remove_texture(void* data)
 
 void X3DScene::sendKeyDown(uint code)
 {
-    if (code == 25) {
-        fake_velocity[2] += 1.0f;
-    } else if(code == 39) {
-        fake_velocity[2] -= 1.0f;
-    } else if(code == 38) {
-        fake_velocity[0] -= 1.0f;
-    } else if(code == 40) {
-        fake_velocity[0] += 1.0f;
-    } else if (code == 113) {
-        fake_rotating = true;
-        fake_rotation = -1.0f;
-    } else if(code == 114) {
-        fake_rotating = true;
-        fake_rotation = 1.0f;
-    } else if(code == 111) {
-    } else if(code == 116) {
+    // TODO be more efficient here
+    m_current_key_device = m_root->getSelectedKeyDeviceSensorNode();
+
+    if (m_current_key_device != nullptr) {
+        m_current_key_device->setKeyPress(code);
+
+        // TODO route this
+        if (m_current_key_device->getValue() != nullptr
+            && event_filter != nullptr) {
+            event_filter->sceneKeyEventFilter(m_current_key_device->getValue(),
+                                              code, SceneEventFilter::DOWN);
+        }
+    } else {
+        if (code == 25) {
+            fake_velocity[2] += 1.0f;
+        } else if(code == 39) {
+            fake_velocity[2] -= 1.0f;
+        } else if(code == 38) {
+            fake_velocity[0] -= 1.0f;
+        } else if(code == 40) {
+            fake_velocity[0] += 1.0f;
+        } else if (code == 113) {
+            fake_rotating = true;
+            fake_rotation = -1.0f;
+        } else if(code == 114) {
+            fake_rotating = true;
+            fake_rotation = 1.0f;
+        } else if(code == 111) {
+        } else if(code == 116) {
+        }
     }
 }
 
 void X3DScene::sendKeyUp(uint code)
 {
-    if (code == 25) {
-        fake_velocity[2] -= 1.0f;
-    } else if(code == 39) {
-        fake_velocity[2] += 1.0f;
-    } else if(code == 38) {
-        fake_velocity[0] += 1.0f;
-    } else if(code == 40) {
-        fake_velocity[0] -= 1.0f;
-    } else if (code == 113) {
-        fake_rotating = false;
-        fake_rotation = 0.0f;
-    } else if(code == 114) {
-        fake_rotating = false;
-        fake_rotation = 0.0f;
-    } else if(code == 111) {
-    } else if(code == 116) {
+    if (m_current_key_device != nullptr) {
+        m_current_key_device->setKeyRelease(code);
+
+        // TODO route this
+        if (m_current_key_device->getValue() != nullptr
+            && event_filter != nullptr) {
+            event_filter->sceneKeyEventFilter(m_current_key_device->getValue(),
+                                              code, SceneEventFilter::UP);
+        }
+
+        if (code == 9) {
+            m_current_key_device->setEnabled(false);
+        }
+    } else {
+        if (code == 25) {
+            fake_velocity[2] -= 1.0f;
+        } else if(code == 39) {
+            fake_velocity[2] += 1.0f;
+        } else if(code == 38) {
+            fake_velocity[0] += 1.0f;
+        } else if(code == 40) {
+            fake_velocity[0] -= 1.0f;
+        } else if (code == 113) {
+            fake_rotating = false;
+            fake_rotation = 0.0f;
+        } else if(code == 114) {
+            fake_rotating = false;
+            fake_rotation = 0.0f;
+        } else if(code == 111) {
+        } else if(code == 116) {
+        }
     }
 }
 
@@ -270,9 +299,10 @@ void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState st
                                                     ray_result.m_hitNormalWorld.y(),
                                                     ray_result.m_hitNormalWorld.z());
 
-                    touch_node->setIsOver(true);
-
+                    bool was_over = touch_node->isOver();
                     bool was_active = touch_node->isActive();
+
+                    touch_node->setIsOver(true);
                     if (state == Qt::TouchPointPressed) {
                         touch_node->setIsActive(true);
                     } else if (state == Qt::TouchPointReleased) {
@@ -301,11 +331,16 @@ void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState st
                         // This should be routed via update
                         if (touch_node->getValue() != nullptr
                             && event_filter != nullptr) {
-                                event_filter->sceneEventFilter(touch_node->getValue(),
-                                    {texCoord.x(), texCoord.y()},
-                                     SceneEventFilter::convert_event(was_active, touch_node->isActive()));
+                            event_filter->sceneEventFilter(touch_node->getValue(),
+                                {texCoord.x(), texCoord.y()},
+                                SceneEventFilter::convert_event(was_active, touch_node->isActive()));
                         }
                         //
+                    }
+
+                    // TODO better way to update routes than this!
+                    if (!was_active && touch_node->isActive()) {
+                        m_root->updateRoute(touch_node, touch_node->getIsActiveField());
                     }
                 }
             }
@@ -319,12 +354,12 @@ void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState st
                 // This should be routed via update
                 if (m_current_touch->getValue() != nullptr
                     && event_filter != nullptr) {
-                        float tex_coord[2];
-                        m_current_touch->getHitTexCoord(tex_coord);
-                        event_filter->sceneEventFilter(m_current_touch->getValue(),
-                                                       tex_coord, SceneEventFilter::UP);
-                        event_filter->sceneEventFilter(m_current_touch->getValue(),
-                                                       tex_coord, SceneEventFilter::EXIT);
+                    float tex_coord[2];
+                    m_current_touch->getHitTexCoord(tex_coord);
+                    event_filter->sceneEventFilter(m_current_touch->getValue(),
+                                                   tex_coord, SceneEventFilter::UP);
+                    event_filter->sceneEventFilter(m_current_touch->getValue(),
+                                                   tex_coord, SceneEventFilter::EXIT);
                 }
                 //
                 m_current_touch = nullptr;

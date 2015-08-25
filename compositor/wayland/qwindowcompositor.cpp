@@ -324,6 +324,31 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     }
 }
 
+bool QWindowCompositor::sceneKeyEventFilter(void *obj, int key, SceneEvent state)
+{
+    QWaylandInputDevice *input = defaultInputDevice();
+    QWaylandSurfaceView *target = static_cast<QWaylandSurfaceView*>(obj);
+    if (target && target->surface())
+    {
+        if (state == EXIT && target->surface() == input->keyboardFocus()) {
+            input->setKeyboardFocus(nullptr);
+        } if (target->surface() != input->keyboardFocus()) {
+            input->setKeyboardFocus(target->surface());
+        }
+
+        if (input->keyboardFocus()) {
+            if (state == DOWN) {
+                input->sendKeyPressEvent(key);
+            } else if (state == UP) {
+                input->sendKeyReleaseEvent(key);
+            }
+        }
+
+        return true;
+    }
+    return false;
+}
+
 bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2], SceneEvent state)
 {
     QWaylandInputDevice *input = defaultInputDevice();
@@ -341,7 +366,6 @@ bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2], Scene
 
         if (input->mouseFocus()) {
             if (state == DOWN) {
-                input->setKeyboardFocus(target->surface());
                 input->sendMousePressEvent(Qt::LeftButton, point, point);
                 input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointPressed);
             } else if (state == UP) {
