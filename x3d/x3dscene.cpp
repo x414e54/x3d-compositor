@@ -228,7 +228,7 @@ void X3DScene::installEventFilter(SceneEventFilter* filter)
     event_filter = filter;
 }
 
-void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPointState state)
+void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState state)
 {
     Scalar from[3];
     Scalar to[3];
@@ -238,7 +238,7 @@ void X3DScene::sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPoi
         fake_rotation = 0.0;
         fake_rotating = false;
     } else if (state == Qt::TouchPointPressed &&
-        m_renderer->get_ray(viewportPos.x(), viewportPos.y(), this->view, from, to)) {
+        m_renderer->get_ray(x, y, this->view, from, to)) {
         btVector3 bt_from(from[0], from[1], from[2]);
         btVector3 bt_to(to[0], to[1], to[2]);
         btCollisionWorld::ClosestRayResultCallback ray_result(bt_from, bt_to);

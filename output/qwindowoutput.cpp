@@ -25,7 +25,7 @@ QWindowOutput::QWindowOutput() : context(nullptr)
     this->quad_buffered = this->format().stereo();
     this->output_width = this->width();
     this->output_height = this->height();
-    this->stereo = true;
+    this->stereo = false;
 }
 
 

@@ -56,6 +56,7 @@
 #include <QtCompositor/qwaylandinput.h>
 #include <QtCompositor/qwaylandbufferref.h>
 #include <QtCompositor/qwaylandsurfaceview.h>
+#include <QtCompositor/qwaylandoutput.h>
 
 #include "output/qwindowoutput.h"
 
@@ -115,8 +116,22 @@ public:
     OpenGLOutput* output;
 };
 
+static QRect mm_to_pixels(const QRect& in)
+{
+    const int ppcm = 47; // Get from surface info later.
+
+    const float ppm = ppcm / 10.0f;
+
+    QRect  out(in.x() * ppm,
+               in.y() * ppm,
+               in.width() * ppm,
+               in.height() * ppm);
+    return out;
+}
+
+
 QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
-    : QWaylandCompositor(0, 0, DefaultExtensions | SubSurfaceExtension)
+    : QWaylandCompositor(0, DefaultExtensions | SubSurfaceExtension | XDGShellExtension)
     , m_window(window)
     , m_scene(scene)
     , m_renderScheduler(this)
@@ -135,7 +150,10 @@ QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
 
     setRetainedSelectionEnabled(true);
 
-    //createOutput(window, "", "");
+    createOutput(nullptr, "X3D", "Roaming");
+    QRect mm_size = QRect(0, 0, 1000.0, (1000.0 / 16.0) * 9.0);
+    primaryOutput()->setPhysicalSize(QSize(mm_size.width(), mm_size.height()));
+    primaryOutput()->setGeometry(mm_to_pixels(mm_size));
     addDefaultShell();
 
     m_updateScheduler.start();
@@ -340,17 +358,20 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
         break;
     case QEvent::MouseButtonPress: {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        m_scene->sendPointerEvent(me->button(), me->localPos(), Qt::TouchPointPressed);
+        m_scene->sendPointerEvent(me->button(), me->localPos().x() / m_window->width(),
+                                  me->localPos().y() / m_window->height(), Qt::TouchPointPressed);
         return true;
     }
     case QEvent::MouseButtonRelease: {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        m_scene->sendPointerEvent(me->button(), me->localPos(), Qt::TouchPointReleased);
+        m_scene->sendPointerEvent(me->button(), me->localPos().x() / m_window->width(),
+                                  me->localPos().y() / m_window->height(), Qt::TouchPointReleased);
         return true;
     }
     case QEvent::MouseMove: {
         QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        m_scene->sendPointerEvent(0, me->localPos(), Qt::TouchPointMoved);
+        m_scene->sendPointerEvent(0, me->localPos().x() / m_window->width(),
+                                  me->localPos().y() / m_window->height(), Qt::TouchPointMoved);
         double x = double(me->localPos().x()/m_window->width() - 0.5f);
         double y = double(me->localPos().y()/m_window->height() - 0.5f);
         m_scene->sendAxisEvent(0, x);
@@ -373,9 +394,11 @@ bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
     {
         QTouchEvent *te = static_cast<QTouchEvent *>(event);
         QList<QTouchEvent::TouchPoint> points = te->touchPoints();
+        QPointF point = points.at(0).pos().toPoint();
         if (!points.isEmpty()) {
             m_scene->sendPointerEvent(points.at(0).id(),
-                                      points.at(0).pos().toPoint(), Qt::TouchPointPressed);
+                                      point.x() / m_window->width(),
+                                      point.y() / m_window->height(), Qt::TouchPointPressed);
         }
         break;
     }

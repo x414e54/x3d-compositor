@@ -49,7 +49,7 @@ public:
     void sendKeyDown(uint code);
     void sendKeyUp(uint code);
 
-    void sendPointerEvent(int id, const QPointF& viewportPos, Qt::TouchPointState state);
+    void sendPointerEvent(int id, float x, float y, Qt::TouchPointState state);
     void sendAxisEvent(int id, const double& value);
 
 private:

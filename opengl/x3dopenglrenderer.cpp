@@ -380,10 +380,12 @@ bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,
     glm::vec4 viewport(0, 0, active_viewpoint.left.back_buffer.width,
                        active_viewpoint.left.back_buffer.height);
 
-    glm::vec3 glm_from = glm::unProject(glm::vec3(x, y, 0.0),
+    glm::vec3 glm_from = glm::unProject(glm::vec3(x * active_viewpoint.left.back_buffer.width,
+                                                  y * active_viewpoint.left.back_buffer.height, 0.0),
                             matrix,
                             active_viewpoint.left.projection, viewport);
-    glm::vec3 glm_to = glm::unProject(glm::vec3(x, y, 1.0),
+    glm::vec3 glm_to = glm::unProject(glm::vec3(x * active_viewpoint.left.back_buffer.width,
+                                                y * active_viewpoint.left.back_buffer.height, 1.0),
                             matrix,
                             active_viewpoint.left.projection, viewport);
     from[0] = glm_from.x; from[1] = glm_from.y; from[2] = glm_from.z;

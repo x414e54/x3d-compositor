@@ -74,11 +74,12 @@ private slots:
 protected:
     void surfaceCommitted(QWaylandSurface *surface);
     void surfaceCreated(QWaylandSurface *surface);
-    bool sceneEventFilter(void *obj, const float (&pos)[2]);
+    virtual bool sceneEventFilter(void *obj, const float (&pos)[2]);
     bool eventFilter(QObject *obj, QEvent *event);
 
     void ensureKeyboardFocusSurface(QWaylandSurface *oldSurface);
 
+    virtual bool openUrl(QWaylandClient *client, const QUrl &url) {}
 private slots:
     void sendExpose();
 
