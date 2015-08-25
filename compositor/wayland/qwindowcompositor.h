@@ -79,8 +79,6 @@ protected:
 
     bool eventFilter(QObject *obj, QEvent *event);
 
-    void ensureKeyboardFocusSurface(QWaylandSurface *oldSurface);
-
     virtual bool openUrl(QWaylandClient *client, const QUrl &url) {}
 private slots:
     void sendExpose();

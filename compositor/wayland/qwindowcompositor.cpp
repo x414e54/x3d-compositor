@@ -163,14 +163,6 @@ QWindowCompositor::~QWindowCompositor()
 {
 }
 
-
-void QWindowCompositor::ensureKeyboardFocusSurface(QWaylandSurface *oldSurface)
-{
-    QWaylandSurface *kbdFocus = defaultInputDevice()->keyboardFocus();
-    if (kbdFocus == oldSurface || !kbdFocus)
-        defaultInputDevice()->setKeyboardFocus(m_surfaces.isEmpty() ? 0 : m_surfaces.last());
-}
-
 void QWindowCompositor::surfaceDestroyed()
 {
     QWaylandSurface *surface = static_cast<QWaylandSurface *>(sender());
@@ -180,7 +172,6 @@ void QWindowCompositor::surfaceDestroyed()
     }
 
     m_surfaces.removeOne(surface);
-    ensureKeyboardFocusSurface(surface);
     m_renderScheduler.start(0);
 }
 
@@ -210,7 +201,6 @@ void QWindowCompositor::surfaceMapped()
     }
 
     m_surfaces.append(surface);
-    defaultInputDevice()->setKeyboardFocus(surface);
 
     m_renderScheduler.start(0);
 }
@@ -226,7 +216,6 @@ void QWindowCompositor::surfaceUnmapped()
     if (m_surfaces.removeOne(surface))
         m_surfaces.insert(0, surface);
 
-    ensureKeyboardFocusSurface(surface);
     m_renderScheduler.start(0);
 }
 
@@ -332,7 +321,7 @@ bool QWindowCompositor::sceneKeyEventFilter(void *obj, int key, SceneEvent state
     {
         if (state == EXIT && target->surface() == input->keyboardFocus()) {
             input->setKeyboardFocus(nullptr);
-        } if (target->surface() != input->keyboardFocus()) {
+        } else if (target->surface() != input->keyboardFocus()) {
             input->setKeyboardFocus(target->surface());
         }
 
