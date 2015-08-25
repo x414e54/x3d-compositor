@@ -145,6 +145,10 @@ void X3DScene::add_texture(int texture_id, float real_width, float real_height,
             TouchSensorNode* touch_node = new TouchSensorNode();
             touch_node->setValue(data);
             transform->addChildNode(touch_node);
+            KeySensorNode* key_node = new KeySensorNode();
+            key_node->setValue(data);
+            transform->addChildNode(key_node);
+            m_root->addRoute(touch_node, touch_node->getField("isActive"), key_node, key_node->getField("isEnabled"));
             ShapeNode* shape = new ShapeNode();
                 AppearanceNode* appearance = new AppearanceNode();
                     ImageTextureNode* texture = new ImageTextureNode();

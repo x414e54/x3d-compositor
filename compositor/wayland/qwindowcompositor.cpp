@@ -341,6 +341,7 @@ bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2], Scene
 
         if (input->mouseFocus()) {
             if (state == DOWN) {
+                input->setKeyboardFocus(target->surface());
                 input->sendMousePressEvent(Qt::LeftButton, point, point);
                 input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointPressed);
             } else if (state == UP) {

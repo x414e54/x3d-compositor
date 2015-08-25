@@ -10,6 +10,7 @@ namespace CyberX3D
     class Node;
     class Texture2DNode;
     class TouchSensorNode;
+    class KeyDeviceSensorNode;
 }
 
 class X3DRenderer;
@@ -84,6 +85,7 @@ private:
     float fake_velocity[3];
     float fake_rotation;
     bool fake_rotating;
+    CyberX3D::KeyDeviceSensorNode* m_current_key_device;
     CyberX3D::TouchSensorNode* m_current_touch;
     CyberX3D::SceneGraph* m_root;
     btDiscreteDynamicsWorld* m_world;
