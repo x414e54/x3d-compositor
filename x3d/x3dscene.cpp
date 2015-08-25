@@ -2,6 +2,7 @@
 
 #include <QtDebug>
 #include <QTemporaryFile>
+#include <QDateTime>
 
 #define CX3D_SUPPORT_OPENGL
 #include <cybergarage/x3d/CyberX3D.h>
@@ -17,6 +18,7 @@ QT_BEGIN_NAMESPACE
 X3DScene::X3DScene(X3DRenderer* renderer)
     : fake_velocity{0.0f, 0.0f, 0.0f}
     , fake_rotation(0.0f)
+    , m_current_touch(nullptr)
     , m_renderer(renderer)
 {
     m_root = new SceneGraph();
@@ -232,32 +234,49 @@ void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState st
 {
     Scalar from[3];
     Scalar to[3];
-    if (id == 2 && state == Qt::TouchPointPressed) {
+    if (m_current_touch == nullptr && id == 2 && state == Qt::TouchPointPressed) {
         fake_rotating = true;
-    } else if (id == 2 && state == Qt::TouchPointReleased) {
+    } else if (m_current_touch == nullptr && id == 2 && state == Qt::TouchPointReleased) {
         fake_rotation = 0.0;
         fake_rotating = false;
-    } else if (state == Qt::TouchPointPressed &&
-        m_renderer->get_ray(x, y, this->view, from, to)) {
+    } else {
+        m_renderer->get_ray(x, y, this->view, from, to);
         btVector3 bt_from(from[0], from[1], from[2]);
         btVector3 bt_to(to[0], to[1], to[2]);
         btCollisionWorld::ClosestRayResultCallback ray_result(bt_from, bt_to);
 
         m_world->rayTest(bt_from, bt_to, ray_result);
 
+        bool handled = false;
         if (ray_result.hasHit()) {
             Node* node = static_cast<Node*>(ray_result.m_collisionObject->getUserPointer());
             if (node != NULL)
             {
                 TouchSensorNode* touch_node = node->getTouchSensorNodes();
-                if (touch_node != NULL)
+                if (touch_node != nullptr && (touch_node == m_current_touch
+                                              || m_current_touch == nullptr))
                 {
+                    handled = true;
+                    m_current_touch = touch_node;
+
                     touch_node->setHitPointChanged(ray_result.m_hitPointWorld.x(),
                                                    ray_result.m_hitPointWorld.y(),
                                                    ray_result.m_hitPointWorld.z());
                     touch_node->setHitNormalChanged(ray_result.m_hitNormalWorld.x(),
                                                     ray_result.m_hitNormalWorld.y(),
                                                     ray_result.m_hitNormalWorld.z());
+
+                    touch_node->setIsOver(true);
+
+                    bool was_active = touch_node->isActive();
+                    if (state == Qt::TouchPointPressed) {
+                        touch_node->setIsActive(true);
+                    } else if (state == Qt::TouchPointReleased) {
+                        if (touch_node->isActive()) {
+                            touch_node->setTouchTime(QDateTime::currentMSecsSinceEpoch());
+                        }
+                        touch_node->setIsActive(false);
+                    }
 
                     // This is just a quick hack for the prototype.
                     btVector3 hitPointLocal = ray_result.m_collisionObject->getWorldTransform().inverse() * ray_result.m_hitPointWorld;
@@ -274,14 +293,37 @@ void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState st
                         btVector3 bt_size(size[0], size[1], size[2]);
                         btVector3 texCoord = (hitPointLocal + bt_size) / (bt_size * 2);
                         touch_node->setHitTexCoord(texCoord.x(), texCoord.y());
-                        //touch_node->setTouchTime(double value);
-                        if (touch_node->getValue() != NULL) {
-                            if (event_filter != NULL) {
-                                event_filter->sceneEventFilter(touch_node->getValue(), {texCoord.x(), texCoord.y()});
-                            }
+
+                        // This should be routed via update
+                        if (touch_node->getValue() != nullptr
+                            && event_filter != nullptr) {
+                                event_filter->sceneEventFilter(touch_node->getValue(),
+                                    {texCoord.x(), texCoord.y()},
+                                     SceneEventFilter::convert_event(was_active, touch_node->isActive()));
                         }
+                        //
                     }
                 }
+            }
+        }
+
+        if (handled == false && m_current_touch != nullptr) {
+            m_current_touch->setIsOver(false);
+            if (state == Qt::TouchPointReleased || !m_current_touch->isActive()) {
+                m_current_touch->setIsActive(false);
+
+                // This should be routed via update
+                if (m_current_touch->getValue() != nullptr
+                    && event_filter != nullptr) {
+                        float tex_coord[2];
+                        m_current_touch->getHitTexCoord(tex_coord);
+                        event_filter->sceneEventFilter(m_current_touch->getValue(),
+                                                       tex_coord, SceneEventFilter::UP);
+                        event_filter->sceneEventFilter(m_current_touch->getValue(),
+                                                       tex_coord, SceneEventFilter::EXIT);
+                }
+                //
+                m_current_touch = nullptr;
             }
         }
     }

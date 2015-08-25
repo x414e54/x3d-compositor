@@ -74,7 +74,7 @@ private slots:
 protected:
     void surfaceCommitted(QWaylandSurface *surface);
     void surfaceCreated(QWaylandSurface *surface);
-    virtual bool sceneEventFilter(void *obj, const float (&pos)[2]);
+    virtual bool sceneEventFilter(void *, const float (&pos)[2], SceneEvent);
     bool eventFilter(QObject *obj, QEvent *event);
 
     void ensureKeyboardFocusSurface(QWaylandSurface *oldSurface);

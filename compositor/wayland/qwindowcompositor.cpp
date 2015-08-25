@@ -324,7 +324,7 @@ void QWindowCompositor::drawSubSurface(const QPoint &offset, QWaylandSurface *su
     }
 }
 
-bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2])
+bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2], SceneEvent state)
 {
     QWaylandInputDevice *input = defaultInputDevice();
     QWaylandSurfaceView *target = static_cast<QWaylandSurfaceView*>(obj);
@@ -333,14 +333,25 @@ bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2])
         QSize size = target->surface()->size();
         QPointF point(pos[0] * size.width(), pos[1] * size.height());
 
-        if (target != input->mouseFocus()) {
+        if (state == EXIT && target == input->mouseFocus()) {
+            input->setMouseFocus(nullptr, point, point);
+        } if (target != input->mouseFocus()) {
             input->setMouseFocus(target, point, point);
         }
 
         if (input->mouseFocus()) {
-            input->sendMousePressEvent(Qt::LeftButton, point, point);
-            input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointPressed);
+            if (state == DOWN) {
+                input->sendMousePressEvent(Qt::LeftButton, point, point);
+                input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointPressed);
+            } else if (state == UP) {
+                input->sendMouseReleaseEvent(Qt::LeftButton, point, point);
+                input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointReleased);
+            } else if (state == DRAG || state == OVER) {
+                input->sendMouseMoveEvent(point, point);
+                input->sendTouchPointEvent(0, point.x(), point.y(), Qt::TouchPointMoved);
+            }
         }
+
         return true;
     }
     return false;

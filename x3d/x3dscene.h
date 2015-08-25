@@ -9,6 +9,7 @@ namespace CyberX3D
     class SceneGraph;
     class Node;
     class Texture2DNode;
+    class TouchSensorNode;
 }
 
 class X3DRenderer;
@@ -22,7 +23,29 @@ class btRigidBody;
 class SceneEventFilter
 {
 public:
-    virtual bool sceneEventFilter(void *, const float (&pos)[2]) = 0;
+    enum SceneEvent
+    {
+        DOWN,
+        UP,
+        DRAG,
+        OVER,
+        EXIT
+    };
+
+    virtual bool sceneEventFilter(void *, const float (&pos)[2], SceneEvent state) = 0;
+
+    static SceneEvent convert_event(bool was_active, bool is_active)
+    {
+        if (is_active && was_active) {
+            return DRAG;
+        } else if (is_active) {
+            return DOWN;
+        } else if (was_active) {
+            return UP;
+        } else {
+            return OVER;
+        }
+    }
 };
 
 class X3DScene
@@ -61,6 +84,7 @@ private:
     float fake_velocity[3];
     float fake_rotation;
     bool fake_rotating;
+    CyberX3D::TouchSensorNode* m_current_touch;
     CyberX3D::SceneGraph* m_root;
     btDiscreteDynamicsWorld* m_world;
     btBroadphaseInterface* m_btinterface;
