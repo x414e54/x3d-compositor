@@ -230,7 +230,7 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
 
             IndexBuffer& ebo = get_index_buffer();
             if (array.getNumElements() > 0) {
-                if (vbo.current_pos + array.getBufferSize() >= ebo.max_bytes) {
+                if (ebo.current_pos + (array.getNumElements() * sizeof(int)) >= ebo.max_bytes) {
                     // TODO buffer full
                     throw;
                 }

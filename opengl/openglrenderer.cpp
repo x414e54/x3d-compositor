@@ -65,6 +65,9 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 {
     ScopedContext context(renderer->context_pool, context_id);
 
+    unsigned int last_vao = 0;
+    unsigned int vao = 0;
+
     context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->global_uniforms, output.uniform_offset, sizeof(GlobalParameters));
     context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, renderer->draw_calls.buffer);
     if (renderer->textures.texture != 0) {
@@ -85,15 +88,20 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, material_it->params, 0, sizeof(node));
             context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 1, material_it->second.vert_params);
             context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 2, material_it->second.frag_params);
+
             for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {
-                context.context.gl->glBindVertexArray(context.context.get_vao(batch_it->format));
-                VertexBuffer& vbo = renderer->get_buffer(batch_it->format);
-                context.context.vab->glBindVertexBuffer(0, renderer->draw_info.buffer, renderer->draw_info.offset, sizeof(int) * 4);
-                context.context.vab->glBindVertexBuffer(1, vbo.buffer, vbo.offset, batch_it->format_stride);
-                context.context.vab->glVertexBindingDivisor(0, 1);
+                vao = context.context.get_vao(batch_it->format);
+                if (last_vao != vao) {
+                    last_vao = vao;
+                    context.context.gl->glBindVertexArray(vao);
+                    VertexBuffer& vbo = renderer->get_buffer(batch_it->format);
+                    context.context.vab->glBindVertexBuffer(0, renderer->draw_info.buffer, renderer->draw_info.offset, sizeof(int) * 4);
+                    context.context.vab->glBindVertexBuffer(1, vbo.buffer, vbo.offset, batch_it->format_stride);
+                    context.context.vab->glVertexBindingDivisor(0, 1);
+                    context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->indices.buffer);
+                }
 
                 if (batch_it->element_type != 0) {
-                    context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->indices.buffer);
                     context.context.indirect->glMultiDrawElementsIndirect(batch_it->primitive_type, batch_it->element_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
                 } else {
                     context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
@@ -275,7 +283,7 @@ IndexBuffer& OpenGLRenderer::get_index_buffer()
         GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.buffer);
-        buffer.max_bytes = 1024 * 1024;
+        buffer.max_bytes = 1024 * 1024 * 20;
         context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.num_elements = 0;
@@ -301,7 +309,7 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
         GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_ARRAY_BUFFER, buffer.buffer);
-        buffer.max_bytes = 1024 * 1024;
+        buffer.max_bytes = 1024 * 1024 * 20;
         context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.num_verts = 0;

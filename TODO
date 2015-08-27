@@ -19,4 +19,8 @@ Remove as much QT as possible and use gl_loadergen instead of QOpenGLExtensions.
 
 Add in obj and binary vertex data support to CyberX3D.
 Add in CommonSurfaceShader material support to CyberX3D.
+Finish sphere implemenation in CyberX3D (segments and recusion, also add option of uv sphere).
+Finish adding all direct vertex buffer implemntations for all nodes in CyberX3D.
+
 Create proper threaded loading system so not everything is loaded at the same time.
+Setup anchors to work correctly and if anchor is to an html file load a browser or if it is an x3d file create a portal to it in the current X3D scene.
