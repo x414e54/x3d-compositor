@@ -32,7 +32,6 @@ protected:
 
     std::map<std::string, Material> materials;
     unsigned int global_uniforms;
-    size_t num_draw_calls;
     Viewpoint active_viewpoint;
     ContextPool context_pool;
     std::vector<ShaderPass> passes;

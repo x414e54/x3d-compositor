@@ -22,7 +22,6 @@
 
 OpenGLRenderer::OpenGLRenderer()
 {
-    num_draw_calls = 0;
     frame_num = 0;
 
     ScopedContext context(context_pool, 0);
@@ -332,38 +331,52 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
 {
     ScopedContext context(this->context_pool, 0);
 
-    if ((num_draw_calls + 1) * std::max(sizeof(DrawArraysIndirectCommand),
-                                        sizeof(DrawElementsIndirectCommand)) > 65535) {
+    DrawBuffer& draws = get_draw_buffer();
+
+    size_t size = sizeof(DrawElementsIndirectCommand);
+    if (elements == 0) {
+        size = sizeof(DrawArraysIndirectCommand);
+    }
+
+    size_t offset = draws.current_pos + draws.offset;
+
+    if (offset + size >= draws.max_bytes) {
         // TODO too many draws
         throw;
     }
 
-    // TODO actually batch draws
     int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
 
     //VertexBuffer& info = get_draw_info_buffer();
-    char* data = (char*)this->draw_info.data + num_draw_calls * sizeof(draw_ids); // info.offset
+    char* data = (char*)this->draw_info.data + draws.num_draws * sizeof(draw_ids); // info.offset
     memcpy(data, &draw_ids, sizeof(draw_ids));
 
-    DrawBuffer& draws = get_draw_buffer();
 
-    // TODO group this better if possible
+    data = (char*)draws.data + offset;
+
     if (elements > 0) {
-        data = (char*)draws.data + num_draw_calls * sizeof(DrawElementsIndirectCommand) + draws.offset;
-
-        DrawElementsIndirectCommand cmd = {elements, 1, element_offset, vert_offset, num_draw_calls};
+        DrawElementsIndirectCommand cmd = {elements, 1, element_offset, vert_offset, draws.num_draws};
         memcpy(data, &cmd, sizeof(cmd));
     } else {
-        data = (char*)draws.data + num_draw_calls * sizeof(DrawArraysIndirectCommand) + draws.offset;
-
-        DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, num_draw_calls};
+        DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, draws.num_draws};
         memcpy(data, &cmd, sizeof(cmd));
     }
 
-    DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0,
-                    num_draw_calls * sizeof(DrawArraysIndirectCommand) + draws.offset, 1, 0, GL_TRIANGLES);
+    // TODO batching only works if the format or material has not changed yet - fix this
+    for (std::vector<DrawBatch>::iterator batch = material.batches.begin(); batch != material.batches.end(); ++batch) {
+        if (batch->buffer_offset == (offset - size)
+            && batch->primitive_type == GL_TRIANGLES && ((batch->element_type == 0 && elements == 0)
+                || batch->element_type != 0 && elements != 0) && batch->format == format) {
+            ++batch->num_draws;
+            ++draws.num_draws;
+            return;
+        }
+    }
 
-    ++num_draw_calls;
+    DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, offset, 1, 0, GL_TRIANGLES);
+
+    ++draws.num_draws;
+    draws.current_pos += size;
     material.batches.push_back(batch);
 }
 //
@@ -437,8 +450,6 @@ void OpenGLRenderer::render_viewpoints()
         material_it->second.total_objects = 0;
         material_it->second.batches.clear();
     }
-
-    num_draw_calls = 0;
 
     ++frame_num %= 3;
 }
