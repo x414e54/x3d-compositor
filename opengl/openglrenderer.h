@@ -19,6 +19,7 @@ public:
     void render_viewpoints();
 protected:
     VertexBuffer& get_buffer(const VertexFormat& format);
+    IndexBuffer& get_index_buffer();
     DrawBuffer& get_draw_buffer();
     PixelBuffer& get_pixel_buffer();
     Material& get_material(const std::string& name);
@@ -36,6 +37,7 @@ protected:
     ContextPool context_pool;
     std::vector<ShaderPass> passes;
 private:
+    IndexBuffer indices;
     DrawBuffer draw_calls;
     VertexBuffer draw_info;
     PixelBuffer textures;

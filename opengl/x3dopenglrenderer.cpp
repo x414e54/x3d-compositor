@@ -228,9 +228,22 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
             char* data = (char*)vbo.data + vbo.current_pos + vbo.offset;
             geometry->getVertexData(0, data);
 
-            add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), 0, vbo.num_verts, 0);
+            IndexBuffer& ebo = get_index_buffer();
+            if (array.getNumElements() > 0) {
+                if (vbo.current_pos + array.getBufferSize() >= ebo.max_bytes) {
+                    // TODO buffer full
+                    throw;
+                }
+
+                data = (char*)ebo.data + ebo.current_pos + ebo.offset;
+                geometry->getElementData(0, data);
+            }
+
+            add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
             vbo.current_pos += array.getBufferSize();
             vbo.num_verts += array.getNumVertices();
+            ebo.current_pos += array.getNumElements() * sizeof(int);
+            ebo.num_elements += array.getNumElements();
         }
     }
 }

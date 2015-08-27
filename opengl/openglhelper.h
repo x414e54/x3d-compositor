@@ -126,6 +126,13 @@ public:
     size_t num_draws; // current draw count
 };
 
+class IndexBuffer : public StreamedBuffer
+{
+public:
+    IndexBuffer() : num_elements(0) {}
+    size_t num_elements; // current index count
+};
+
 class VertexBuffer : public StreamedBuffer
 {
 public:
@@ -143,13 +150,14 @@ public:
 class DrawBatch
 {
 public:
-    DrawBatch(const VertexFormat& format, int format_stride, int buffer_offset,
+    DrawBatch(const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
               int num_draws, int draw_stride, int primitive_type)
-        : format(format), format_stride(format_stride), buffer_offset(buffer_offset),
+        : format(format), format_stride(format_stride), element_type(element_type), buffer_offset(buffer_offset),
           num_draws(num_draws), draw_stride(draw_stride), primitive_type(primitive_type)
     {}
     VertexFormat format;
     int format_stride;
+    int element_type;
     int buffer_offset;
     int num_draws;
     int draw_stride;
@@ -403,6 +411,14 @@ typedef struct {
     uint  first;
     uint  baseInstance;
 } DrawArraysIndirectCommand;
+
+typedef  struct {
+    uint  count;
+    uint  primCount;
+    uint  firstIndex;
+    uint  baseVertex;
+    uint  baseInstance;
+} DrawElementsIndirectCommand;
 
 
 inline float calc_light_radius(float cutoff, float intensity, float const_att, float linear_att, float quad_att)

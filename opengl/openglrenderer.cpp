@@ -92,7 +92,12 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
                 context.context.vab->glBindVertexBuffer(1, vbo.buffer, vbo.offset, batch_it->format_stride);
                 context.context.vab->glVertexBindingDivisor(0, 1);
 
-                context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
+                if (batch_it->element_type != 0) {
+                    context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->indices.buffer);
+                    context.context.indirect->glMultiDrawElementsIndirect(batch_it->primitive_type, batch_it->element_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
+                } else {
+                    context.context.indirect->glMultiDrawArraysIndirect(batch_it->primitive_type, (const void*)batch_it->buffer_offset, batch_it->num_draws, batch_it->draw_stride);
+                }
             }
         }
     }
@@ -261,6 +266,31 @@ DrawBuffer& OpenGLRenderer::get_draw_buffer()
     return buffer;
 }
 
+IndexBuffer& OpenGLRenderer::get_index_buffer()
+{
+    IndexBuffer& buffer = this->indices;
+    if (buffer.buffer == 0) {
+        ScopedContext context(context_pool);
+
+        GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+        context.context.gl->glGenBuffers(1, &buffer.buffer);
+        context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.buffer);
+        buffer.max_bytes = 1024 * 1024;
+        context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        buffer.current_pos = 0;
+        buffer.num_elements = 0;
+        buffer.offset = buffer.max_bytes * frame_num;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, buffer.max_bytes * 3, flags);
+    } else {
+        if (buffer.offset != buffer.max_bytes * frame_num) {
+            buffer.current_pos = 0;
+            buffer.num_elements = 0;
+            buffer.offset = buffer.max_bytes * frame_num;
+        }
+    }
+    return buffer;
+}
+
 VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 {
     VertexFormatBufferMap::iterator it = buffers.find(format);
@@ -294,32 +324,39 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
 {
     ScopedContext context(this->context_pool, 0);
 
-    if (elements > 0) {
-        // TODO elements draw
+    if ((num_draw_calls + 1) * std::max(sizeof(DrawArraysIndirectCommand),
+                                        sizeof(DrawElementsIndirectCommand)) > 65535) {
+        // TODO too many draws
         throw;
+    }
+
+    // TODO actually batch draws
+    int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
+
+    //VertexBuffer& info = get_draw_info_buffer();
+    char* data = (char*)this->draw_info.data + num_draw_calls * sizeof(draw_ids); // info.offset
+    memcpy(data, &draw_ids, sizeof(draw_ids));
+
+    DrawBuffer& draws = get_draw_buffer();
+
+    // TODO group this better if possible
+    if (elements > 0) {
+        data = (char*)draws.data + num_draw_calls * sizeof(DrawElementsIndirectCommand) + draws.offset;
+
+        DrawElementsIndirectCommand cmd = {elements, 1, element_offset, vert_offset, num_draw_calls};
+        memcpy(data, &cmd, sizeof(cmd));
     } else {
-        if ((num_draw_calls + 1) * sizeof(DrawArraysIndirectCommand) > 65535) {
-            // TODO too many draws
-            throw;
-        }
-
-        // TODO actually batch draws
-        int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
-
-        //VertexBuffer& info = get_draw_info_buffer();
-        char* data = (char*)this->draw_info.data + num_draw_calls * sizeof(draw_ids); // info.offset
-        memcpy(data, &draw_ids, sizeof(draw_ids));
-
-        DrawBuffer& draws = get_draw_buffer();
         data = (char*)draws.data + num_draw_calls * sizeof(DrawArraysIndirectCommand) + draws.offset;
 
         DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, num_draw_calls};
         memcpy(data, &cmd, sizeof(cmd));
-
-        DrawBatch batch(format, stride, num_draw_calls * sizeof(DrawArraysIndirectCommand) + draws.offset, 1, 0, GL_TRIANGLES);
-        ++num_draw_calls;
-        material.batches.push_back(batch);
     }
+
+    DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0,
+                    num_draw_calls * sizeof(DrawArraysIndirectCommand) + draws.offset, 1, 0, GL_TRIANGLES);
+
+    ++num_draw_calls;
+    material.batches.push_back(batch);
 }
 //
 
