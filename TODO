@@ -1,0 +1,22 @@
+Fix TODOs in code!
+
+Transparency.
+Normal Mapping.
+Displacement Mapping.
+Shadows.
+Remove requirement for system libraries and decrease any dependencies.
+
+Link physics with x3d correctly.
+Cache objects - if nothing in the scene has changed do not update vbos, etc.
+Proper batching of indirect draws.
+Remove all buffer mapping and make persistent.
+Swap over to SSBO when intel/mesa drivers support it.
+Swap over to bindless textures when intel/mesa supports it.
+Add in extra passes for post processing.
+Create a better default scene.
+Finish OpenVR support.
+Remove as much QT as possible and use gl_loadergen instead of QOpenGLExtensions.
+
+Add in obj and binary vertex data support to CyberX3D.
+Add in CommonSurfaceShader material support to CyberX3D.
+Create proper threaded loading system so not everything is loaded at the same time.
