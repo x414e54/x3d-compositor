@@ -267,7 +267,18 @@ public:
 
     virtual void clear()
     {
-        free_index(0, num_infos);
+        ZoneList tmp = zone_list;
+        size_t start = 0;
+        size_t range = 0;
+        for (auto zone = tmp.begin(); zone != tmp.end(); ++zone) {
+            range = zone->second.start - start;
+            if (range > 0) {
+                free(start, range);
+            }
+            start = zone->first;
+        }
+        current_pos = start;
+        num_infos = 0;
     }
 
 private:
