@@ -137,12 +137,17 @@ public:
     {
         size_t pos = 0;
         // scoped cas lock
-        auto zone_range = free_list.equal_range(size);
         // TODO this needs GPU sync
-        for (auto zone = zone_range.first; zone != zone_range.second; ++zone) {
-            if ((zone->second.frame_freed + 2 % 3) == this->frame_num) {
+        for (auto zone = free_list.begin(); zone != free_list.end(); ++zone) {
+            if (zone->first >= size &&
+                    zone->second.frame_freed == this->frame_num) {
                 pos = zone->second.start;
+                size_t overused = zone->first - size;
                 free_list.erase(zone);
+                zone_list.erase(zone->first + zone->second.start);
+                if (overused > 0) {
+                    free(pos + size, overused);
+                }
                 break;
             }
         }
@@ -163,7 +168,6 @@ public:
     virtual size_t reallocate(size_t pos, size_t old_size, size_t new_size, bool append)
     {
         size_t new_pos = 0;
-        size_t header = pos - sizeof(size_t);
 
         {
             // scoped cas lock
@@ -260,6 +264,12 @@ public:
         memcpy(this->data + pos, &info, sizeof(DrawInfo));
         return pos / sizeof(DrawInfo);
     }
+
+    virtual void clear()
+    {
+        free_index(0, num_infos);
+    }
+
 private:
     virtual size_t allocate_index(size_t size)
     {
@@ -555,6 +565,11 @@ typedef  struct {
 
 inline float calc_light_radius(float cutoff, float intensity, float const_att, float linear_att, float quad_att)
 {
+    Q_UNUSED(cutoff);
+    Q_UNUSED(intensity);
+    Q_UNUSED(const_att);
+    Q_UNUSED(linear_att);
+    Q_UNUSED(quad_att);
     return 1.0;
 }
 

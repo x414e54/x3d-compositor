@@ -38,7 +38,7 @@ OpenGLRenderer::~OpenGLRenderer()
 
 }
 
-void OpenGLRenderer::set_viewpoint_output(int id, OpenGLOutput& output)
+void OpenGLRenderer::set_viewpoint_output(int, OpenGLOutput& output)
 {
     active_viewpoint.output = &output;
     active_viewpoint.output->init_context(this->context_pool.share_context);
@@ -100,7 +100,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
     }
 }
 
-void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
+void OpenGLRenderer::set_viewpoint_viewport(int, size_t width, size_t height)
 {
     ScopedContext context(this->context_pool, 0);
 
@@ -478,11 +478,16 @@ void OpenGLRenderer::render_viewpoints()
         active_viewpoint.output->submit();
     }
 
+    // TODO do not clear here
     for (std::map<std::string, Material>::iterator material_it = materials.begin();
          material_it != materials.end(); ++material_it) {
         material_it->second.total_objects = 0;
         material_it->second.batches.clear();
     }
+
+    DrawInfoBuffer& buffer = this->get_draw_info_buffer();
+    buffer.clear();
+    //
 
     ++frame_num %= 3;
 }

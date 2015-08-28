@@ -79,7 +79,7 @@ protected:
 
     bool eventFilter(QObject *obj, QEvent *event);
 
-    virtual bool openUrl(QWaylandClient *client, const QUrl &url) {}
+    virtual bool openUrl(QWaylandClient *, const QUrl &) { return false;}
 private slots:
     void sendExpose();
 
