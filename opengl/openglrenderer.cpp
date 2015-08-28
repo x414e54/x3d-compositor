@@ -348,7 +348,6 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
     char* data = (char*)this->draw_info.data + draws.num_draws * sizeof(draw_ids); // info.offset
     memcpy(data, &draw_ids, sizeof(draw_ids));
 
-
     data = (char*)draws.data + offset;
 
     if (elements > 0) {
@@ -359,13 +358,14 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
         memcpy(data, &cmd, sizeof(cmd));
     }
 
-    // TODO batching only works if the format or material has not changed yet - fix this
+    // TODO batching only works if this batch was the last one written to
     for (std::vector<DrawBatch>::iterator batch = material.batches.begin(); batch != material.batches.end(); ++batch) {
         if (batch->buffer_offset == (offset - size)
             && batch->primitive_type == GL_TRIANGLES && ((batch->element_type == 0 && elements == 0)
                 || (batch->element_type == GL_UNSIGNED_INT && elements > 0)) && batch->format == format) {
             ++batch->num_draws;
             ++draws.num_draws;
+            draws.current_pos += size;
             return;
         }
     }
