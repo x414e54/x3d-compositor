@@ -261,7 +261,7 @@ public:
     virtual size_t append(size_t old_pos, const DrawInfo& info, size_t offset)
     {
         size_t pos = reallocate_index(old_pos, offset, offset+1, true);
-        memcpy(this->data + pos, &info, sizeof(DrawInfo));
+        memcpy(this->data + pos + (offset * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
         return pos / sizeof(DrawInfo);
     }
 

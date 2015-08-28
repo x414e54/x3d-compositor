@@ -365,6 +365,13 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, 
     *draw_index = infos.append(*draw_index, draw_ids, (*instances)++);
 }
 
+size_t remove_from_batch(Material& material, size_t batch_id, bool has_elements)
+{
+    throw;
+    // TODO this will remove the reference from the batch.
+    return 0;
+}
+
 size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
 {
     DrawBuffer& draws = get_draw_buffer();
