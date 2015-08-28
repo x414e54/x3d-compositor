@@ -24,6 +24,24 @@
     </Transform>
     <Transform translation="20 0 0">
         <Inline USE="mitsuba"/>
+    </Transform>    
+    <Transform translation="24 0 0">
+        <Inline USE="mitsuba"/>
+    </Transform>
+    <Transform translation="28 0 0">
+        <Inline USE="mitsuba"/>
+    </Transform>
+    <Transform translation="32 0 0">
+        <Inline USE="mitsuba"/>
+    </Transform>
+    <Transform translation="36 0 0">
+        <Inline USE="mitsuba"/>
+    </Transform>
+    <Transform translation="40 0 0">
+        <Inline USE="mitsuba"/>
+    </Transform>
+    <Transform translation="44 0 0">
+        <Inline USE="mitsuba"/>
     </Transform>
   </Scene>
 </X3D>
