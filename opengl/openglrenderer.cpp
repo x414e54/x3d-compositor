@@ -344,7 +344,7 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, 
     DrawBuffer& draws = get_draw_buffer();
     DrawInfoBuffer& infos = get_draw_info_buffer();
 
-    int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
+    DrawInfoBuffer::DrawInfo draw_ids = {material.total_objects - 1, 0, 0, 0};
 
     char* data = (char*)draws.data + batch_id;
 
@@ -361,16 +361,8 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, 
         draw_index = &cmd->baseInstance;
     }
 
-    ++(*instances);
-
-    size_t size = *instances;
-    size_t pos = infos.reallocate(*draw_index, size, true); // Append only can use the same buffer
-
-    draw_ids[1] = *instances;
-    memcpy(data + pos, &draw_ids, sizeof(draw_ids));
-
-    *draw_index = draws.num_draws;
-    ++draws.num_draws;
+    draw_ids[1] = *instances + 1;
+    *draw_index = infos.append(*draw_index, draw_ids, (*instances)++);
 }
 
 size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
@@ -382,24 +374,22 @@ size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& form
                                        : sizeof(DrawArraysIndirectCommand);
     const size_t offset = draws.current_pos + draws.offset;
 
-    int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
+    DrawInfoBuffer::DrawInfo draw_ids = {material.total_objects - 1, 0, 0, 0};
 
     if (draws.current_pos + size >= draws.max_bytes) {
         // TODO too many draws
         throw;
     }
 
-    size_t pos = infos.allocate(1);
-    char* data = (char*)this->draw_info.data + pos;
-    memcpy(data, &draw_ids, sizeof(draw_ids));
+    size_t pos = infos.add(draw_ids);
 
-    data = (char*)draws.data + offset;
+    void *data = (char*)draws.data + offset;
 
     if (elements > 0) {
-        DrawElementsIndirectCommand cmd = {elements, 1, element_offset, vert_offset, draws.num_draws};
+        DrawElementsIndirectCommand cmd = {elements, 1, element_offset, vert_offset, pos};
         memcpy(data, &cmd, sizeof(cmd));
     } else {
-        DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, draws.num_draws};
+        DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, pos};
         memcpy(data, &cmd, sizeof(cmd));
     }
 

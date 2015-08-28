@@ -109,6 +109,17 @@ public:
 
 class StreamedBuffer
 {
+protected:
+    struct Allocation
+    {
+        size_t frame_freed;
+        size_t start;
+    };
+
+    typedef std::multimap<size_t, Allocation> FreeList;
+    typedef std::map<size_t, Allocation> ZoneList;
+    ZoneList zone_list;
+    FreeList free_list;
 public:
     // TODO stop this being static
     StreamedBuffer() : buffer(0), offset(0),
@@ -119,6 +130,86 @@ public:
     size_t current_pos; // current position in bytes from offset
     size_t frame_num;
     char *data;
+
+    // TODO make this more efficient?
+    // TODO thread safety, etc.
+    virtual size_t allocate(size_t size)
+    {
+        size_t pos = 0;
+        // scoped cas lock
+        auto zone_range = free_list.equal_range(size);
+        // TODO this needs GPU sync
+        for (auto zone = zone_range.first; zone != zone_range.second; ++zone) {
+            if ((zone->second.frame_freed + 2 % 3) == this->frame_num) {
+                pos = zone->second.start;
+                free_list.erase(zone);
+                break;
+            }
+        }
+
+        if (pos == 0) {
+            if (this->current_pos + size >= this->max_bytes) {
+                // TODO too many draws
+                throw;
+            }
+
+            pos = this->current_pos;
+            this->current_pos += size;
+        }
+        return pos;
+    }
+
+    // TODO enforce append only - only new data can change
+    virtual size_t reallocate(size_t pos, size_t old_size, size_t new_size, bool append)
+    {
+        size_t new_pos = 0;
+        size_t header = pos - sizeof(size_t);
+
+        {
+            // scoped cas lock
+            if (pos == this->current_pos && append) {
+                new_pos = this->current_pos;
+                this->current_pos += (new_size - old_size);
+            } else {
+                new_pos = allocate(new_size);
+            }
+        }
+
+        if (new_pos != 0 && new_pos != pos) {
+            memcpy(this->data + new_pos, this->data + pos, old_size);
+            free(pos, old_size);
+        }
+
+        return new_pos;
+    }
+
+    virtual void free(size_t start, size_t size)
+    {
+        // scoped cas lock
+        Allocation alloc;
+        alloc.frame_freed = this->frame_num;
+        alloc.start = start;
+
+        size_t end = start + size;
+
+        ZoneList::iterator zone = zone_list.find(start);
+        if (zone != zone_list.end()) {
+            alloc.start = zone->second.start;
+            zone_list[end] = alloc;
+            zone_list.erase(start);
+            auto zone_range = free_list.equal_range(start - zone->second.start);
+            for (auto free_zone = zone_range.first; free_zone != zone_range.second; ++free_zone) {
+                if (free_zone->second.start == zone->second.start) {
+                    free_list.erase(free_zone);
+                    break;
+                }
+            }
+            free_list.insert(std::pair<size_t, Allocation>(end - alloc.start, alloc));
+        } else {
+            zone_list[end] = alloc;
+            free_list.insert(std::pair<size_t, Allocation>(size, alloc));
+        }
+    }
 };
 
 class DrawBuffer : public StreamedBuffer
@@ -151,105 +242,41 @@ public:
 
 class DrawInfoBuffer : public StreamedBuffer
 {
-    struct Allocation
-    {
-        size_t frame_freed;
-        size_t start;
-    };
-
-    typedef std::multimap<size_t, Allocation> FreeList;
-    typedef std::map<size_t, Allocation> ZoneList;
-    ZoneList zone_list;
-    FreeList free_list;
 public:
+    typedef int DrawInfo[4];
     DrawInfoBuffer() : num_infos(0) {}
     size_t num_infos; // current count
 
-    // TODO make this more efficient?
-    // TODO thread safety, etc.
-    size_t allocate(size_t size)
+    virtual size_t add(const DrawInfo& info)
     {
-        size_t pos = 0;
-        // scoped cas lock
-        auto zone_range = free_list.equal_range(size);
-        // TODO this needs GPU sync
-        for (auto zone = zone_range.first; zone != zone_range.second; ++zone) {
-            if ((zone->second.frame_freed + 2 % 3) == this->frame_num) {
-                pos = zone->second.start;
-                free_list.erase(zone);
-                break;
-            }
-        }
-
-        if (pos = 0) {
-            if (this->current_pos + size >= this->max_bytes) {
-                // TODO too many draws
-                throw;
-            }
-
-            memcpy(this->data + this->current_pos, &size, sizeof(size_t));
-            this->current_pos += sizeof(size_t);
-            pos = this->current_pos;
-            this->current_pos += size;
-        }
-        return pos;
+        size_t pos = allocate_index(1);
+        memcpy(this->data + pos, &info, sizeof(DrawInfo));
+        return pos / sizeof(DrawInfo);
     }
 
-    // TODO enforce append only - only new data can change
-    size_t reallocate(size_t pos, size_t new_size, bool append)
+    virtual size_t append(size_t old_pos, const DrawInfo& info, size_t offset)
     {
-        size_t new_pos = 0;
-        size_t header = pos - sizeof(size_t);
-        size_t old_size = *(size_t*)(this->data + header);
-
-        {
-            // scoped cas lock
-            if (pos == this->current_pos && append) {
-                memcpy(this->data + header, &new_size, sizeof(size_t));
-                new_pos = this->current_pos;
-                this->current_pos += (new_size - old_size);
-            } else {
-                new_pos = allocate(new_size);
-            }
-        }
-
-        if (new_pos != 0 && new_pos != pos) {
-            memcpy(this->data + new_pos, this->data + pos, old_size);
-            free(pos);
-        }
-
-        return new_pos;
+        size_t pos = reallocate_index(old_pos, offset, offset+1, true);
+        memcpy(this->data + pos, &info, sizeof(DrawInfo));
+        return pos / sizeof(DrawInfo);
+    }
+private:
+    virtual size_t allocate_index(size_t size)
+    {
+        return StreamedBuffer::allocate(size * sizeof(DrawInfo));
     }
 
-    void free(size_t start)
+    virtual size_t reallocate_index(size_t pos, size_t old_size, size_t new_size, bool append)
     {
-        // scoped cas lock
-        size_t size = *(size_t*)(this->data + (start - sizeof(size_t)));
-        Allocation alloc;
-        alloc.frame_freed = this->frame_num;
-        alloc.start = start;
-
-        size_t end = start + size;
-
-        ZoneList::iterator zone = zone_list.find(start);
-        if (zone != zone_list.end()) {
-            alloc.start = zone->second.start;
-            zone_list[end] = alloc;
-            zone_list.erase(start);
-            auto zone_range = free_list.equal_range(start - zone->second.start);
-            for (auto free_zone = zone_range.first; free_zone != zone_range.second; ++free_zone) {
-                if (free_zone->second.start == zone->second.start) {
-                    free_list.erase(free_zone);
-                    break;
-                }
-            }
-            free_list.insert(std::pair<size_t, Allocation>(end - alloc.start, alloc));
-        } else {
-            zone_list[end] = alloc;
-            free_list.insert(std::pair<size_t, Allocation>(size, alloc));
-        }
+        return StreamedBuffer::reallocate(pos * sizeof(DrawInfo),
+                                          old_size * sizeof(DrawInfo),
+                                          new_size * sizeof(DrawInfo), append);
     }
 
+    virtual void free_index(size_t pos, size_t size)
+    {
+        StreamedBuffer::free(pos * sizeof(DrawInfo), size * sizeof(DrawInfo));
+    }
 };
 
 class DrawBatch
