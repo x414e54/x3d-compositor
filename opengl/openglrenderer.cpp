@@ -31,16 +31,6 @@ OpenGLRenderer::OpenGLRenderer()
     context.context.gl->glGenBuffers(1, &this->global_uniforms);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-
-    // TODO put this all in VertexBuffer class.
-    context.context.gl->glGenBuffers(1, &this->draw_info.buffer);
-    context.context.gl->glBindBuffer(GL_ARRAY_BUFFER, this->draw_info.buffer);
-    context.context.gl->glBufferData(GL_ARRAY_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-    GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-    context.context.buffer(GL_ARRAY_BUFFER, 65536, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
-    draw_info.current_pos = 0;
-    draw_info.num_verts = 0;
-    draw_info.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, 65536, flags);
 }
 
 OpenGLRenderer::~OpenGLRenderer()
@@ -221,6 +211,7 @@ void OpenGLRenderer::create_material(const std::string& name,
     material.total_objects = 0;
 }
 
+// TODO UNIFY BUFFER CREATION
 PixelBuffer& OpenGLRenderer::get_pixel_buffer()
 {
     // TODO convert to bindless textures
@@ -245,6 +236,26 @@ PixelBuffer& OpenGLRenderer::get_pixel_buffer()
             buffer.offset = buffer.max_bytes * frame_num;
         }
     }
+    return buffer;
+}
+
+DrawInfoBuffer& OpenGLRenderer::get_draw_info_buffer()
+{
+    DrawInfoBuffer& buffer = this->draw_info;
+    if (buffer.buffer == 0) {
+        ScopedContext context(context_pool);
+
+        GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+        context.context.gl->glGenBuffers(1, &buffer.buffer);
+        context.context.gl->glBindBuffer(GL_ARRAY_BUFFER, buffer.buffer);
+        buffer.max_bytes = 65536;
+        context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        buffer.current_pos = 0;
+        buffer.num_infos = 0;
+        buffer.offset = 0;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
+    }
+    buffer.frame_num = frame_num;
     return buffer;
 }
 
@@ -326,24 +337,60 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
         return it->second;
     }
 }
+// --- TODO UNIFY BUFFER CREATION
 
-void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
+void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, bool has_elements)
 {
     DrawBuffer& draws = get_draw_buffer();
+    DrawInfoBuffer& infos = get_draw_info_buffer();
+
+    int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
+
+    char* data = (char*)draws.data + batch_id;
+
+    unsigned int *instances = nullptr;
+    unsigned int *draw_index = nullptr;
+
+    if (has_elements) {
+        DrawElementsIndirectCommand *cmd = (DrawElementsIndirectCommand*)data;
+        instances = &cmd->primCount;
+        draw_index = &cmd->baseInstance;
+    } else {
+        DrawArraysIndirectCommand *cmd = (DrawArraysIndirectCommand*)data;
+        instances = &cmd->instanceCount;
+        draw_index = &cmd->baseInstance;
+    }
+
+    ++(*instances);
+
+    size_t size = *instances;
+    size_t pos = infos.reallocate(*draw_index, size, true); // Append only can use the same buffer
+
+    draw_ids[1] = *instances;
+    memcpy(data + pos, &draw_ids, sizeof(draw_ids));
+
+    *draw_index = draws.num_draws;
+    ++draws.num_draws;
+}
+
+size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
+{
+    DrawBuffer& draws = get_draw_buffer();
+    DrawInfoBuffer& infos = get_draw_info_buffer();
 
     const size_t size = (elements > 0) ? sizeof(DrawElementsIndirectCommand)
                                        : sizeof(DrawArraysIndirectCommand);
     const size_t offset = draws.current_pos + draws.offset;
+
+    int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
 
     if (draws.current_pos + size >= draws.max_bytes) {
         // TODO too many draws
         throw;
     }
 
-    int draw_ids[4] = {material.total_objects - 1, 0, 0, 0};
-
-    //VertexBuffer& info = get_draw_info_buffer();
-    char* data = (char*)this->draw_info.data + draws.num_draws * sizeof(draw_ids); // info.offset
+    size_t pos = infos.allocate(1);
+    char* data = (char*)this->draw_info.data + pos;
     memcpy(data, &draw_ids, sizeof(draw_ids));
 
     data = (char*)draws.data + offset;
@@ -364,7 +411,7 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
             ++batch->num_draws;
             ++draws.num_draws;
             draws.current_pos += size;
-            return;
+            return offset;
         }
     }
 
@@ -373,6 +420,7 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
     ++draws.num_draws;
     draws.current_pos += size;
     material.batches.push_back(batch);
+    return offset;
 }
 //
 

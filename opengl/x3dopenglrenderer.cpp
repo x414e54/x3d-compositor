@@ -203,10 +203,14 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material)
 {
     if (geometry != nullptr) {
-        if (geometry->isInstanceNode())
-        {
-            // TODO implement instancing
-            throw;
+        if (geometry->isInstanceNode()) {
+            Node *reference = geometry->getReferenceNode();
+            size_t batch_id = (size_t)reference->getValue();
+
+            // TODO instance declared before reference?
+            GeometryRenderInfo::VertexArray array;
+            geometry->getVertexArray(array, 0);
+            add_instance_to_batch(material, batch_id, array.getNumElements() > 0);
         } else if (geometry->getNumVertexArrays() > 0) {
             if (geometry->getNumVertexArrays() > 1) {
                 // TODO handle multiple arrays
@@ -237,7 +241,9 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
                 geometry->getElementData(0, data);
             }
 
-            add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
+            size_t batch_id = add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
+            geometry->setValue((void*)batch_id);
+
             vbo.current_pos += array.getBufferSize();
             vbo.num_verts += array.getNumVertices();
             ebo.current_pos += array.getNumElements() * sizeof(int);
@@ -254,6 +260,10 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
     X3DShapeNode node;
 
     AppearanceNode *appearance = shape->getAppearanceNodes();
+    if (appearance->isInstanceNode()) {
+        // TODO instance appearance nodes
+    }
+
     if (appearance != nullptr) {
         TextureTransformNode *transform = appearance->getTextureTransformNodes();
         if (transform != nullptr) {
@@ -302,7 +312,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
     Material& default_material = get_material("x3d-default");
 
     if (default_material.total_objects >= 1024) {
-        // TODO too many objects, covnert to SSBO and instance any nodes
+        // TODO too many objects, convert to SSBO and instance any nodes
         throw;
     }
 
