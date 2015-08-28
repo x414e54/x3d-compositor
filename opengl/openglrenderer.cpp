@@ -108,6 +108,8 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             }
         }
     }
+
+    context.context.gl->glFinish();
 }
 
 void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
@@ -329,18 +331,13 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 
 void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
 {
-    ScopedContext context(this->context_pool, 0);
-
     DrawBuffer& draws = get_draw_buffer();
 
-    size_t size = sizeof(DrawElementsIndirectCommand);
-    if (elements == 0) {
-        size = sizeof(DrawArraysIndirectCommand);
-    }
+    const size_t size = (elements > 0) ? sizeof(DrawElementsIndirectCommand)
+                                       : sizeof(DrawArraysIndirectCommand);
+    const size_t offset = draws.current_pos + draws.offset;
 
-    size_t offset = draws.current_pos + draws.offset;
-
-    if (offset + size >= draws.max_bytes) {
+    if (draws.current_pos + size >= draws.max_bytes) {
         // TODO too many draws
         throw;
     }
@@ -366,7 +363,7 @@ void OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format
     for (std::vector<DrawBatch>::iterator batch = material.batches.begin(); batch != material.batches.end(); ++batch) {
         if (batch->buffer_offset == (offset - size)
             && batch->primitive_type == GL_TRIANGLES && ((batch->element_type == 0 && elements == 0)
-                || batch->element_type != 0 && elements != 0) && batch->format == format) {
+                || (batch->element_type == GL_UNSIGNED_INT && elements > 0)) && batch->format == format) {
             ++batch->num_draws;
             ++draws.num_draws;
             return;

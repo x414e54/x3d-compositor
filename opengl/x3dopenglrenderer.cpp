@@ -202,8 +202,6 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material)
 {
-    ScopedContext context(this->context_pool, 0);
-
     if (geometry != nullptr) {
         if (geometry->isInstanceNode())
         {

@@ -270,6 +270,8 @@ void ContextPoolContext::setup_for_pass(const ShaderPass &pass, const RenderOupu
 void ContextPoolContext::done_current()
 {
     if (context != NULL && prev_context != context) {
+        gl->glFlush();
+        gl->glFlush();
         context->doneCurrent();
         context->moveToThread(nullptr);
         if (prev_context != NULL) {
