@@ -112,6 +112,7 @@ class StreamedBuffer
 protected:
     struct Allocation
     {
+        bool safe;
         size_t frame_freed;
         size_t start;
     };
@@ -140,7 +141,7 @@ public:
         // TODO this needs GPU sync
         for (auto zone = free_list.begin(); zone != free_list.end(); ++zone) {
             if (zone->first >= size &&
-                    zone->second.frame_freed == this->frame_num) {
+                    (zone->second.safe || zone->second.frame_freed == this->frame_num)) {
                 pos = zone->second.start;
                 size_t overused = zone->first - size;
                 free_list.erase(zone);
@@ -187,17 +188,18 @@ public:
         return new_pos;
     }
 
-    virtual void free(size_t start, size_t size)
+    virtual void free(size_t start, size_t size, bool safe = false)
     {
         // scoped cas lock
         Allocation alloc;
-        alloc.frame_freed = this->frame_num;
+        alloc.safe = safe;
+        alloc.frame_freed = (safe) ? -1 : this->frame_num;
         alloc.start = start;
 
         size_t end = start + size;
 
         ZoneList::iterator zone = zone_list.find(start);
-        if (zone != zone_list.end()) {
+        if (!safe && zone != zone_list.end()) {
             alloc.start = zone->second.start;
             zone_list[end] = alloc;
             zone_list.erase(start);
@@ -273,7 +275,7 @@ public:
         for (auto zone = tmp.begin(); zone != tmp.end(); ++zone) {
             range = zone->second.start - start;
             if (range > 0) {
-                free(start, range);
+                free(start, range, true);
             }
             start = zone->first;
         }
