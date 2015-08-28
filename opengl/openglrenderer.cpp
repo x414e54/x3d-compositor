@@ -336,10 +336,12 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, 
 {
     DrawBuffer& draws = get_draw_buffer();
     DrawInfoBuffer& infos = get_draw_info_buffer();
-
     DrawInfoBuffer::DrawInfo draw_ids = {material.total_objects - 1, 0, 0, 0};
 
-    char* data = (char*)draws.data + batch_id;
+    const size_t size = (has_elements) ? sizeof(DrawElementsIndirectCommand)
+                                       : sizeof(DrawArraysIndirectCommand);
+
+    char* data = (char*)draws.data + material.batches[0].buffer_offset + ((batch_id - 1) * size);
 
     unsigned int *instances = nullptr;
     unsigned int *draw_index = nullptr;
@@ -392,7 +394,7 @@ size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& form
                                                     batch->num_draws * size, (batch->num_draws + 1) * size, true);
             memcpy(draws.data + batch->buffer_offset + (batch->num_draws * size), &cmd, size);
             ++batch->num_draws;
-            return batch->buffer_offset;
+            return batch->num_draws;
         }
     }
 
@@ -400,7 +402,7 @@ size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& form
     DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, draw_pos, 1, 0, GL_TRIANGLES);
     memcpy(draws.data + draw_pos, &cmd, size);
     material.batches.push_back(batch);
-    return draw_pos;
+    return batch.num_draws;
 }
 //
 

@@ -193,7 +193,7 @@ public:
         // scoped cas lock
         Allocation alloc;
         alloc.safe = safe;
-        alloc.frame_freed = (safe) ? -1 : this->frame_num;
+        alloc.frame_freed = this->frame_num;
         alloc.start = start;
 
         size_t end = start + size;
