@@ -390,7 +390,7 @@ size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& form
                 || (batch->element_type == GL_UNSIGNED_INT && elements > 0)) && batch->format == format) {
             batch->buffer_offset = draws.reallocate(batch->buffer_offset,
                                                     batch->num_draws * size, (batch->num_draws + 1) * size, true);
-            memcpy(draws.data + batch->buffer_offset + size, &cmd, size);
+            memcpy(draws.data + batch->buffer_offset + (batch->num_draws * size), &cmd, size);
             ++batch->num_draws;
             return batch->buffer_offset;
         }
