@@ -82,7 +82,7 @@ void main()
     vec4 norm = texture(in_rt1, texcoord);
     vec4 color = texture(in_rt2, texcoord);
     float ambient_intensity = color.a;
-    float shininess = 0.2;
+    float shininess = 0.1;
     vec4 emissive = texture(in_rt3, texcoord);
     vec3 specular_color = vec3(pos.a, norm.a, emissive.a);
 

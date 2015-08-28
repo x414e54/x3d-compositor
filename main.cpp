@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     window.enabled = true;
     X3DOpenGLRenderer renderer;
     renderer.set_viewpoint_output(0, window);
-    renderer.set_viewpoint_viewport(0, 800, 600);
+    renderer.set_viewpoint_viewport(0, 1920, 1080);
     X3DScene scene(&renderer);
 
     if (argc > 1)

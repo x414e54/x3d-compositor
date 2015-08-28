@@ -108,8 +108,6 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             }
         }
     }
-
-    context.context.gl->glFinish();
 }
 
 void OpenGLRenderer::set_viewpoint_viewport(int id, size_t width, size_t height)
