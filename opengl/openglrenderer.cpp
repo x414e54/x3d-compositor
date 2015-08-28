@@ -251,7 +251,6 @@ DrawInfoBuffer& OpenGLRenderer::get_draw_info_buffer()
         buffer.max_bytes = 65536;
         context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
-        buffer.num_infos = 0;
         buffer.offset = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
     }
@@ -269,18 +268,12 @@ DrawBuffer& OpenGLRenderer::get_draw_buffer()
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_DRAW_INDIRECT_BUFFER, buffer.buffer);
         buffer.max_bytes = 65536;
-        context.context.buffer(GL_DRAW_INDIRECT_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_DRAW_INDIRECT_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
-        buffer.num_draws = 0;
-        buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, buffer.max_bytes * 3, flags);
-    } else {
-        if (buffer.offset != buffer.max_bytes * frame_num) {
-            buffer.current_pos = 0;
-            buffer.num_draws = 0;
-            buffer.offset = buffer.max_bytes * frame_num;
-        }
+        buffer.offset = 0;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, buffer.max_bytes, flags);
     }
+    buffer.frame_num = frame_num;
     return buffer;
 }
 
@@ -379,45 +372,35 @@ size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& form
 
     const size_t size = (elements > 0) ? sizeof(DrawElementsIndirectCommand)
                                        : sizeof(DrawArraysIndirectCommand);
-    const size_t offset = draws.current_pos + draws.offset;
 
     DrawInfoBuffer::DrawInfo draw_ids = {material.total_objects - 1, 0, 0, 0};
 
-    if (draws.current_pos + size >= draws.max_bytes) {
-        // TODO too many draws
-        throw;
-    }
+    size_t draw_info_pos = infos.add(draw_ids);
 
-    size_t pos = infos.add(draw_ids);
-
-    void *data = (char*)draws.data + offset;
-
+    // Use same struct here but contents differ
+    DrawElementsIndirectCommand cmd;
     if (elements > 0) {
-        DrawElementsIndirectCommand cmd = {elements, 1, element_offset, vert_offset, pos};
-        memcpy(data, &cmd, sizeof(cmd));
+        cmd = {elements, 1, element_offset, vert_offset, draw_info_pos};
     } else {
-        DrawArraysIndirectCommand cmd = {verts, 1, vert_offset, pos};
-        memcpy(data, &cmd, sizeof(cmd));
+        cmd = {verts, 1, vert_offset, draw_info_pos};
     }
 
-    // TODO batching only works if this batch was the last one written to
     for (std::vector<DrawBatch>::iterator batch = material.batches.begin(); batch != material.batches.end(); ++batch) {
-        if (batch->buffer_offset == (offset - size)
-            && batch->primitive_type == GL_TRIANGLES && ((batch->element_type == 0 && elements == 0)
+        if (batch->primitive_type == GL_TRIANGLES && ((batch->element_type == 0 && elements == 0)
                 || (batch->element_type == GL_UNSIGNED_INT && elements > 0)) && batch->format == format) {
+            batch->buffer_offset = draws.reallocate(batch->buffer_offset,
+                                                    batch->num_draws * size, (batch->num_draws + 1) * size, true);
+            memcpy(draws.data + batch->buffer_offset + size, &cmd, size);
             ++batch->num_draws;
-            ++draws.num_draws;
-            draws.current_pos += size;
-            return offset;
+            return batch->buffer_offset;
         }
     }
 
-    DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, offset, 1, 0, GL_TRIANGLES);
-
-    ++draws.num_draws;
-    draws.current_pos += size;
+    size_t draw_pos = draws.allocate(size);
+    DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, draw_pos, 1, 0, GL_TRIANGLES);
+    memcpy(draws.data + draw_pos, &cmd, size);
     material.batches.push_back(batch);
-    return offset;
+    return draw_pos;
 }
 //
 
@@ -492,8 +475,10 @@ void OpenGLRenderer::render_viewpoints()
         material_it->second.batches.clear();
     }
 
-    DrawInfoBuffer& buffer = this->get_draw_info_buffer();
-    buffer.clear();
+    DrawInfoBuffer& draw_info_buffer = this->get_draw_info_buffer();
+    draw_info_buffer.clear();
+    DrawBuffer& draw_buffer = this->get_draw_buffer();
+    draw_buffer.clear();
     //
 
     ++frame_num %= 3;

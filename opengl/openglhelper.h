@@ -172,8 +172,8 @@ public:
 
         {
             // scoped cas lock
-            if (pos == this->current_pos && append) {
-                new_pos = this->current_pos;
+            if (pos + old_size == this->current_pos && append) {
+                new_pos = pos;
                 this->current_pos += (new_size - old_size);
             } else {
                 new_pos = allocate(new_size);
@@ -216,13 +216,27 @@ public:
             free_list.insert(std::pair<size_t, Allocation>(size, alloc));
         }
     }
+
+    virtual void clear()
+    {
+        ZoneList tmp = zone_list;
+        size_t start = 0;
+        size_t range = 0;
+        for (auto zone = tmp.begin(); zone != tmp.end(); ++zone) {
+            range = zone->second.start - start;
+            if (range > 0) {
+                free(start, range, true);
+            }
+            start = zone->first;
+        }
+        current_pos = start;
+    }
 };
 
 class DrawBuffer : public StreamedBuffer
 {
 public:
-    DrawBuffer() : num_draws(0) {}
-    size_t num_draws; // current draw count
+    DrawBuffer() {}
 };
 
 class IndexBuffer : public StreamedBuffer
@@ -250,8 +264,7 @@ class DrawInfoBuffer : public StreamedBuffer
 {
 public:
     typedef int DrawInfo[4];
-    DrawInfoBuffer() : num_infos(0) {}
-    size_t num_infos; // current count
+    DrawInfoBuffer() {}
 
     virtual size_t add(const DrawInfo& info)
     {
@@ -265,22 +278,6 @@ public:
         size_t pos = reallocate_index(old_pos, offset, offset+1, true);
         memcpy(this->data + pos + (offset * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
         return pos / sizeof(DrawInfo);
-    }
-
-    virtual void clear()
-    {
-        ZoneList tmp = zone_list;
-        size_t start = 0;
-        size_t range = 0;
-        for (auto zone = tmp.begin(); zone != tmp.end(); ++zone) {
-            range = zone->second.start - start;
-            if (range > 0) {
-                free(start, range, true);
-            }
-            start = zone->first;
-        }
-        current_pos = start;
-        num_infos = 0;
     }
 
 private:
