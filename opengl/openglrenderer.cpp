@@ -408,9 +408,9 @@ void OpenGLRenderer::remove_from_batch(Material& material, const DrawBatch::Draw
             memcpy(draws.data + batch.buffer_offset + (batch_pos * size), draws.data + old_pos + ((batch_pos + 1) * size),
                    (batch.num_draws - batch_pos) * size);
         }
-        draws.free(old_pos, batch.num_draws + 1);
+        draws.free(old_pos, (batch.num_draws + 1) * size);
     } else {
-        draws.free(batch.buffer_offset, 1);
+        draws.free(batch.buffer_offset, 1 * size);
         material.batches.erase(material.batches.begin());
     }
 
