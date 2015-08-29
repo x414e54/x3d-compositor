@@ -39,7 +39,7 @@ public:
 
     virtual void onDeleted(Node* node)
     {
-        if (node->isGeometry3DNode()) {
+        if (node->isGeometry3DNode() || node->isLightNode()) {
             DrawBatch::Draw* batch_id = (DrawBatch::Draw*)node->getValue();
             if (batch_id != nullptr) { renderer->remove_from_batch(*batch_id); delete batch_id; }
         }

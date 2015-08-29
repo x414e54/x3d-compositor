@@ -412,7 +412,7 @@ void OpenGLRenderer::remove_from_batch(const DrawBatch::Draw& batch_id)
     } else {
         draws.free(batch.buffer_offset, 1 * size);
         // TODO correct batch here
-        batch.material.batches.erase(batch.material.batches.begin());
+        batch.material.batches.clear();
     }
 
     if (batch.first == &batch_id) {
