@@ -241,7 +241,10 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
                 geometry->getElementData(0, data);
             }
 
-            size_t batch_id = add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
+            size_t batch_id = (size_t)geometry->getValue();
+            if (batch_id != 0) { remove_from_batch(material, batch_id, array.getNumElements() > 0); }
+
+            batch_id = add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
             geometry->setValue((void*)batch_id);
 
             vbo.current_pos += array.getBufferSize();

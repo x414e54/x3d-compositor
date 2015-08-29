@@ -98,6 +98,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
             }
         }
     }
+    //context.context.gl->glFinish();
 }
 
 void OpenGLRenderer::set_viewpoint_viewport(int, size_t width, size_t height)
@@ -223,10 +224,10 @@ PixelBuffer& OpenGLRenderer::get_pixel_buffer()
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer.buffer);
         buffer.max_bytes = 100 * 1024 * 1024;
-        context.context.buffer(GL_PIXEL_UNPACK_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_PIXEL_UNPACK_BUFFER, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, buffer.max_bytes * 3, flags);
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, flags);
         context.context.gl->glGenTextures(1, &buffer.texture);
         context.context.gl->glBindTexture(GL_TEXTURE_BUFFER, buffer.texture);
         context.context.tex->glTexBufferARB(GL_TEXTURE_BUFFER, GL_RGBA8, buffer.buffer);
@@ -287,11 +288,11 @@ IndexBuffer& OpenGLRenderer::get_index_buffer()
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.buffer);
         buffer.max_bytes = 1024 * 1024 * 20;
-        context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.num_elements = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, buffer.max_bytes * 3, flags);
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, flags);
     } else {
         if (buffer.offset != buffer.max_bytes * frame_num) {
             buffer.current_pos = 0;
@@ -313,11 +314,11 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_ARRAY_BUFFER, buffer.buffer);
         buffer.max_bytes = 1024 * 1024 * 20;
-        context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes * 3, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.num_verts = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes * 3, flags);
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, flags);
         buffers[format] = buffer;
         return buffers[format];
     } else {
@@ -341,6 +342,7 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, 
     const size_t size = (has_elements) ? sizeof(DrawElementsIndirectCommand)
                                        : sizeof(DrawArraysIndirectCommand);
 
+    // TODO Batch id needs to take into account batch number and index in batch
     char* data = (char*)draws.data + material.batches[0].buffer_offset + ((batch_id - 1) * size);
 
     unsigned int *instances = nullptr;
@@ -360,11 +362,55 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, size_t batch_id, 
     *draw_index = infos.append(*draw_index, draw_ids, (*instances)++);
 }
 
-size_t remove_from_batch(Material& material, size_t batch_id, bool has_elements)
+void OpenGLRenderer::remove_from_batch(Material& material, size_t batch_id, bool has_elements)
 {
-    throw;
-    // TODO this will remove the reference from the batch.
-    return 0;
+    --batch_id;
+
+    DrawBuffer& draws = get_draw_buffer();
+    DrawInfoBuffer& infos = get_draw_info_buffer();
+    // TODO Batch id needs to take into account batch number and index in batch
+    DrawBatch& batch = material.batches[0];
+
+    const size_t size = (has_elements) ? sizeof(DrawElementsIndirectCommand)
+                                       : sizeof(DrawArraysIndirectCommand);
+
+    char* data = (char*)draws.data + batch.buffer_offset + (batch_id * size);
+
+    unsigned int *instances = nullptr;
+    unsigned int *draw_index = nullptr;
+
+    if (has_elements) {
+        DrawElementsIndirectCommand *cmd = (DrawElementsIndirectCommand*)data;
+        instances = &cmd->primCount;
+        draw_index = &cmd->baseInstance;
+    } else {
+        DrawArraysIndirectCommand *cmd = (DrawArraysIndirectCommand*)data;
+        instances = &cmd->instanceCount;
+        draw_index = &cmd->baseInstance;
+    }
+
+    // TODO assert instances = 0
+    infos.free_index(*draw_index, *instances);
+
+    --batch.num_draws;
+    if (batch.num_draws > 0) {
+        int old_pos = batch.buffer_offset;
+        batch.buffer_offset = draws.allocate(batch.num_draws * size);
+
+        if (batch_id > 0) {
+            memcpy(draws.data + batch.buffer_offset, draws.data + old_pos, batch_id * size);
+        }
+
+        if (batch_id < batch.num_draws) {
+            memcpy(draws.data + batch.buffer_offset + (batch_id * size), draws.data + old_pos + ((batch_id + 1) * size),
+                   (batch.num_draws - batch_id) * size);
+        }
+        draws.free(old_pos, batch.num_draws + 1);
+    } else {
+        draws.free(batch.buffer_offset, 1);
+        material.batches.erase(material.batches.begin());
+    }
+
 }
 
 size_t OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
@@ -477,11 +523,11 @@ void OpenGLRenderer::render_viewpoints()
         material_it->second.batches.clear();
     }
 
-    DrawInfoBuffer& draw_info_buffer = this->get_draw_info_buffer();
-    draw_info_buffer.clear();
-    DrawBuffer& draw_buffer = this->get_draw_buffer();
-    draw_buffer.clear();
-    //
+    ++frame_num %= StreamedBuffer::NUM_FRAMES;
 
-    ++frame_num %= 3;
+    DrawInfoBuffer& draw_info_buffer = this->get_draw_info_buffer();
+    draw_info_buffer.advance();
+    DrawBuffer& draw_buffer = this->get_draw_buffer();
+    draw_buffer.advance();
+    //
 }

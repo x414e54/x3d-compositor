@@ -110,19 +110,21 @@ public:
 class StreamedBuffer
 {
 protected:
+
     struct Allocation
     {
-        bool safe;
-        size_t frame_freed;
         size_t start;
+        size_t end;
     };
 
-    typedef std::multimap<size_t, Allocation> FreeList;
-    typedef std::map<size_t, Allocation> ZoneList;
-    ZoneList zone_list;
+    typedef std::map<size_t, std::list<Allocation>> FreeList;
+    typedef std::list<Allocation> SafeList;
+
     FreeList free_list;
+    SafeList safe_list;
 public:
-    // TODO stop this being static
+    static const size_t NUM_FRAMES = 3;
+
     StreamedBuffer() : buffer(0), offset(0),
         max_bytes(0), current_pos(0), frame_num(0), data(nullptr) {}
     unsigned int buffer;
@@ -138,17 +140,16 @@ public:
     {
         size_t pos = 0;
         // scoped cas lock
-        // TODO this needs GPU sync
-        for (auto zone = free_list.begin(); zone != free_list.end(); ++zone) {
-            if (zone->first >= size &&
-                    (zone->second.safe || zone->second.frame_freed == this->frame_num)) {
-                pos = zone->second.start;
-                size_t overused = zone->first - size;
-                free_list.erase(zone);
-                zone_list.erase(zone->first + zone->second.start);
+        for (auto zone = safe_list.begin(); zone != safe_list.end(); ++zone) {
+            if ((zone->end - zone->start) >= size) {
+                pos = zone->start;
+
+                size_t overused = (zone->end - zone->start) - size;
+                safe_list.erase(zone);
                 if (overused > 0) {
-                    free(pos + size, overused);
+                    free(pos + size, overused, true);
                 }
+
                 break;
             }
         }
@@ -192,44 +193,40 @@ public:
     {
         // scoped cas lock
         Allocation alloc;
-        alloc.safe = safe;
-        alloc.frame_freed = this->frame_num;
+        alloc.end = start + size;
         alloc.start = start;
 
-        size_t end = start + size;
-
-        ZoneList::iterator zone = zone_list.find(start);
-        if (!safe && zone != zone_list.end()) {
-            alloc.start = zone->second.start;
-            zone_list[end] = alloc;
-            zone_list.erase(start);
-            auto zone_range = free_list.equal_range(start - zone->second.start);
-            for (auto free_zone = zone_range.first; free_zone != zone_range.second; ++free_zone) {
-                if (free_zone->second.start == zone->second.start) {
-                    free_list.erase(free_zone);
-                    break;
-                }
-            }
-            free_list.insert(std::pair<size_t, Allocation>(end - alloc.start, alloc));
+        memset(data + start, 0, size);
+        if (safe) {
+            safe_list.push_back(alloc);
         } else {
-            zone_list[end] = alloc;
-            free_list.insert(std::pair<size_t, Allocation>(size, alloc));
+            free_list[this->frame_num].push_back(alloc);
         }
     }
 
-    virtual void clear()
+    virtual void advance()
     {
-        ZoneList tmp = zone_list;
-        size_t start = 0;
-        size_t range = 0;
-        for (auto zone = tmp.begin(); zone != tmp.end(); ++zone) {
-            range = zone->second.start - start;
-            if (range > 0) {
-                free(start, range, true);
+        // TODO this needs GPU sync
+        auto list = free_list[this->frame_num];
+        bool added = false;
+        for (auto zone = list.begin(); zone != list.end(); ++zone) {
+            for (auto safe_zone = safe_list.begin(); safe_zone != safe_list.end(); ++safe_zone) {
+                if (safe_zone->start == zone->end) {
+                    safe_zone->start = zone->start;
+                    zone = safe_zone;
+                    added = true;
+                } else if (safe_zone->end == zone->start) {
+                    safe_zone->end = zone->end;
+                    zone = safe_zone;
+                    added = true;
+                }
             }
-            start = zone->first;
+
+            if (!added) {
+                safe_list.push_back(*zone);
+            }
+            list.erase(zone);
         }
-        current_pos = start;
     }
 };
 
@@ -280,22 +277,22 @@ public:
         return pos / sizeof(DrawInfo);
     }
 
-private:
     virtual size_t allocate_index(size_t size)
     {
         return StreamedBuffer::allocate(size * sizeof(DrawInfo));
     }
 
+    virtual void free_index(size_t pos, size_t size)
+    {
+        StreamedBuffer::free(pos * sizeof(DrawInfo), size * sizeof(DrawInfo));
+    }
+
+private:
     virtual size_t reallocate_index(size_t pos, size_t old_size, size_t new_size, bool append)
     {
         return StreamedBuffer::reallocate(pos * sizeof(DrawInfo),
                                           old_size * sizeof(DrawInfo),
                                           new_size * sizeof(DrawInfo), append);
-    }
-
-    virtual void free_index(size_t pos, size_t size)
-    {
-        StreamedBuffer::free(pos * sizeof(DrawInfo), size * sizeof(DrawInfo));
     }
 };
 
