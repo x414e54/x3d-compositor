@@ -196,7 +196,6 @@ public:
         alloc.end = start + size;
         alloc.start = start;
 
-        memset(data + start, 0, size);
         if (safe) {
             safe_list.push_back(alloc);
         } else {

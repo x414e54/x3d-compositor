@@ -139,8 +139,8 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
 {
-    delete this->node_listener;
     delete this->headlight;
+    delete this->node_listener;
 }
 
 void X3DOpenGLRenderer::set_projection(Scalar fov, Scalar aspect, Scalar near, Scalar far)
