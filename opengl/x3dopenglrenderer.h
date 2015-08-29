@@ -35,6 +35,7 @@ private:
     void process_node(CyberX3D::SceneGraph *sg, CyberX3D::Node *root);
     friend class RenderingNodeListener;
     RenderingNodeListener* node_listener;
+    CyberX3D::LightNode* headlight;
 };
 
 #endif // X3DOPENGLRENDERER_H

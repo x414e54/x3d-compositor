@@ -133,11 +133,13 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
     this->node_listener = new RenderingNodeListener(this);
+    this->headlight = new DirectionalLightNode();
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
 {
-
+    delete this->node_listener;
+    delete this->headlight;
 }
 
 void X3DOpenGLRenderer::set_projection(Scalar fov, Scalar aspect, Scalar near, Scalar far)
@@ -156,6 +158,12 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     // TODO LIGHT NODE REMOVE FROM BATCH
     ScopedContext context(this->context_pool, 0);
     const auto gl = context.context.gl;
+
+    if (light_node->getNodeListener() != nullptr) {
+        light_node->getNodeListener()->onDeleted(light_node);
+    } else {
+        light_node->setNodeListener(this->node_listener);
+    }
 
     if (!light_node->isOn()) {
 		return;
@@ -186,6 +194,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         ++default_material.total_objects;
         process_geometry_node(&sphere, default_material);
+        light_node->setValue(sphere.getValue());
     } else if (light_node->isDirectionalLightNode()) {
         DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
         node.light.type = 1;
@@ -196,6 +205,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.light.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         ++default_material.total_objects;
         process_geometry_node(&box, default_material);
+        light_node->setValue(box.getValue());
     } else if (light_node->isSpotLightNode()) {
         SpotLightNode *spot_light = (SpotLightNode *)light_node;
         node.light.type = 2;
@@ -214,6 +224,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         ++default_material.total_objects;
         process_geometry_node(&cone, default_material);
+        light_node->setValue(cone.getValue());
     }
 
     node.type = node.light.type;
@@ -276,7 +287,9 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
 
             batch_id = add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
             geometry->setValue((void*)batch_id);
-            geometry->setNodeListener(this->node_listener);
+            if (geometry->getParentNode() != nullptr) {
+                geometry->setNodeListener(this->node_listener);
+            }
 
             vbo.current_pos += array.getBufferSize();
             vbo.num_verts += array.getNumVertices();
@@ -424,7 +437,6 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     if (nav_info != nullptr &&
         nav_info->getHeadlight()) {
-        DirectionalLightNode headlight;
         headlight.setAmbientIntensity(0.0);
         headlight.setIntensity(1.0);
         glm::vec4 direction = -glm::inverse(view_mat)[2];
