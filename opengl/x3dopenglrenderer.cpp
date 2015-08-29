@@ -124,6 +124,7 @@ void X3DOpenGLRenderer::process_background_node(BackgroundNode *background)
 
 void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 {
+    // TODO LIGHT NODE REMOVE FROM BATCH
     ScopedContext context(this->context_pool, 0);
     const auto gl = context.context.gl;
 

@@ -200,33 +200,32 @@ public:
         if (safe) {
             safe_list.push_back(alloc);
         } else {
-            free_list[this->frame_num].push_back(alloc);
+            auto& list = free_list[this->frame_num];
+            list.push_back(alloc);
         }
     }
 
     virtual void advance()
     {
         // TODO this needs GPU sync
-        auto list = free_list[this->frame_num];
-        bool added = false;
+        auto& list = free_list[this->frame_num];
         for (auto zone = list.begin(); zone != list.end(); ++zone) {
-            for (auto safe_zone = safe_list.begin(); safe_zone != safe_list.end(); ++safe_zone) {
-                if (safe_zone->start == zone->end) {
-                    safe_zone->start = zone->start;
-                    zone = safe_zone;
-                    added = true;
-                } else if (safe_zone->end == zone->start) {
-                    safe_zone->end = zone->end;
-                    zone = safe_zone;
-                    added = true;
+            Allocation alloc = *zone;
+            for (auto safe_zone = safe_list.begin(); safe_zone != safe_list.end();) {
+                if (safe_zone->start == alloc.end) {
+                    alloc.end = safe_zone->end;
+                    safe_zone = safe_list.erase(safe_zone);
+                } else if (safe_zone->end == alloc.start) {
+                    alloc.start = safe_zone->start;
+                    safe_zone = safe_list.erase(safe_zone);
+                } else {
+                    ++safe_zone;
                 }
             }
 
-            if (!added) {
-                safe_list.push_back(*zone);
-            }
-            list.erase(zone);
+            safe_list.push_back(alloc);
         }
+        list.clear();
     }
 };
 

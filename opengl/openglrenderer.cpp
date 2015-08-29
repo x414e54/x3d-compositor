@@ -253,6 +253,7 @@ DrawInfoBuffer& OpenGLRenderer::get_draw_info_buffer()
         context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.offset = 0;
+        buffer.frame_num = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
     } else if (buffer.frame_num != frame_num) {
         buffer.frame_num = frame_num;
@@ -274,6 +275,7 @@ DrawBuffer& OpenGLRenderer::get_draw_buffer()
         context.context.buffer(GL_DRAW_INDIRECT_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.offset = 0;
+        buffer.frame_num = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, buffer.max_bytes, flags);
     } else if (buffer.frame_num != frame_num) {
         buffer.frame_num = frame_num;
