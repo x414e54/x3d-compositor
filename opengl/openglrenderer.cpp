@@ -368,7 +368,7 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, const DrawBatch::
     *draw_index = infos.append(*draw_index, draw_ids, (*instances)++);
 }
 
-void OpenGLRenderer::remove_from_batch(Material& material, const DrawBatch::Draw& batch_id)
+void OpenGLRenderer::remove_from_batch(const DrawBatch::Draw& batch_id)
 {
     DrawBuffer& draws = get_draw_buffer();
     DrawInfoBuffer& infos = get_draw_info_buffer();
@@ -411,7 +411,8 @@ void OpenGLRenderer::remove_from_batch(Material& material, const DrawBatch::Draw
         draws.free(old_pos, (batch.num_draws + 1) * size);
     } else {
         draws.free(batch.buffer_offset, 1 * size);
-        material.batches.erase(material.batches.begin());
+        // TODO correct batch here
+        batch.material.batches.erase(batch.material.batches.begin());
     }
 
     if (batch.first == &batch_id) {
@@ -459,7 +460,7 @@ DrawBatch::Draw* OpenGLRenderer::add_to_batch(Material& material, const VertexFo
     }
 
     size_t draw_pos = draws.allocate(size);
-    DrawBatch batch(format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, draw_pos, 1, size, GL_TRIANGLES);
+    DrawBatch batch(material, format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, draw_pos, 1, size, GL_TRIANGLES);
     memcpy(draws.data + draw_pos, &cmd, size);
     material.batches.push_back(batch);
     return new DrawBatch::Draw(*(material.batches.end() - 1));

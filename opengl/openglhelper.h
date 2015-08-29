@@ -295,14 +295,33 @@ private:
     }
 };
 
+class DrawBatch;
+
+class Material
+{
+public:
+    std::string name;
+    std::vector<DrawBatch> batches;
+    unsigned int pass;
+    unsigned int frag;
+    unsigned int vert;
+    unsigned int vert_params;
+    unsigned int frag_params;
+    size_t total_objects;
+    bool operator<(const Material& b) const {
+        return this->name.compare(b.name) < 0;
+    }
+};
+
 class DrawBatch
 {
 public:
-    DrawBatch(const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
+    DrawBatch(const Material& material, const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
               int num_draws, int draw_stride, int primitive_type)
-        : format(format), format_stride(format_stride), element_type(element_type), buffer_offset(buffer_offset),
+        : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(buffer_offset),
           num_draws(num_draws), draw_stride(draw_stride), primitive_type(primitive_type), first(nullptr), last(nullptr)
     {}
+    Material material;
     VertexFormat format;
     int format_stride;
     int element_type;
@@ -375,22 +394,6 @@ public:
     int blend_src;
     int cull_face;
     int stencil_func;
-};
-
-class Material
-{
-public:
-    std::string name;
-    std::vector<DrawBatch> batches;
-    unsigned int pass;
-    unsigned int frag;
-    unsigned int vert;
-    unsigned int vert_params;
-    unsigned int frag_params;
-    size_t total_objects;
-    bool operator<(const Material& b) const {
-        return this->name.compare(b.name) < 0;
-    }
 };
 
 struct GlobalParameters
