@@ -338,12 +338,11 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 }
 // --- TODO UNIFY BUFFER CREATION
 
-void OpenGLRenderer::add_instance_to_batch(Material& material, const DrawBatch::Draw& batch_id)
+void OpenGLRenderer::add_instance_to_batch(const DrawBatch::Draw& batch_id, const DrawInfoBuffer::DrawInfo& draw_info)
 {
     DrawBuffer& draws = get_draw_buffer();
     DrawInfoBuffer& infos = get_draw_info_buffer();
     DrawBatch& batch = batch_id.batch;
-    DrawInfoBuffer::DrawInfo draw_ids = {material.total_objects - 1, 0, 0, 0};
 
     const size_t size = batch.draw_stride;
     size_t pos = batch_id.find_offset();
@@ -363,8 +362,7 @@ void OpenGLRenderer::add_instance_to_batch(Material& material, const DrawBatch::
         draw_index = &cmd->baseInstance;
     }
 
-    draw_ids[1] = *instances + 1;
-    *draw_index = infos.append(*draw_index, draw_ids, (*instances)++);
+    *draw_index = infos.append(*draw_index, draw_info, (*instances)++);
 }
 
 void OpenGLRenderer::remove_from_batch(const DrawBatch::Draw& batch_id)
@@ -427,7 +425,7 @@ void OpenGLRenderer::remove_from_batch(const DrawBatch::Draw& batch_id)
     }
 }
 
-DrawBatch::Draw* OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
+DrawBatch::Draw* OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset, const DrawInfoBuffer::DrawInfo& draw_info)
 {
     DrawBuffer& draws = get_draw_buffer();
     DrawInfoBuffer& infos = get_draw_info_buffer();
@@ -435,9 +433,7 @@ DrawBatch::Draw* OpenGLRenderer::add_to_batch(Material& material, const VertexFo
     const size_t size = (elements > 0) ? sizeof(DrawElementsIndirectCommand)
                                        : sizeof(DrawArraysIndirectCommand);
 
-    DrawInfoBuffer::DrawInfo draw_ids = {material.total_objects - 1, 0, 0, 0};
-
-    size_t draw_info_pos = infos.add(draw_ids);
+    size_t draw_info_pos = infos.add(draw_info);
 
     // Use same struct here but contents differ
     DrawElementsIndirectCommand cmd;
