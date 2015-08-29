@@ -42,6 +42,7 @@ public:
         if (node->isGeometry3DNode() || node->isLightNode()) {
             DrawBatch::Draw* batch_id = (DrawBatch::Draw*)node->getValue();
             if (batch_id != nullptr) { renderer->remove_from_batch(*batch_id); delete batch_id; }
+            node->setValue(nullptr);
         }
     }
 };
@@ -249,8 +250,6 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
             DrawBatch::Draw* batch_id = (DrawBatch::Draw*)reference->getValue();
 
             // TODO instance declared before reference?
-            GeometryRenderInfo::VertexArray array;
-            geometry->getVertexArray(array, 0);
             add_instance_to_batch(material, *batch_id);
         } else if (geometry->getNumVertexArrays() > 0) {
             if (geometry->getNumVertexArrays() > 1) {
