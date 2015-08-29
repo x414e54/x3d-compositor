@@ -421,7 +421,7 @@ void OpenGLRenderer::remove_from_batch(Material& material, const DrawBatch::Draw
     if (batch.last == &batch_id) {
         batch.last = batch_id.prev;
     } else {
-        batch_id.next->prev = batch_id.next;
+        batch_id.next->prev = batch_id.prev;
     }
 }
 
