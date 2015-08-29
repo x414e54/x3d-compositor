@@ -353,6 +353,7 @@ public:
             while((draw = draw->prev) != nullptr) {
                 ++index;
             }
+            return index;
         }
     };
 
