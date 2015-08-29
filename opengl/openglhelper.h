@@ -302,7 +302,7 @@ public:
     DrawBatch(const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
               int num_draws, int draw_stride, int primitive_type)
         : format(format), format_stride(format_stride), element_type(element_type), buffer_offset(buffer_offset),
-          num_draws(num_draws), draw_stride(draw_stride), primitive_type(primitive_type)
+          num_draws(num_draws), draw_stride(draw_stride), primitive_type(primitive_type), first(nullptr), last(nullptr)
     {}
     VertexFormat format;
     int format_stride;
@@ -311,6 +311,36 @@ public:
     int num_draws;
     int draw_stride;
     int primitive_type;
+    struct Draw
+    {
+        Draw(DrawBatch& batch) : batch(batch), next(nullptr), prev(nullptr)
+        {
+            if (batch.first == nullptr) {
+                batch.first = this;
+            }
+
+            if (batch.last != nullptr) {
+                prev = batch.last;
+                batch.last->next = this;
+            }
+            batch.last = this;
+        }
+
+        DrawBatch &batch;
+        Draw *next;
+        Draw *prev;
+        size_t find_offset() const
+        {
+            size_t index = 0;
+            const Draw *draw = this;
+            while((draw = draw->prev) != nullptr) {
+                ++index;
+            }
+        }
+    };
+
+    Draw *first;
+    Draw *last;
 };
 
 class ShaderPass

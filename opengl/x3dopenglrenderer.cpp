@@ -205,12 +205,12 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
     if (geometry != nullptr) {
         if (geometry->isInstanceNode()) {
             Node *reference = geometry->getReferenceNode();
-            size_t batch_id = (size_t)reference->getValue();
+            DrawBatch::Draw* batch_id = (DrawBatch::Draw*)reference->getValue();
 
             // TODO instance declared before reference?
             GeometryRenderInfo::VertexArray array;
             geometry->getVertexArray(array, 0);
-            add_instance_to_batch(material, batch_id, array.getNumElements() > 0);
+            add_instance_to_batch(material, *batch_id);
         } else if (geometry->getNumVertexArrays() > 0) {
             if (geometry->getNumVertexArrays() > 1) {
                 // TODO handle multiple arrays
@@ -241,8 +241,8 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
                 geometry->getElementData(0, data);
             }
 
-            size_t batch_id = (size_t)geometry->getValue();
-            if (batch_id != 0) { remove_from_batch(material, batch_id, array.getNumElements() > 0); }
+            DrawBatch::Draw* batch_id = (DrawBatch::Draw*)geometry->getValue();
+            if (batch_id != nullptr) { remove_from_batch(material, *batch_id); delete batch_id; }
 
             batch_id = add_to_batch(material, format, array.getFormat().getSize(), array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
             geometry->setValue((void*)batch_id);
