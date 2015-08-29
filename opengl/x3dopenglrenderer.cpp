@@ -437,11 +437,11 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     if (nav_info != nullptr &&
         nav_info->getHeadlight()) {
-        headlight.setAmbientIntensity(0.0);
-        headlight.setIntensity(1.0);
+        headlight->setAmbientIntensity(0.0);
+        headlight->setIntensity(1.0);
         glm::vec4 direction = -glm::inverse(view_mat)[2];
-        headlight.setDirection(direction.x, direction.y, direction.z);
-        process_light_node(&headlight);
+        headlight->setDirection(direction.x, direction.y, direction.z);
+        process_light_node(headlight);
 	}
 
     process_node(sg, sg->getNodes());

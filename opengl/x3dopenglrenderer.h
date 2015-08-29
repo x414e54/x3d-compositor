@@ -11,6 +11,7 @@ namespace CyberX3D
     class Geometry3DNode;
     class AppearanceNode;
     class LightNode;
+    class DirectionalLightNode;
     class ShapeNode;
     class Node;
 }
@@ -35,7 +36,7 @@ private:
     void process_node(CyberX3D::SceneGraph *sg, CyberX3D::Node *root);
     friend class RenderingNodeListener;
     RenderingNodeListener* node_listener;
-    CyberX3D::LightNode* headlight;
+    CyberX3D::DirectionalLightNode* headlight;
 };
 
 #endif // X3DOPENGLRENDERER_H
