@@ -246,6 +246,12 @@ public:
     VertexBuffer() {}
 };
 
+class ShaderBuffer : public StreamedBuffer
+{
+public:
+    ShaderBuffer() {}
+};
+
 class PixelBuffer : public StreamedBuffer
 {
 public:
@@ -273,6 +279,7 @@ public:
     unsigned int vert_params;
     unsigned int frag_params;
     size_t total_objects;
+    size_t id;
     bool operator<(const Material& b) const {
         return this->name.compare(b.name) < 0;
     }

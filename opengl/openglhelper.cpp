@@ -336,12 +336,23 @@ void ContextPool::return_context(ContextPoolContext& context)
 }
 
 // Move to helpers
+Material* OpenGLRenderer::get_material(const size_t& id)
+{
+    for (auto it = materials.begin(); it != materials.end(); ++ it) {
+        if (it->second.id == id) {
+            return &it->second;
+        }
+    }
+    return nullptr;
+}
+
 Material& OpenGLRenderer::get_material(const std::string& name)
 {
     std::map<std::string, Material>::iterator it = materials.find(name);
     if (it == materials.end()) {
         Material& mat = materials[name];
         mat.name = name;
+        mat.id = materials.size();
         return mat;
     } else {
         return it->second;
@@ -383,8 +394,9 @@ void OpenGLRenderer::create_material(const std::string& name,
     material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
     context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
     context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
+    context.context.gl->glUniformBlockBinding(material.vert, 2, 2);
     context.context.gl->glUniformBlockBinding(material.frag, 0, 0);
-    context.context.gl->glUniformBlockBinding(material.frag, 1, 2);
+    context.context.gl->glUniformBlockBinding(material.frag, 1, 3);
 
     // TODO convert to one ssbo?
     context.context.gl->glGenBuffers(1, &material.vert_params);
@@ -440,6 +452,28 @@ DrawInfoBuffer& OpenGLRenderer::get_draw_info_buffer()
         buffer.offset = 0;
         buffer.frame_num = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
+    } else if (buffer.frame_num != frame_num) {
+        buffer.frame_num = frame_num;
+        buffer.advance();
+    }
+    return buffer;
+}
+
+ShaderBuffer& OpenGLRenderer::get_transform_buffer()
+{
+    ShaderBuffer& buffer = this->transform_buffer;
+    if (buffer.buffer == 0) {
+        ScopedContext context(context_pool);
+
+        GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+        context.context.gl->glGenBuffers(1, &buffer.buffer);
+        context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, buffer.buffer);
+        buffer.max_bytes = 65536;
+        context.context.buffer(GL_UNIFORM_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        buffer.current_pos = 0;
+        buffer.offset = 0;
+        buffer.frame_num = 0;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, buffer.max_bytes, flags);
     } else if (buffer.frame_num != frame_num) {
         buffer.frame_num = frame_num;
         buffer.advance();

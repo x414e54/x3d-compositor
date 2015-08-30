@@ -28,8 +28,8 @@ layout(location = 3) flat out int draw_id;
 
 void main()
 {
-    draw_id = int(draw_info[0]);
-    mat4 transform = transforms[draw_id];
+    draw_id = int(draw_info[2]);
+    mat4 transform = transforms[int(draw_info[0])];
     gl_Position = view_projection * transform * vec4(position, 1.0);
     vertex_position = (transform * vec4(position, 1.0)).xyz;
     vertex_normal = (transform * vec4(normal, 0.0)).xyz;

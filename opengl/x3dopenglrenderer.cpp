@@ -61,10 +61,15 @@ struct X3DLightNodeInfo
     int type;
 };
 
-struct X3DLightNode
+struct X3DTransformNode
 {
     glm::mat4x4 transform;
+};
+
+struct X3DLightNode
+{
     int type;
+    glm::mat4x4 transform;
     X3DLightNodeInfo light;
 };
 
@@ -94,11 +99,6 @@ struct X3DAppearanceNode
     X3DMaterialNode material;
     X3DTextureTransformNode tex_transform;
     X3DTextureNode texture;
-};
-
-struct X3DShapeNode
-{
-    glm::mat4x4 transform;
 };
 
 static VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
@@ -194,9 +194,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         node.light.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, default_material.id, 0, 0};
         sphere.setValue(light_node->getValue());
-        process_geometry_node(&sphere, default_material, info);
+        process_geometry_node(&sphere, info);
         light_node->setValue(sphere.getValue());
     } else if (light_node->isDirectionalLightNode()) {
         DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
@@ -206,9 +206,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         direction_light->getDirection(location);
         node.light.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, default_material.id, 0, 0};
         box.setValue(light_node->getValue());
-        process_geometry_node(&box, default_material, info);
+        process_geometry_node(&box, info);
         light_node->setValue(box.getValue());
     } else if (light_node->isSpotLightNode()) {
         SpotLightNode *spot_light = (SpotLightNode *)light_node;
@@ -226,9 +226,9 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, default_material.id, 0, 0};
         cone.setValue(light_node->getValue());
-        process_geometry_node(&cone, default_material, info);
+        process_geometry_node(&cone, info);
         light_node->setValue(cone.getValue());
     }
 
@@ -247,7 +247,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     ++default_material.total_objects;
 }
 
-void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material, DrawInfoBuffer::DrawInfo& draw_info)
+void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, DrawInfoBuffer::DrawInfo& draw_info)
 {
     if (geometry != nullptr) {
         if (geometry->isInstanceNode()) {
@@ -294,6 +294,7 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
                 geometry->getElementData(0, data);
             }
 
+            Material& material = *get_material(draw_info[1]);
             DrawBatch& batch = material.get_batch(format, array.getFormat().getSize(),
                                                   GL_TRIANGLES, array.getNumElements() > 0 ? GL_UNSIGNED_INT : 0);
             Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(),
@@ -307,18 +308,23 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
     }
 }
 
-Material& X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, glm::mat4x4 transform)
+void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawInfoBuffer::DrawInfo& info)
 {
     ScopedContext context(this->context_pool, 0);
     const auto gl = context.context.gl;
 
-    if (appearance->isInstanceNode()) {
-        // TODO instance appearance nodes
-    }
-
-    X3DAppearanceNode node;
-
     if (appearance != nullptr) {
+        X3DAppearanceNode node;
+
+        if (appearance->isInstanceNode()) {
+            // TODO instance appearance nodes
+        }
+
+        if (appearance->getValue()) {
+            info[2] = (int)(size_t)appearance->getValue();
+            return;
+        }
+
         TextureTransformNode *transform = appearance->getTextureTransformNodes();
         if (transform != nullptr) {
             transform->getTranslation(node.tex_transform.translation_rotation);
@@ -361,44 +367,50 @@ Material& X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, 
             material->getEmissiveColor(node.material.emissive_ambient_intensity);
             node.material.emissive_ambient_intensity[3] = material->getAmbientIntensity();
         }
+
+        Material& default_material = get_material("x3d-default");
+
+        info[1] = default_material.id;
+
+        if (default_material.total_objects >= 600) {
+            // TODO too many objects, convert to SSBO and instance any nodes
+            throw;
+        }
+
+        gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
+        void *data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(node),
+                                    sizeof(node), GL_MAP_WRITE_BIT);
+        memcpy(data, &node, sizeof(node));
+        gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+        info[2] = default_material.total_objects;
+        appearance->setValue((void*)default_material.total_objects);
+        ++default_material.total_objects;
+        appearance->setNodeListener(this->node_listener);
     }
-
-    Material& default_material = get_material("x3d-default");
-
-    if (default_material.total_objects >= 600) {
-        // TODO too many objects, convert to SSBO and instance any nodes
-        throw;
-    }
-
-    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(X3DShapeNode::transform),
-                                      sizeof(X3DShapeNode::transform), GL_MAP_WRITE_BIT);
-    memcpy(data, &transform, sizeof(X3DShapeNode::transform));
-    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
-    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(node),
-                                sizeof(node), GL_MAP_WRITE_BIT);
-    memcpy(data, &node, sizeof(node));
-    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-    ++default_material.total_objects;
-    appearance->setNodeListener(this->node_listener);
-    return default_material;
 }
 
 void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 {
-    X3DShapeNode node;
-    shape->setNodeListener(this->node_listener);
+    DrawInfoBuffer::DrawInfo info;
+    if (shape->getValue()) {
+        info[0] = (int)((size_t)shape->getValue() / sizeof(X3DTransformNode));
+    } else {
+        X3DTransformNode node;
+        shape->setNodeListener(this->node_listener);
 
-    float matrix[4][4];
-    shape->getTransformMatrix(matrix);
-    node.transform = glm::make_mat4x4(&matrix[0][0]);
+        float matrix[4][4];
+        shape->getTransformMatrix(matrix);
+        node.transform = glm::make_mat4x4(&matrix[0][0]);
 
-    Material& apperance = process_apperance_node(shape->getAppearanceNodes(), node.transform);
-    DrawInfoBuffer::DrawInfo info = {apperance.total_objects -1, 0, 0, 0};
-    process_geometry_node(shape->getGeometry3D(), apperance, info);
+        ShaderBuffer& buffer = get_transform_buffer();
+        size_t pos = buffer.allocate(sizeof(X3DTransformNode));
+        memcpy(buffer.data + pos, &node, sizeof(X3DTransformNode));
+        info[0] = pos / sizeof(X3DTransformNode);
+        shape->setValue((void*)pos);
+    }
+    process_apperance_node(shape->getAppearanceNodes(), info);
+    process_geometry_node(shape->getGeometry3D(), info);
 }
 
 void X3DOpenGLRenderer::process_node(SceneGraph *sg, Node *root)

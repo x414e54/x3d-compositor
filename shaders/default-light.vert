@@ -23,7 +23,7 @@ struct X3DLightNode
     int type;
 };
 
-layout(std140, location = 1) uniform ShaderParameters
+layout(std140, location = 2) uniform ShaderParameters
 {
     X3DLightNode lights[1024];
 };
