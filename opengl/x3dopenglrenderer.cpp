@@ -196,8 +196,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         node.light.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
-        ++default_material.total_objects;
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects -1, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
         process_geometry_node(&sphere, default_material, info);
         light_node->setValue(sphere.getValue());
     } else if (light_node->isDirectionalLightNode()) {
@@ -208,8 +207,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 
         direction_light->getDirection(location);
         node.light.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
-        ++default_material.total_objects;
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects -1, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
         process_geometry_node(&box, default_material, info);
         light_node->setValue(box.getValue());
     } else if (light_node->isSpotLightNode()) {
@@ -228,24 +226,24 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
                                                attenuation[0], attenuation[1], attenuation[2]));
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
-        ++default_material.total_objects;
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects -1, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
         process_geometry_node(&cone, default_material, info);
         light_node->setValue(cone.getValue());
     }
 
     node.type = node.light.type;
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.vert_params);
-    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects - 1) * (sizeof(X3DLightNode) - sizeof(X3DLightNode::light)),
+    void* data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects) * (sizeof(X3DLightNode) - sizeof(X3DLightNode::light)),
                                       sizeof(X3DLightNode) - sizeof(X3DLightNode::light), GL_MAP_WRITE_BIT);
     memcpy(data, &node, sizeof(X3DLightNode) - sizeof(X3DLightNode::light));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
-    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects - 1) * sizeof(X3DLightNode::light),
+    data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects) * sizeof(X3DLightNode::light),
                                 sizeof(X3DLightNode::light), GL_MAP_WRITE_BIT);
     memcpy(data, &node.light, sizeof(X3DLightNode::light));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+    ++default_material.total_objects;
 }
 
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material, DrawInfoBuffer::DrawInfo& draw_info)
