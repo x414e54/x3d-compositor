@@ -17,15 +17,9 @@ layout(std140, location = 0) uniform GlobalParameters
     int height;
 };
 
-struct X3DLightNode
+layout(std140, location = 1) uniform ObjectParameters
 {
-    mat4 transform;
-    int type;
-};
-
-layout(std140, location = 2) uniform ShaderParameters
-{
-    X3DLightNode lights[1024];
+    mat4 transforms[1024];
 };
 
 layout(location = 0) flat out int draw_id;
@@ -33,10 +27,10 @@ layout(location = 0) flat out int draw_id;
 void main()
 {
     draw_id = int(draw_info[0]);
-    X3DLightNode light = lights[draw_id];
-    if (light.type == 1) {
+    mat4 transform = transforms[draw_id];
+    if (int(draw_info[3]) == 1) {
         gl_Position = vec4(position, 1.0);
     } else {
-        gl_Position = view_projection * light.transform * vec4(position, 1.0);
+        gl_Position = view_projection * transform * vec4(position, 1.0);
     }
 }
