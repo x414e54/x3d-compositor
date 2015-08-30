@@ -557,10 +557,10 @@ void OpenGLRenderer::write_batches()
                 DrawElementsIndirectCommand cmd;
                 if (batch_it->element_type != 0) {
                     cmd = {draw_it->elements, draw_it->instances.size(),
-                           draw_it->element_offset, draw_it->vert_offset, draw_it->buffer_offset};
+                           draw_it->element_offset, draw_it->vert_offset, draw_it->buffer_offset / sizeof(DrawInfoBuffer::DrawInfo)};
                 } else {
                     cmd = {draw_it->verts, draw_it->instances.size(),
-                           draw_it->vert_offset, draw_it->buffer_offset};
+                           draw_it->vert_offset, draw_it->buffer_offset / sizeof(DrawInfoBuffer::DrawInfo)};
                 }
 
                 memcpy(draws.data + batch_it->buffer_offset
