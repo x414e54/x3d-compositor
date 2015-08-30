@@ -276,7 +276,6 @@ public:
     unsigned int pass;
     unsigned int frag;
     unsigned int vert;
-    unsigned int vert_params;
     unsigned int frag_params;
     size_t total_objects;
     size_t id;

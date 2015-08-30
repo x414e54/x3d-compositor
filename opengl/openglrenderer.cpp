@@ -76,7 +76,6 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
 
             context.context.sso->glBindProgramPipeline(context.context.get_pipeline(material_it->second));
             //context.context.gl->glBindBufferRange(GL_UNIFORM_BUFFER, 1, material_it->params, 0, sizeof(node));
-            context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 2, material_it->second.vert_params);
             context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 3, material_it->second.frag_params);
 
             for (std::vector<DrawBatch>::iterator batch_it = material_it->second.batches.begin(); batch_it != material_it->second.batches.end(); ++batch_it) {

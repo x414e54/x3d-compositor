@@ -394,15 +394,10 @@ void OpenGLRenderer::create_material(const std::string& name,
     material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
     context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
     context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
-    context.context.gl->glUniformBlockBinding(material.vert, 2, 2);
     context.context.gl->glUniformBlockBinding(material.frag, 0, 0);
     context.context.gl->glUniformBlockBinding(material.frag, 1, 3);
 
     // TODO convert to one ssbo?
-    context.context.gl->glGenBuffers(1, &material.vert_params);
-    context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.vert_params);
-    context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
-
     context.context.gl->glGenBuffers(1, &material.frag_params);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, material.frag_params);
     context.context.gl->glBufferData(GL_UNIFORM_BUFFER, 65536, nullptr, GL_DYNAMIC_DRAW);
