@@ -295,7 +295,8 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
 
             DrawBatch& batch = material.get_batch(format, array.getFormat().getSize(),
                                                   GL_TRIANGLES, array.getNumElements() > 0 ? GL_UNSIGNED_INT : 0);
-            Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(), vbo_pos, ebo_pos);
+            Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(),
+                                        vbo_pos / array.getFormat().getSize(), ebo_pos / sizeof(int));
             draw.add_instance(draw_info); // base instance
             geometry->setValue((void*)&draw);
             if (geometry->getParentNode() != nullptr) {
