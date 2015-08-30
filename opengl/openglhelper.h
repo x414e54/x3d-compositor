@@ -335,7 +335,7 @@ public:
     bool operator==(const DrawInstance& b) const {
         return this->draw_info == b.draw_info;
     }
-private:
+//private:
     DrawInfoBuffer::DrawInfo draw_info;
 };
 
@@ -349,6 +349,7 @@ public:
 
     Draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
         : verts(verts), elements(elements), vert_offset(vert_offset), element_offset(element_offset)
+        , num_instances(0), buffer_offset(0)
     {
     }
 
@@ -365,7 +366,10 @@ public:
     {
         return (instances.size() > 0) ? &instances.front() : nullptr;
     }
-private:
+
+//private
+    size_t num_instances;
+    size_t buffer_offset;
     std::list<DrawInstance> instances;
 };
 
@@ -374,7 +378,7 @@ class DrawBatch
 public:
     DrawBatch(Material& material, const VertexFormat& format, int format_stride, int element_type, int primitive_type)
         : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(0),
-          num_draws(0), draw_stride(0), primitive_type(primitive_type), frame_num(0)
+          num_draws(0), draw_stride(0), primitive_type(primitive_type)
     {}
 
     Material& material;
@@ -385,12 +389,12 @@ public:
     int num_draws;
     int draw_stride;
     int primitive_type;
-    size_t frame_num;
-    std::list<Draw> draws;
 
     Draw& add_draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset);
 
     void remove_draw(const Draw& batch_id);
+//private
+    std::list<Draw> draws;
 };
 
 class ShaderPass

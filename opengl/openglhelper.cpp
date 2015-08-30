@@ -523,39 +523,58 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 
 void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
 {
-/*    DrawBatch& batch = batch_id.batch;
-
     // TODO check if draw/drawbatch has any changes cascaded up.
     // If no changes do not need to alter can use last frame's buffer.
-    for (std::map<std::string, Material>::iterator material_it = materials.begin();
+    for (auto material_it = materials.begin();
          material_it != materials.end(); ++material_it) {
 
-        for (std::vector<DrawBatch>::iterator batch_it = batches.begin();
-             batch_it != batches.end(); ++batch_it) {
+        for (auto batch_it = material_it->second.batches.begin();
+             batch_it != material_it->second.batches.end(); ++batch_it) {
 
-            batch_it->buffer_offset = draws.allocate(batch.draw_stride * batch.draws.size());
-
-            for (std::vector<Draw>::iterator batch_it = batch_it.draws;
-                 batch_it != batches.end(); ++batch_it) {
-            size_t draw_info_pos = infos(draw_info);
-
-            // Use same struct here but contents differ
-            DrawElementsIndirectCommand cmd;
-            if (elements > 0) {
-                cmd = {elements, 1, element_offset, vert_offset, draw_info_pos};
-            } else {
-                cmd = {verts, 1, vert_offset, draw_info_pos};
+            if (batch_it->num_draws != 0) {
+                // free last allocation/
+                // batch_it->num_draws = 0;
+                throw;
             }
 
+            batch_it->buffer_offset = draws.allocate(batch_it->draw_stride * batch_it->num_draws);
 
-            for (std::vector<DrawBatch>::iterator batch_it = batches.begin();
-                 batch_it != batches.end(); ++batch_it) {
+            for (auto draw_it = batch_it->draws.begin();
+                 draw_it != batch_it->draws.end(); ++draw_it) {
 
-            }
+                // TODO check draw info pos
+                if (draw_it->num_instances > 0) {
+                    // free
+                    // draw_it->num_instances = 0;
+                    throw;
+                }
 
+                draw_it->buffer_offset = infos.allocate_index(draw_it->instances.size());
+
+                // Use same struct here but contents differ
+                DrawElementsIndirectCommand cmd;
+                if (batch_it->element_type != 0) {
+                    cmd = {draw_it->elements, draw_it->instances.size(),
+                           draw_it->element_offset, draw_it->vert_offset, draw_it->buffer_offset};
+                } else {
+                    cmd = {draw_it->verts, draw_it->instances.size(),
+                           draw_it->vert_offset, draw_it->buffer_offset};
+                }
+
+                memcpy(draws.data + batch_it->buffer_offset
+                       + (batch_it->num_draws++ * batch_it->draw_stride),
+                       &cmd, batch_it->draw_stride);
+
+                for (auto instance_it = draw_it->instances.begin();
+                     instance_it != draw_it->instances.end(); ++instance_it) {
+
+                    memcpy(infos.data + draw_it->buffer_offset
+                           + (draw_it->num_instances++ * sizeof(DrawInfoBuffer::DrawInfo)),
+                           &instance_it->draw_info, sizeof(DrawInfoBuffer::DrawInfo));
+                }
             }
         }
-    }*/
+    }
 }
 
 void DrawInstance::update(const DrawInfoBuffer::DrawInfo& draw_info)
