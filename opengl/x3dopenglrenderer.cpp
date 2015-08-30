@@ -129,8 +129,12 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
 
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
+
     this->node_listener = new RenderingNodeListener(this);
+
     this->headlight = new DirectionalLightNode();
+    headlight->setAmbientIntensity(0.0);
+    headlight->setIntensity(1.0);
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -155,12 +159,12 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     ScopedContext context(this->context_pool, 0);
     const auto gl = context.context.gl;
 
-    if (light_node->getNodeListener() != nullptr) {
-        light_node->setNodeListener(this->node_listener);
-    }
-
     if (!light_node->isOn()) {
 		return;
+    }
+
+    if (light_node->getValue() != nullptr) {
+        return;
     }
 
     X3DLightNode node;
@@ -170,7 +174,6 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     node.attenuation_ambient_intensity[3] = light_node->getAmbientIntensity();
 
     Material& default_material = get_material("x3d-default-light");
-    default_material.total_objects = 0;
     float location[3];
 
     if (light_node->isPointLightNode()) {
@@ -232,6 +235,10 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     memcpy(data, &node, sizeof(X3DLightNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
     ++default_material.total_objects;
+
+    if (light_node->getNodeListener() != nullptr) {
+        light_node->setNodeListener(this->node_listener);
+    }
 }
 
 void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, DrawInfoBuffer::DrawInfo& draw_info)
@@ -447,8 +454,6 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     if (nav_info != nullptr &&
         nav_info->getHeadlight()) {
-        headlight->setAmbientIntensity(0.0);
-        headlight->setIntensity(1.0);
         glm::vec4 direction = -glm::inverse(view_mat)[2];
         headlight->setDirection(direction.x, direction.y, direction.z);
         process_light_node(headlight);
