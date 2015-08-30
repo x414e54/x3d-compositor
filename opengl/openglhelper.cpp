@@ -410,18 +410,17 @@ PixelBuffer& OpenGLRenderer::get_pixel_buffer()
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer.buffer);
         buffer.max_bytes = 100 * 1024 * 1024;
-        context.context.buffer(GL_PIXEL_UNPACK_BUFFER, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_PIXEL_UNPACK_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
-        buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, flags);
+        buffer.offset = 0;
+        buffer.frame_num = 0;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, buffer.max_bytes, flags);
         context.context.gl->glGenTextures(1, &buffer.texture);
         context.context.gl->glBindTexture(GL_TEXTURE_BUFFER, buffer.texture);
         context.context.tex->glTexBufferARB(GL_TEXTURE_BUFFER, GL_RGBA8, buffer.buffer);
-    } else {
-        if (buffer.offset != buffer.max_bytes * frame_num) {
-            buffer.current_pos = 0;
-            buffer.offset = buffer.max_bytes * frame_num;
-        }
+    } else if (buffer.frame_num != frame_num) {
+        buffer.frame_num = frame_num;
+        buffer.advance();
     }
     return buffer;
 }
