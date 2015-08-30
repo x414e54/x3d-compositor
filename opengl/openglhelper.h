@@ -268,6 +268,18 @@ public:
         return pos / sizeof(DrawInfo);
     }
 
+    virtual void update(size_t pos, size_t index, const DrawInfo& info)
+    {
+        memcpy(this->data + pos + (index * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
+    }
+
+    virtual size_t update(size_t old_pos, size_t size, size_t index, const DrawInfo& info)
+    {
+        size_t pos = reallocate_index(old_pos, size, size, false);
+        memcpy(this->data + pos + (index * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
+        return pos / sizeof(DrawInfo);
+    }
+
     virtual size_t append(size_t old_pos, const DrawInfo& info, size_t offset)
     {
         size_t pos = reallocate_index(old_pos, offset, offset+1, true);
@@ -310,17 +322,41 @@ public:
     bool operator<(const Material& b) const {
         return this->name.compare(b.name) < 0;
     }
+
+    DrawBatch& get_batch(const VertexFormat& format, size_t primitive_type, size_t element_type);
+};
+
+class DrawInstance
+{
+public:
+    void update(const DrawInfoBuffer::DrawInfo& draw_info);
+private:
+    DrawInfoBuffer::DrawInfo info;
+};
+
+class Draw
+{
+public:
+    Draw()
+    {
+    }
+
+    DrawInstance& add_instance(const DrawInfoBuffer::DrawInfo& draw_info);
+    void remove_instance(const DrawInstance& draw_id);
+private:
+    std::list<DrawInstance> instances;
 };
 
 class DrawBatch
 {
 public:
-    DrawBatch(const Material& material, const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
-              int num_draws, int draw_stride, int primitive_type)
+    DrawBatch(Material& material, const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
+              int primitive_type)
         : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(buffer_offset),
-          num_draws(num_draws), draw_stride(draw_stride), primitive_type(primitive_type), first(nullptr), last(nullptr)
+          num_draws(0), draw_stride(0), primitive_type(primitive_type), frame_num(0)
     {}
-    Material material;
+
+    Material& material;
     VertexFormat format;
     int format_stride;
     int element_type;
@@ -328,37 +364,14 @@ public:
     int num_draws;
     int draw_stride;
     int primitive_type;
-    struct Draw
-    {
-        Draw(DrawBatch& batch) : batch(batch), next(nullptr), prev(nullptr)
-        {
-            if (batch.first == nullptr) {
-                batch.first = this;
-            }
+    size_t frame_num;
+    std::list<Draw> draws;
 
-            if (batch.last != nullptr) {
-                prev = batch.last;
-                batch.last->next = this;
-            }
-            batch.last = this;
-        }
+    const Draw& add_draw(size_t verts, size_t elements, size_t vert_offset,
+                         size_t element_offset,
+                         const DrawInfoBuffer::DrawInfo& draw_info);
 
-        DrawBatch &batch;
-        Draw *next;
-        Draw *prev;
-        size_t find_offset() const
-        {
-            size_t index = 0;
-            const Draw *draw = this;
-            while((draw = draw->prev) != nullptr) {
-                ++index;
-            }
-            return index;
-        }
-    };
-
-    Draw *first;
-    Draw *last;
+    void remove_draw(const Draw& batch_id);
 };
 
 class ShaderPass

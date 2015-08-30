@@ -211,11 +211,5 @@ void OpenGLRenderer::render_viewpoints()
         active_viewpoint.output->submit();
     }
 
-    // TODO do not clear here
-    for (std::map<std::string, Material>::iterator material_it = materials.begin();
-         material_it != materials.end(); ++material_it) {
-        material_it->second.total_objects = 0;
-    }
-
     ++frame_num %= StreamedBuffer::NUM_FRAMES;
 }

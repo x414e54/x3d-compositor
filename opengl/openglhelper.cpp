@@ -480,17 +480,14 @@ IndexBuffer& OpenGLRenderer::get_index_buffer()
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.buffer);
         buffer.max_bytes = 1024 * 1024 * 20;
-        context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.num_elements = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, flags);
-    } else {
-        if (buffer.offset != buffer.max_bytes * frame_num) {
-            buffer.current_pos = 0;
-            buffer.num_elements = 0;
-            buffer.offset = buffer.max_bytes * frame_num;
-        }
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
+    } else if (buffer.frame_num != frame_num) {
+        buffer.frame_num = frame_num;
+        buffer.advance();
     }
     return buffer;
 }
@@ -506,145 +503,103 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_ARRAY_BUFFER, buffer.buffer);
         buffer.max_bytes = 1024 * 1024 * 20;
-        context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.num_verts = 0;
         buffer.offset = buffer.max_bytes * frame_num;
-        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes * StreamedBuffer::NUM_FRAMES, flags);
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
         buffers[format] = buffer;
         return buffers[format];
     } else {
         VertexBuffer& buffer = it->second;
-        if (buffer.offset != buffer.max_bytes * frame_num) {
-            buffer.current_pos = 0;
-            buffer.num_verts = 0;
-            buffer.offset = buffer.max_bytes * frame_num;
+        if (buffer.frame_num != frame_num) {
+            buffer.frame_num = frame_num;
+            buffer.advance();
         }
         return it->second;
     }
 }
 // --- TODO UNIFY BUFFER CREATION
 
-void OpenGLRenderer::add_instance_to_batch(const DrawBatch::Draw& batch_id, const DrawInfoBuffer::DrawInfo& draw_info)
+void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
 {
-    DrawBuffer& draws = get_draw_buffer();
-    DrawInfoBuffer& infos = get_draw_info_buffer();
     DrawBatch& batch = batch_id.batch;
 
-    const size_t size = batch.draw_stride;
-    size_t pos = batch_id.find_offset();
+    // TODO check if draw/drawbatch has any changes cascaded up.
+    // If no changes do not need to alter can use last frame's buffer.
+    for (std::map<std::string, Material>::iterator material_it = materials.begin();
+         material_it != materials.end(); ++material_it) {
 
-    char* data = (char*)draws.data + batch.buffer_offset + (pos * size);
+        for (std::vector<DrawBatch>::iterator batch_it = batches.begin();
+             batch_it != batches.end(); ++batch_it) {
 
-    unsigned int *instances = nullptr;
-    unsigned int *draw_index = nullptr;
+            batch_it->buffer_offset = draws.allocate(batch.draw_stride * batch.draws.size());
 
-    if (batch.element_type != 0) {
-        DrawElementsIndirectCommand *cmd = (DrawElementsIndirectCommand*)data;
-        instances = &cmd->primCount;
-        draw_index = &cmd->baseInstance;
-    } else {
-        DrawArraysIndirectCommand *cmd = (DrawArraysIndirectCommand*)data;
-        instances = &cmd->instanceCount;
-        draw_index = &cmd->baseInstance;
-    }
+            for (std::vector<Draw>::iterator batch_it = batch_it.draws;
+                 batch_it != batches.end(); ++batch_it) {
+            size_t draw_info_pos = infos(draw_info);
 
-    *draw_index = infos.append(*draw_index, draw_info, (*instances)++);
-}
+            // Use same struct here but contents differ
+            DrawElementsIndirectCommand cmd;
+            if (elements > 0) {
+                cmd = {elements, 1, element_offset, vert_offset, draw_info_pos};
+            } else {
+                cmd = {verts, 1, vert_offset, draw_info_pos};
+            }
 
-void OpenGLRenderer::remove_from_batch(const DrawBatch::Draw& batch_id)
-{
-    DrawBuffer& draws = get_draw_buffer();
-    DrawInfoBuffer& infos = get_draw_info_buffer();
-    DrawBatch& batch = batch_id.batch;
-    size_t batch_pos = batch_id.find_offset();
 
-    const size_t size = batch.draw_stride;
+            for (std::vector<DrawBatch>::iterator batch_it = batches.begin();
+                 batch_it != batches.end(); ++batch_it) {
 
-    char* data = (char*)draws.data + batch.buffer_offset + (batch_pos * size);
+            }
 
-    unsigned int *instances = nullptr;
-    unsigned int *draw_index = nullptr;
-
-    if (batch.element_type != 0) {
-        DrawElementsIndirectCommand *cmd = (DrawElementsIndirectCommand*)data;
-        instances = &cmd->primCount;
-        draw_index = &cmd->baseInstance;
-    } else {
-        DrawArraysIndirectCommand *cmd = (DrawArraysIndirectCommand*)data;
-        instances = &cmd->instanceCount;
-        draw_index = &cmd->baseInstance;
-    }
-
-    // TODO assert instances = 0
-    infos.free_index(*draw_index, *instances);
-
-    --batch.num_draws;
-    if (batch.num_draws > 0) {
-        int old_pos = batch.buffer_offset;
-        batch.buffer_offset = draws.allocate(batch.num_draws * size);
-
-        if (batch_pos > 0) {
-            memcpy(draws.data + batch.buffer_offset, draws.data + old_pos, batch_pos * size);
+            }
         }
-
-        if (batch_pos < batch.num_draws) {
-            memcpy(draws.data + batch.buffer_offset + (batch_pos * size), draws.data + old_pos + ((batch_pos + 1) * size),
-                   (batch.num_draws - batch_pos) * size);
-        }
-        draws.free(old_pos, (batch.num_draws + 1) * size);
-    } else {
-        draws.free(batch.buffer_offset, 1 * size);
-        // TODO correct batch here
-        batch.material.batches.clear();
-    }
-
-    if (batch.first == &batch_id) {
-        batch.first = batch_id.next;
-    } else {
-        batch_id.prev->next = batch_id.next;
-    }
-
-    if (batch.last == &batch_id) {
-        batch.last = batch_id.prev;
-    } else {
-        batch_id.next->prev = batch_id.prev;
     }
 }
 
-DrawBatch::Draw* OpenGLRenderer::add_to_batch(Material& material, const VertexFormat& format, size_t stride, size_t verts, size_t elements, size_t vert_offset, size_t element_offset, const DrawInfoBuffer::DrawInfo& draw_info)
+void DrawInstance::update(const DrawInfoBuffer::DrawInfo& draw_info)
 {
-    DrawBuffer& draws = get_draw_buffer();
-    DrawInfoBuffer& infos = get_draw_info_buffer();
+    this->draw_info = draw_info;
+}
 
-    const size_t size = (elements > 0) ? sizeof(DrawElementsIndirectCommand)
-                                       : sizeof(DrawArraysIndirectCommand);
+void Draw::update(const DrawInfoBuffer::DrawInfo& draw_info)
+{
+    this->draw_info = draw_info;
+}
 
-    size_t draw_info_pos = infos.add(draw_info);
+void Draw::remove_instance(const DrawInstance& draw_id)
+{
+    this->instances.remove(draw_id);
+}
 
-    // Use same struct here but contents differ
-    DrawElementsIndirectCommand cmd;
-    if (elements > 0) {
-        cmd = {elements, 1, element_offset, vert_offset, draw_info_pos};
-    } else {
-        cmd = {verts, 1, vert_offset, draw_info_pos};
-    }
+const DrawInstance& Draw::add_instance(const DrawInfoBuffer::DrawInfo& draw_info)
+{
+    this->instances.push_back(DrawInstance(draw_info));
+    return this->instances.back();
+}
 
+void DrawBatch::remove_draw(const DrawBatch::Draw& batch_id)
+{
+    DrawBatch& batch = batch_id.batch;
+    batch.draws.remove(batch_id);
+}
+
+const Draw& DrawBatch::add_draw(DrawBatch& batch, size_t verts, size_t elements, size_t vert_offset, size_t element_offset, const DrawInfoBuffer::DrawInfo& draw_info)
+{
+    this->draws.push_back(Draw(*batch, verts, elements, vert_offset, element_offset, draw_info));
+    return this->draws.back();
+}
+
+DrawBatch& Material::get_batch(const VertexFormat& format, size_t primitive_type, size_t element_type)
+{
     for (std::vector<DrawBatch>::iterator batch = material.batches.begin(); batch != material.batches.end(); ++batch) {
-        if (batch->primitive_type == GL_TRIANGLES && ((batch->element_type == 0 && elements == 0)
-                || (batch->element_type == GL_UNSIGNED_INT && elements > 0)) && batch->format == format) {
-            batch->buffer_offset = draws.reallocate(batch->buffer_offset,
-                                                    batch->num_draws * size, (batch->num_draws + 1) * size, true);
-            memcpy(draws.data + batch->buffer_offset + (batch->num_draws * size), &cmd, size);
-            ++batch->num_draws;
-            return new DrawBatch::Draw(*batch);
+        if (batch->primitive_type == primitive_type && batch->element_type == element_type) {
+            draw_id.instances.push_back(Draw(*batch, verts, elements, vert_offset, element_offset, draw_info));
+            return &draw_id.instances.back();
         }
     }
 
-    size_t draw_pos = draws.allocate(size);
-    DrawBatch batch(material, format, stride, elements > 0 ? GL_UNSIGNED_INT : 0, draw_pos, 1, size, GL_TRIANGLES);
-    memcpy(draws.data + draw_pos, &cmd, size);
+    DrawBatch batch(material, format, stride, element_type, draw_pos, 1, size, primitive_type);
     material.batches.push_back(batch);
-    return new DrawBatch::Draw(*(material.batches.end() - 1));
 }
-//
