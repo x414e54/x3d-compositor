@@ -281,37 +281,31 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
             VertexFormat format = convert_to_internal(array.getFormat());
 
             VertexBuffer& vbo = get_buffer(format);
-            if (vbo.current_pos + array.getBufferSize() >= vbo.max_bytes) {
-                // TODO buffer full
-                throw;
-            }
+            size_t vbo_pos = vbo.allocate(array.getBufferSize());
 
-            char* data = (char*)vbo.data + vbo.current_pos + vbo.offset;
+            char* data = (char*)vbo.data + vbo_pos;
             geometry->getVertexData(0, data);
 
             IndexBuffer& ebo = get_index_buffer();
+            size_t ebo_pos = 0;
             if (array.getNumElements() > 0) {
-                if (ebo.current_pos + (array.getNumElements() * sizeof(int)) >= ebo.max_bytes) {
-                    // TODO buffer full
-                    throw;
-                }
+                ebo_pos = ebo.allocate(array.getNumElements() * sizeof(int));
 
-                data = (char*)ebo.data + ebo.current_pos + ebo.offset;
+                data = (char*)ebo.data + ebo_pos;
                 geometry->getElementData(0, data);
             }
 
             DrawBatch& batch = material.get_batch(format, array.getFormat().getSize(),
                                                   GL_TRIANGLES, array.getNumElements() > 0 ? GL_UNSIGNED_INT : 0);
-            Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
-            DrawInstance& instance = draw.add_instance(draw_info);
-            geometry->setValue((void*)&instance);
+            Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(), vbo_pos, ebo_pos);
+            draw.add_instance(draw_info); // base instance
+            geometry->setValue((void*)&draw);
             if (geometry->getParentNode() != nullptr) {
                 geometry->setNodeListener(this->node_listener);
             }
 
-            vbo.current_pos += array.getBufferSize();
+            // TODO this is not needed anymore.
             vbo.num_verts += array.getNumVertices();
-            ebo.current_pos += array.getNumElements() * sizeof(int);
             ebo.num_elements += array.getNumElements();
         }
     }
