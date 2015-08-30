@@ -258,7 +258,7 @@ public:
 class DrawInfoBuffer : public StreamedBuffer
 {
 public:
-    typedef int DrawInfo[4];
+    typedef glm::ivec4 DrawInfo;
     DrawInfoBuffer() {}
 
     virtual size_t add(const DrawInfo& info)
@@ -323,26 +323,48 @@ public:
         return this->name.compare(b.name) < 0;
     }
 
-    DrawBatch& get_batch(const VertexFormat& format, size_t primitive_type, size_t element_type);
+    DrawBatch& get_batch(const VertexFormat& format, size_t format_stride, size_t primitive_type, size_t element_type);
 };
 
 class DrawInstance
 {
 public:
+    DrawInstance(const DrawInfoBuffer::DrawInfo& draw_info) : draw_info(draw_info) {}
     void update(const DrawInfoBuffer::DrawInfo& draw_info);
+
+    bool operator==(const DrawInstance& b) const {
+        return this->draw_info == b.draw_info;
+    }
 private:
-    DrawInfoBuffer::DrawInfo info;
+    DrawInfoBuffer::DrawInfo draw_info;
 };
 
 class Draw
 {
 public:
-    Draw()
+    size_t verts;
+    size_t elements;
+    size_t vert_offset;
+    size_t element_offset;
+
+    Draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
+        : verts(verts), elements(elements), vert_offset(vert_offset), element_offset(element_offset)
     {
     }
 
     DrawInstance& add_instance(const DrawInfoBuffer::DrawInfo& draw_info);
     void remove_instance(const DrawInstance& draw_id);
+
+    bool operator==(const Draw& b) const {
+        return this->verts == b.verts && this->elements == b.elements
+                && this->vert_offset == b.vert_offset
+                && this->element_offset == b.element_offset;
+    }
+
+    DrawInstance* get_base_instance()
+    {
+        return (instances.size() > 0) ? &instances.front() : nullptr;
+    }
 private:
     std::list<DrawInstance> instances;
 };
@@ -350,9 +372,8 @@ private:
 class DrawBatch
 {
 public:
-    DrawBatch(Material& material, const VertexFormat& format, int format_stride, int element_type, int buffer_offset,
-              int primitive_type)
-        : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(buffer_offset),
+    DrawBatch(Material& material, const VertexFormat& format, int format_stride, int element_type, int primitive_type)
+        : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(0),
           num_draws(0), draw_stride(0), primitive_type(primitive_type), frame_num(0)
     {}
 
@@ -367,9 +388,7 @@ public:
     size_t frame_num;
     std::list<Draw> draws;
 
-    const Draw& add_draw(size_t verts, size_t elements, size_t vert_offset,
-                         size_t element_offset,
-                         const DrawInfoBuffer::DrawInfo& draw_info);
+    Draw& add_draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset);
 
     void remove_draw(const Draw& batch_id);
 };

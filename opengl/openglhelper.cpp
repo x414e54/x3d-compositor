@@ -523,7 +523,7 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 
 void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
 {
-    DrawBatch& batch = batch_id.batch;
+/*    DrawBatch& batch = batch_id.batch;
 
     // TODO check if draw/drawbatch has any changes cascaded up.
     // If no changes do not need to alter can use last frame's buffer.
@@ -555,15 +555,10 @@ void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
 
             }
         }
-    }
+    }*/
 }
 
 void DrawInstance::update(const DrawInfoBuffer::DrawInfo& draw_info)
-{
-    this->draw_info = draw_info;
-}
-
-void Draw::update(const DrawInfoBuffer::DrawInfo& draw_info)
 {
     this->draw_info = draw_info;
 }
@@ -573,33 +568,34 @@ void Draw::remove_instance(const DrawInstance& draw_id)
     this->instances.remove(draw_id);
 }
 
-const DrawInstance& Draw::add_instance(const DrawInfoBuffer::DrawInfo& draw_info)
+DrawInstance& Draw::add_instance(const DrawInfoBuffer::DrawInfo& draw_info)
 {
     this->instances.push_back(DrawInstance(draw_info));
     return this->instances.back();
 }
 
-void DrawBatch::remove_draw(const DrawBatch::Draw& batch_id)
+void DrawBatch::remove_draw(const Draw& draw_id)
 {
-    DrawBatch& batch = batch_id.batch;
-    batch.draws.remove(batch_id);
+    this->draws.remove(draw_id);
 }
 
-const Draw& DrawBatch::add_draw(DrawBatch& batch, size_t verts, size_t elements, size_t vert_offset, size_t element_offset, const DrawInfoBuffer::DrawInfo& draw_info)
+Draw& DrawBatch::add_draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
 {
-    this->draws.push_back(Draw(*batch, verts, elements, vert_offset, element_offset, draw_info));
+    this->draws.push_back(Draw(verts, elements, vert_offset, element_offset));
     return this->draws.back();
 }
 
-DrawBatch& Material::get_batch(const VertexFormat& format, size_t primitive_type, size_t element_type)
+DrawBatch& Material::get_batch(const VertexFormat& format, size_t format_stride, size_t primitive_type, size_t element_type)
 {
-    for (std::vector<DrawBatch>::iterator batch = material.batches.begin(); batch != material.batches.end(); ++batch) {
-        if (batch->primitive_type == primitive_type && batch->element_type == element_type) {
-            draw_id.instances.push_back(Draw(*batch, verts, elements, vert_offset, element_offset, draw_info));
-            return &draw_id.instances.back();
+    for (std::vector<DrawBatch>::iterator batch = batches.begin(); batch != batches.end(); ++batch) {
+        if (batch->format == format && batch->primitive_type == primitive_type
+                && batch->element_type == element_type
+                && batch->format_stride == format_stride) {
+            return *batch;
         }
     }
 
-    DrawBatch batch(material, format, stride, element_type, draw_pos, 1, size, primitive_type);
-    material.batches.push_back(batch);
+    DrawBatch batch(*this, format, format_stride, element_type, primitive_type);
+    batches.push_back(batch);
+    return batches.back();
 }

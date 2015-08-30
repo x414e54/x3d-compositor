@@ -40,9 +40,12 @@ public:
     virtual void onDeleted(Node* node)
     {
         if (node->isGeometry3DNode() || node->isLightNode()) {
-            DrawBatch::Draw* batch_id = (DrawBatch::Draw*)node->getValue();
+            /*if (node->isInstanceNode()) {
+
+            }
+            Draw* batch_id = (Draw*)node->getValue();
             if (batch_id != nullptr) { renderer->remove_from_batch(*batch_id); delete batch_id; }
-            node->setValue(nullptr);
+            node->setValue(nullptr);*/
         }
     }
 };
@@ -194,7 +197,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.light.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         ++default_material.total_objects;
-        DrawInfoBuffer::DrawInfo info = {material.total_objects -1, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects -1, 0, 0, 0};
         process_geometry_node(&sphere, default_material, info);
         light_node->setValue(sphere.getValue());
     } else if (light_node->isDirectionalLightNode()) {
@@ -206,7 +209,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         direction_light->getDirection(location);
         node.light.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         ++default_material.total_objects;
-        DrawInfoBuffer::DrawInfo info = {material.total_objects -1, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects -1, 0, 0, 0};
         process_geometry_node(&box, default_material, info);
         light_node->setValue(box.getValue());
     } else if (light_node->isSpotLightNode()) {
@@ -226,7 +229,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
                                                attenuation[0], attenuation[1], attenuation[2]));
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         ++default_material.total_objects;
-        DrawInfoBuffer::DrawInfo info = {material.total_objects -1, 0, 0, 0};
+        DrawInfoBuffer::DrawInfo info = {default_material.total_objects -1, 0, 0, 0};
         process_geometry_node(&cone, default_material, info);
         light_node->setValue(cone.getValue());
     }
@@ -245,29 +248,28 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 }
 
-void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material, DrawInfoBuffer::DrawInfo draw_info)
+void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material& material, DrawInfoBuffer::DrawInfo& draw_info)
 {
     if (geometry != nullptr) {
         if (geometry->isInstanceNode()) {
             if (geometry->getValue() != nullptr) {
                 DrawInstance* instance = (DrawInstance*)geometry->getValue();
-                instance->update(info);
-                update_batch(*batch_id, info, geometry->getValue());
+                instance->update(draw_info);
             } else {
                 Node *reference = geometry->getReferenceNode();
-                Draw* draw = (Draw*)reference->getValue();
+                Draw *draw = (Draw*)reference->getValue();
 
                 // TODO instance declared before reference?
                 // process_geometry_node(reference, material);
 
-                DrawInstance& instance = draw.add_instance(draw_info);
+                DrawInstance& instance = draw->add_instance(draw_info);
                 geometry->setValue(&instance);
                 geometry->setNodeListener(this->node_listener);
             }
         } else if (geometry->getValue() != nullptr) {
             Draw* draw = (Draw*)geometry->getValue();
-            DrawInstance* instance = draw->instances.front();
-            instance->update(info);
+            DrawInstance* instance = draw->get_base_instance();
+            instance->update(draw_info);
         } else if (geometry->getNumVertexArrays() > 0) {
             if (geometry->getNumVertexArrays() > 1) {
                 // TODO handle multiple arrays
@@ -298,8 +300,9 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
                 geometry->getElementData(0, data);
             }
 
-            DrawBatch& batch = material.get_batch(format, GL_TRIANGLES, array.getNumElements() > 0 ? GL_UNSIGNED_INT : 0);
-            Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements, info);
+            DrawBatch& batch = material.get_batch(format, array.getFormat().getSize(),
+                                                  GL_TRIANGLES, array.getNumElements() > 0 ? GL_UNSIGNED_INT : 0);
+            Draw& draw = batch.add_draw(array.getNumVertices(), array.getNumElements(), vbo.num_verts, ebo.num_elements);
             DrawInstance& instance = draw.add_instance(draw_info);
             geometry->setValue((void*)&instance);
             if (geometry->getParentNode() != nullptr) {
@@ -407,7 +410,7 @@ void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
     node.transform = glm::make_mat4x4(&matrix[0][0]);
 
     Material& apperance = process_apperance_node(shape->getAppearanceNodes(), node.transform);
-    DrawInfoBuffer::DrawInfo info = {material.total_objects -1, 0, 0, 0};
+    DrawInfoBuffer::DrawInfo info = {apperance.total_objects -1, 0, 0, 0};
     process_geometry_node(shape->getGeometry3D(), apperance, info);
 }
 
@@ -462,7 +465,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     process_node(sg, sg->getNodes());
 
-    write_batches();
+    write_batches(get_draw_buffer(), get_draw_info_buffer());
 
     render_viewpoints();
 }
