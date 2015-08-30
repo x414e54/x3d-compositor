@@ -373,13 +373,34 @@ public:
     std::list<DrawInstance> instances;
 };
 
+typedef struct {
+    uint  count;
+    uint  instanceCount;
+    uint  first;
+    uint  baseInstance;
+} DrawArraysIndirectCommand;
+
+typedef  struct {
+    uint  count;
+    uint  primCount;
+    uint  firstIndex;
+    uint  baseVertex;
+    uint  baseInstance;
+} DrawElementsIndirectCommand;
+
 class DrawBatch
 {
 public:
     DrawBatch(Material& material, const VertexFormat& format, int format_stride, int element_type, int primitive_type)
         : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(0),
-          num_draws(0), draw_stride(0), primitive_type(primitive_type)
-    {}
+          num_draws(0), primitive_type(primitive_type)
+    {
+        if (element_type != 0) {
+            draw_stride = sizeof(DrawElementsIndirectCommand);
+        } else {
+            draw_stride = sizeof(DrawArraysIndirectCommand);
+        }
+    }
 
     Material& material;
     VertexFormat format;
@@ -621,22 +642,6 @@ public:
     ContextPool& pool;
     ContextPoolContext& context;
 };
-
-typedef struct {
-    uint  count;
-    uint  instanceCount;
-    uint  first;
-    uint  baseInstance;
-} DrawArraysIndirectCommand;
-
-typedef  struct {
-    uint  count;
-    uint  primCount;
-    uint  firstIndex;
-    uint  baseVertex;
-    uint  baseInstance;
-} DrawElementsIndirectCommand;
-
 
 inline float calc_light_radius(float cutoff, float intensity, float const_att, float linear_att, float quad_att)
 {
