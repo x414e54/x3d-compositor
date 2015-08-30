@@ -237,15 +237,13 @@ public:
 class IndexBuffer : public StreamedBuffer
 {
 public:
-    IndexBuffer() : num_elements(0) {}
-    size_t num_elements; // current index count
+    IndexBuffer() {}
 };
 
 class VertexBuffer : public StreamedBuffer
 {
 public:
-    VertexBuffer() : num_verts(0) {}
-    size_t num_verts; // current vertex count
+    VertexBuffer() {}
 };
 
 class PixelBuffer : public StreamedBuffer

@@ -481,8 +481,7 @@ IndexBuffer& OpenGLRenderer::get_index_buffer()
         buffer.max_bytes = 1024 * 1024 * 20;
         context.context.buffer(GL_ELEMENT_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
-        buffer.num_elements = 0;
-        buffer.offset = buffer.max_bytes * frame_num;
+        buffer.offset = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
     } else if (buffer.frame_num != frame_num) {
         buffer.frame_num = frame_num;
@@ -504,8 +503,7 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
         buffer.max_bytes = 1024 * 1024 * 20;
         context.context.buffer(GL_ARRAY_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
-        buffer.num_verts = 0;
-        buffer.offset = buffer.max_bytes * frame_num;
+        buffer.offset = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
         buffers[format] = buffer;
         return buffers[format];

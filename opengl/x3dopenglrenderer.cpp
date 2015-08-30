@@ -302,10 +302,6 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, Material
             if (geometry->getParentNode() != nullptr) {
                 geometry->setNodeListener(this->node_listener);
             }
-
-            // TODO this is not needed anymore.
-            vbo.num_verts += array.getNumVertices();
-            ebo.num_elements += array.getNumElements();
         }
     }
 }
@@ -392,9 +388,6 @@ Material& X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, 
 
 void X3DOpenGLRenderer::process_shape_node(ShapeNode *shape, bool selected)
 {
-    ScopedContext context(this->context_pool, 0);
-    const auto gl = context.context.gl;
-
     X3DShapeNode node;
     shape->setNodeListener(this->node_listener);
 
