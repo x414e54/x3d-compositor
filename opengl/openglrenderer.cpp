@@ -83,7 +83,7 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
                     last_vao = vao;
                     context.context.gl->glBindVertexArray(vao);
                     VertexBuffer& vbo = renderer->get_buffer(batch_it->format);
-                    context.context.vab->glBindVertexBuffer(0, renderer->draw_info.buffer, renderer->draw_info.offset, sizeof(int) * 4);
+                    context.context.vab->glBindVertexBuffer(0, renderer->draw_info.buffer, renderer->draw_info.offset, sizeof(DrawInfoBuffer::DrawInfo));
                     context.context.vab->glBindVertexBuffer(1, vbo.buffer, vbo.offset, batch_it->format_stride);
                     context.context.vab->glVertexBindingDivisor(0, 1);
                     context.context.gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->indices.buffer);

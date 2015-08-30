@@ -128,11 +128,11 @@ public:
     StreamedBuffer() : buffer(0), offset(0),
         max_bytes(0), current_pos(0), frame_num(0), data(nullptr) {}
     unsigned int buffer;
-    size_t offset; // meant of offset into buffer e.g. per frame
+    size_t offset; // meant of offset into buffer e.g. per vertex format type if sharing one buffer
     size_t max_bytes;
     size_t current_pos; // current position in bytes from offset
     size_t frame_num;
-    char *data;
+    char *data; // This should take into account the buffer offset
 
     // TODO make this more efficient?
     // TODO thread safety, etc.
