@@ -462,6 +462,8 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
     write_batches(get_draw_buffer(), get_draw_info_buffer());
 
     render_viewpoints();
+
+    ++frame_num %= StreamedBuffer::NUM_FRAMES;
 }
 
 bool X3DOpenGLRenderer::get_ray(Scalar x, Scalar y,

@@ -210,6 +210,4 @@ void OpenGLRenderer::render_viewpoints()
     if (active_viewpoint.output != nullptr) {
         active_viewpoint.output->submit();
     }
-
-    ++frame_num %= StreamedBuffer::NUM_FRAMES;
 }
