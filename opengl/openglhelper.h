@@ -260,50 +260,6 @@ class DrawInfoBuffer : public StreamedBuffer
 public:
     typedef glm::ivec4 DrawInfo;
     DrawInfoBuffer() {}
-
-    virtual size_t add(const DrawInfo& info)
-    {
-        size_t pos = allocate_index(1);
-        memcpy(this->data + pos, &info, sizeof(DrawInfo));
-        return pos / sizeof(DrawInfo);
-    }
-
-    virtual void update(size_t pos, size_t index, const DrawInfo& info)
-    {
-        memcpy(this->data + pos + (index * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
-    }
-
-    virtual size_t update(size_t old_pos, size_t size, size_t index, const DrawInfo& info)
-    {
-        size_t pos = reallocate_index(old_pos, size, size, false);
-        memcpy(this->data + pos + (index * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
-        return pos / sizeof(DrawInfo);
-    }
-
-    virtual size_t append(size_t old_pos, const DrawInfo& info, size_t offset)
-    {
-        size_t pos = reallocate_index(old_pos, offset, offset+1, true);
-        memcpy(this->data + pos + (offset * sizeof(DrawInfo)), &info, sizeof(DrawInfo));
-        return pos / sizeof(DrawInfo);
-    }
-
-    virtual size_t allocate_index(size_t size)
-    {
-        return StreamedBuffer::allocate(size * sizeof(DrawInfo));
-    }
-
-    virtual void free_index(size_t pos, size_t size)
-    {
-        StreamedBuffer::free(pos * sizeof(DrawInfo), size * sizeof(DrawInfo));
-    }
-
-private:
-    virtual size_t reallocate_index(size_t pos, size_t old_size, size_t new_size, bool append)
-    {
-        return StreamedBuffer::reallocate(pos * sizeof(DrawInfo),
-                                          old_size * sizeof(DrawInfo),
-                                          new_size * sizeof(DrawInfo), append);
-    }
 };
 
 class DrawBatch;

@@ -20,15 +20,13 @@ public:
 protected:
     VertexBuffer& get_buffer(const VertexFormat& format);
     IndexBuffer& get_index_buffer();
-    DrawBuffer& get_draw_buffer();
-    DrawInfoBuffer& get_draw_info_buffer();
     PixelBuffer& get_pixel_buffer();
     Material& get_material(const std::string& name);
     void create_material(const std::string& name,
                          const std::string& vert,
                          const std::string& frag, int pass);
     void set_render_target_size(RenderTarget& rt, size_t width, size_t height);
-    void write_batches(DrawBuffer& draws, DrawInfoBuffer& infos);
+    void write_batches();
 
     static void render_viewpoint(OpenGLRenderer* renderer, const RenderOuputGroup& output, int context_id);
 
@@ -38,6 +36,8 @@ protected:
     ContextPool context_pool;
     std::vector<ShaderPass> passes;
 private:
+    DrawBuffer& get_draw_buffer();
+    DrawInfoBuffer& get_draw_info_buffer();
     IndexBuffer indices;
     DrawBuffer draw_calls;
     DrawInfoBuffer draw_info;

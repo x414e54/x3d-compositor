@@ -521,8 +521,11 @@ VertexBuffer& OpenGLRenderer::get_buffer(const VertexFormat& format)
 }
 // --- TODO UNIFY BUFFER CREATION
 
-void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
+void OpenGLRenderer::write_batches()
 {
+    DrawBuffer& draws = get_draw_buffer();
+    DrawInfoBuffer& infos = get_draw_info_buffer();
+
     // TODO check if draw/drawbatch has any changes cascaded up.
     // If no changes do not need to alter can use last frame's buffer.
     for (auto material_it = materials.begin();
@@ -537,7 +540,7 @@ void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
                 throw;
             }
 
-            batch_it->buffer_offset = draws.allocate(batch_it->draw_stride * batch_it->num_draws);
+            batch_it->buffer_offset = draws.allocate(batch_it->draw_stride * batch_it->draws.size());
 
             for (auto draw_it = batch_it->draws.begin();
                  draw_it != batch_it->draws.end(); ++draw_it) {
@@ -549,7 +552,7 @@ void OpenGLRenderer::write_batches(DrawBuffer& draws, DrawInfoBuffer& infos)
                     throw;
                 }
 
-                draw_it->buffer_offset = infos.allocate_index(draw_it->instances.size());
+                draw_it->buffer_offset = infos.allocate(draw_it->instances.size() * sizeof(DrawInfoBuffer::DrawInfo));
 
                 // Use same struct here but contents differ
                 DrawElementsIndirectCommand cmd;

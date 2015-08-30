@@ -459,7 +459,7 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
 
     process_node(sg, sg->getNodes());
 
-    write_batches(get_draw_buffer(), get_draw_info_buffer());
+    write_batches();
 
     render_viewpoints();
 }
