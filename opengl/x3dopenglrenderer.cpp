@@ -164,8 +164,6 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     const auto gl = context.context.gl;
 
     if (light_node->getNodeListener() != nullptr) {
-        light_node->getNodeListener()->onDeleted(light_node);
-    } else {
         light_node->setNodeListener(this->node_listener);
     }
 
@@ -179,7 +177,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     node.light.attenuation_ambient_intensity[3] = light_node->getAmbientIntensity();
 
     Material& default_material = get_material("x3d-default-light");
-
+    default_material.total_objects = 0;
     float location[3];
 
     if (light_node->isPointLightNode()) {
@@ -197,6 +195,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         node.light.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
+        sphere.setValue(light_node->getValue());
         process_geometry_node(&sphere, default_material, info);
         light_node->setValue(sphere.getValue());
     } else if (light_node->isDirectionalLightNode()) {
@@ -208,6 +207,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         direction_light->getDirection(location);
         node.light.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
+        box.setValue(light_node->getValue());
         process_geometry_node(&box, default_material, info);
         light_node->setValue(box.getValue());
     } else if (light_node->isSpotLightNode()) {
@@ -227,6 +227,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
                                                attenuation[0], attenuation[1], attenuation[2]));
         node.transform = glm::translate(node.transform, glm::vec3(node.light.position));
         DrawInfoBuffer::DrawInfo info = {default_material.total_objects, 0, 0, 0};
+        cone.setValue(light_node->getValue());
         process_geometry_node(&cone, default_material, info);
         light_node->setValue(cone.getValue());
     }
@@ -364,7 +365,7 @@ Material& X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, 
 
     Material& default_material = get_material("x3d-default");
 
-    if (default_material.total_objects >= 1024) {
+    if (default_material.total_objects >= 600) {
         // TODO too many objects, convert to SSBO and instance any nodes
         throw;
     }

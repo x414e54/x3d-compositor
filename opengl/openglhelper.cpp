@@ -532,9 +532,8 @@ void OpenGLRenderer::write_batches()
              batch_it != material_it->second.batches.end(); ++batch_it) {
 
             if (batch_it->num_draws != 0) {
-                // free last allocation/
-                // batch_it->num_draws = 0;
-                throw;
+                draws.free(batch_it->buffer_offset, batch_it->num_draws * batch_it->draw_stride);
+                batch_it->num_draws = 0;
             }
 
             batch_it->buffer_offset = draws.allocate(batch_it->draw_stride * batch_it->draws.size());
@@ -544,9 +543,8 @@ void OpenGLRenderer::write_batches()
 
                 // TODO check draw info pos
                 if (draw_it->num_instances > 0) {
-                    // free
-                    // draw_it->num_instances = 0;
-                    throw;
+                    infos.free(draw_it->buffer_offset, draw_it->num_instances * sizeof(DrawInfoBuffer::DrawInfo));
+                    draw_it->num_instances = 0;
                 }
 
                 draw_it->buffer_offset = infos.allocate(draw_it->instances.size() * sizeof(DrawInfoBuffer::DrawInfo));
