@@ -611,27 +611,32 @@ void OpenGLRenderer::write_batches()
 
 void DrawInstance::update(const DrawInfoBuffer::DrawInfo& draw_info)
 {
+    this->updated = true;
     this->draw_info = draw_info;
 }
 
 void Draw::remove_instance(const DrawInstance& draw_id)
 {
+    this->updated = true;
     this->instances.remove(draw_id);
 }
 
 DrawInstance& Draw::add_instance(const DrawInfoBuffer::DrawInfo& draw_info)
 {
+    this->updated = true;
     this->instances.push_back(DrawInstance(draw_info));
     return this->instances.back();
 }
 
 void DrawBatch::remove_draw(const Draw& draw_id)
 {
+    this->updated = true;
     this->draws.remove(draw_id);
 }
 
 Draw& DrawBatch::add_draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
 {
+    this->updated = true;
     this->draws.push_back(Draw(verts, elements, vert_offset, element_offset));
     return this->draws.back();
 }

@@ -306,15 +306,18 @@ void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawI
     if (appearance != nullptr) {
         X3DAppearanceNode node;
 
-        // TODO instanced appearance
-        /*if (appearance->isInstanceNode()) {
+        if (appearance->isInstanceNode()) {
             Node *reference = appearance->getReferenceNode();
-            info[2] = (int)(size_t)reference->getValue();
+            if ((size_t)reference->getValue() == 0) {
+                process_apperance_node((AppearanceNode *)reference, info);
+            } else {
+                info[2] = (int)(size_t)reference->getValue() - 1;
+            }
             return;
-        }*/
+        }
 
         if (appearance->getValue()) {
-            info[2] = (int)(size_t)appearance->getValue();
+            info[2] = (int)(size_t)appearance->getValue() - 1;
             return;
         }
 
@@ -373,8 +376,8 @@ void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawI
         gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
 
         info[2] = default_material.total_objects;
-        appearance->setValue((void*)default_material.total_objects);
         ++default_material.total_objects;
+        appearance->setValue((void*)default_material.total_objects);
         appearance->setNodeListener(this->node_listener);
     }
 }

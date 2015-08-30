@@ -290,13 +290,14 @@ public:
 class DrawInstance
 {
 public:
-    DrawInstance(const DrawInfoBuffer::DrawInfo& draw_info) : draw_info(draw_info) {}
+    DrawInstance(const DrawInfoBuffer::DrawInfo& draw_info) : draw_info(draw_info), updated(true) {}
     void update(const DrawInfoBuffer::DrawInfo& draw_info);
 
     bool operator==(const DrawInstance& b) const {
         return this->draw_info == b.draw_info;
     }
 //private:
+    bool updated;
     DrawInfoBuffer::DrawInfo draw_info;
 };
 
@@ -310,7 +311,7 @@ public:
 
     Draw(size_t verts, size_t elements, size_t vert_offset, size_t element_offset)
         : verts(verts), elements(elements), vert_offset(vert_offset), element_offset(element_offset)
-        , num_instances(0), buffer_offset(0)
+        , num_instances(0), buffer_offset(0), updated(true)
     {
     }
 
@@ -329,6 +330,7 @@ public:
     }
 
 //private
+    bool updated;
     size_t num_instances;
     size_t buffer_offset;
     std::list<DrawInstance> instances;
@@ -354,7 +356,7 @@ class DrawBatch
 public:
     DrawBatch(Material& material, const VertexFormat& format, int format_stride, int element_type, int primitive_type)
         : material(material), format(format), format_stride(format_stride), element_type(element_type), buffer_offset(0),
-          num_draws(0), primitive_type(primitive_type)
+          num_draws(0), primitive_type(primitive_type), updated(true)
     {
         if (element_type != 0) {
             draw_stride = sizeof(DrawElementsIndirectCommand);
@@ -376,6 +378,7 @@ public:
 
     void remove_draw(const Draw& batch_id);
 //private
+    bool updated;
     std::list<Draw> draws;
 };
 
