@@ -22,7 +22,14 @@ layout(std140, location = 1) uniform ObjectParameters
     mat4 transforms[1024];
 };
 
-layout(location = 0) flat out int draw_id;
+layout(location = 0) out gl_PerVertex
+{
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
+};
+
+layout(location = 1) flat out int draw_id;
 
 void main()
 {

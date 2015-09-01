@@ -33,7 +33,14 @@ layout(binding = 2) uniform sampler2D in_rt1;
 layout(binding = 3) uniform sampler2D in_rt2;
 layout(binding = 4) uniform sampler2D in_rt3;
 
-layout(location = 0) flat in int draw_id;
+layout(location = 0) in gl_PerVertex
+{
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
+};
+
+layout(location = 1) flat in int draw_id;
 
 layout(location = 0) out vec4 rt0;
 

@@ -43,11 +43,18 @@ layout(std140, location = 1) uniform ShaderParameters
 
 layout(binding = 0) uniform samplerBuffer textures;
  
-layout(location = 0) in vec3 vertex_position;
-layout(location = 1) in vec3 vertex_normal;
-layout(location = 2) in vec2 vertex_texcoord; 
+layout(location = 0) in gl_PerVertex
+{
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
+};
 
-layout(location = 3) flat in int draw_id;
+layout(location = 1) in vec3 vertex_position;
+layout(location = 2) in vec3 vertex_normal;
+layout(location = 3) in vec2 vertex_texcoord; 
+
+layout(location = 4) flat in int draw_id;
 
 layout(location = 0) out vec4 rt0;
 layout(location = 1) out vec4 rt1;

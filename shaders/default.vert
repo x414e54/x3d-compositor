@@ -20,11 +20,18 @@ layout(std140, location = 1) uniform ShaderParameters
     mat4 transforms[1024];
 };
 
-layout(location = 0) out vec3 vertex_position;
-layout(location = 1) out vec3 vertex_normal;
-layout(location = 2) out vec2 vertex_texcoord;
+layout(location = 0) out gl_PerVertex
+{
+    vec4 gl_Position;
+    float gl_PointSize;
+    float gl_ClipDistance[];
+};
 
-layout(location = 3) flat out int draw_id;
+layout(location = 1) out vec3 vertex_position;
+layout(location = 2) out vec3 vertex_normal;
+layout(location = 3) out vec2 vertex_texcoord;
+
+layout(location = 4) flat out int draw_id;
 
 void main()
 {
