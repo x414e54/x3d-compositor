@@ -17,7 +17,7 @@ layout(std140, location = 0) uniform GlobalParameters
 
 layout(std140, location = 1) uniform ShaderParameters
 {
-    mat4 transforms[1024];
+    mat4 transforms[20];
 };
 
 layout(location = 0) out gl_PerVertex

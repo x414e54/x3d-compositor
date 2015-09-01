@@ -38,17 +38,10 @@ struct X3DAppearanceNode
 
 layout(std140, location = 1) uniform ShaderParameters
 {
-    X3DAppearanceNode apperances[1024];
+    X3DAppearanceNode apperances[20];
 };
 
 layout(binding = 0) uniform samplerBuffer textures;
- 
-layout(location = 0) in gl_PerVertex
-{
-    vec4 gl_Position;
-    float gl_PointSize;
-    float gl_ClipDistance[];
-};
 
 layout(location = 1) in vec3 vertex_position;
 layout(location = 2) in vec3 vertex_normal;
