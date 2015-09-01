@@ -2,22 +2,23 @@
 #extension GL_ARB_separate_shader_objects: require
 #extension GL_ARB_explicit_attrib_location: require
 #extension GL_ARB_explicit_uniform_location: require
+#extension GL_ARB_shading_language_420pack : enable
 
 layout(location = 0) in vec4 draw_info;
 layout(location = 1) in vec3 position;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec2 texcoord;
 
-layout(std140, location = 0) uniform GlobalParameters
+layout(std140, binding = 0) uniform GlobalParameters
 {
     mat4 view;
     mat4 projection;
     mat4 view_projection;
 };
 
-layout(std140, location = 1) uniform ShaderParameters
+layout(std140, binding = 1) uniform ShaderParameters
 {
-    mat4 transforms[20];
+    mat4 transforms[256];
 };
 
 layout(location = 0) out gl_PerVertex

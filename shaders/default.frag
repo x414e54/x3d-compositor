@@ -4,7 +4,7 @@
 #extension GL_ARB_explicit_uniform_location: require
 #extension GL_ARB_shading_language_420pack: require
 
-layout(std140, location = 0) uniform GlobalParameters
+layout(std140, binding = 0) uniform GlobalParameters
 {
     mat4 view;
     mat4 projection;
@@ -36,9 +36,9 @@ struct X3DAppearanceNode
     X3DTextureNode texture;
 };
 
-layout(std140, location = 1) uniform ShaderParameters
+layout(std140, binding = 3) uniform ShaderParameters
 {
-    X3DAppearanceNode apperances[20];
+    X3DAppearanceNode apperances[256];
 };
 
 layout(binding = 0) uniform samplerBuffer textures;

@@ -13,7 +13,7 @@ struct X3DLightNode
     int type;
 };
 
-layout(std140, location = 0) uniform GlobalParameters
+layout(std140, binding = 0) uniform GlobalParameters
 {
     mat4 view;
     mat4 projection;
@@ -23,9 +23,9 @@ layout(std140, location = 0) uniform GlobalParameters
     int height;
 };
 
-layout(std140, location = 1) uniform ShaderParameters
+layout(std140, binding = 3) uniform ShaderParameters
 {
-    X3DLightNode lights[20];
+    X3DLightNode lights[256];
 };
 
 layout(binding = 1) uniform sampler2D in_rt0;
@@ -69,8 +69,8 @@ vec4 x3d_light(vec3 mat_emissive, float attenuation, float spoti,
                vec3 light_color, vec3 ambient, vec3 diffuse, vec3 specular)
 {
     // TODO X3D fog. IFrgb × (1 -f0) + f0 × x3d_light
-    return mat_emissive + ((attenuation * spoti * light_color)
-                           * (ambient + diffuse + specular));
+    return vec4(mat_emissive + ((attenuation * spoti * light_color)
+                             * (ambient + diffuse + specular)), 1.0);
 }
 
 void main()
