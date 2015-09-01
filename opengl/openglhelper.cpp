@@ -75,6 +75,8 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
         throw;
     }
     debug->glDebugMessageCallbackARB(debug_callback, nullptr);
+    debug->glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_FALSE);
+    debug->glDebugMessageControlARB(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_MEDIUM, 0, 0, GL_TRUE);
     context->doneCurrent();
     context->moveToThread(nullptr);
 }
