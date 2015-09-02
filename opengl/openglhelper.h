@@ -22,6 +22,8 @@ class QOpenGLExtension_ARB_vertex_attrib_binding;
 class QOpenGLExtension_ARB_separate_shader_objects;
 class QOpenGLExtension_ARB_debug_output;
 class QOpenGLExtension_ARB_texture_buffer_object;
+class QOpenGLExtension_NV_bindless_texture;
+
 typedef void (*QOpenGLExtension_ARB_buffer_storage) (int target, ptrdiff_t size, const void *data, int flags);
 class QOpenGLFunctions_3_2_Core;
 
@@ -528,6 +530,7 @@ public:
         tex = old.tex;
         buffer = old.buffer;
         debug = old.debug;
+        bind_tex = old.bind_tex;
         old.reserved = false;
         old.surface = nullptr;
         old.context = nullptr;
@@ -538,6 +541,7 @@ public:
         old.buffer = nullptr;
         old.debug = nullptr;
         old.vab = nullptr;
+        old.bind_tex = nullptr;
         old.used.clear();
     }
 
@@ -556,6 +560,7 @@ public:
     QOpenGLExtension_ARB_separate_shader_objects* sso;
     QOpenGLExtension_ARB_buffer_storage buffer;
     QOpenGLExtension_ARB_texture_buffer_object* tex;
+    QOpenGLExtension_NV_bindless_texture* bind_tex;
     QOpenGLExtension_ARB_debug_output* debug;
     QOpenGLFunctions_3_2_Core* gl;
     RenderTargetFboMap fbos;

@@ -331,27 +331,52 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
         }
 
         if (texture->getTextureName() != 0) {
-            info[0] = (texture->getTextureName() - 1) / 4;
+            if (context.context.bind_tex != nullptr) {
+                info[0] = (texture->getTextureName() - 1) / sizeof(GLuint64);
+            } else {
+                info[0] = (texture->getTextureName() - 1) / 4;
+            }
             info[1] = texture->getWidth();
             info[2] = texture->getWidth();
         } else if (texture->getWidth() > 0 && texture->getHeight() > 0) {
-            // TODO make resident, add to ssbo
             // TODO allow setable texture node width/height
-            PixelBuffer& buffer = get_pixel_buffer();
+            // TODO convert to ARB from NV spec (qt does not have ARB)
+            if (context.context.bind_tex != nullptr) {
+                GLuint tex = 0;
+                gl->glGenTextures(1, &tex);
+                gl->glBindTexture(GL_TEXTURE_2D, tex);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, texture->getImage());
+                GLuint64 handle = context.context.bind_tex->glGetTextureHandleNV(tex);
+                texture->setTextureName(tex);
+                texture->setValue((void*)handle);
 
-            if (info[1] == 0 && info[2] == 0) {
-                info[1] = texture->getWidth();
-                info[2] = texture->getHeight();
-                size_t bbp = 4;
-                size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
-                size_t pos = buffer.allocate(num_bytes);
-                info[0] =  pos / 4;
-                texture->setTextureName(pos + 1);
+                context.context.bind_tex->glMakeTextureHandleResidentNV(handle);
 
-                memcpy(buffer.data + pos, texture->getImage(), num_bytes);
+                ShaderBuffer& buffer = get_uniform_buffer();
+                size_t pos = buffer.allocate(sizeof(GLuint64));
+                memcpy(buffer.data + pos, &handle, sizeof(GLuint64));
+                info[0] = pos + 1;
+            } else {
+                PixelBuffer& buffer = get_pixel_buffer();
 
-                //texture->getRepeatS();
-                //texture->getRepeatT();
+                if (info[1] == 0 && info[2] == 0) {
+                    info[1] = texture->getWidth();
+                    info[2] = texture->getHeight();
+                    size_t bbp = 4;
+                    size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
+                    size_t pos = buffer.allocate(num_bytes);
+                    info[0] =  pos / 4;
+                    texture->setTextureName(pos + 1);
+
+                    memcpy(buffer.data + pos, texture->getImage(), num_bytes);
+
+                    //texture->getRepeatS();
+                    //texture->getRepeatT();
+                }
             }
         }
     }

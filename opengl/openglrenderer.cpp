@@ -64,6 +64,8 @@ void OpenGLRenderer::render_viewpoint(OpenGLRenderer* renderer, const RenderOupu
     if (renderer->textures.texture != 0) {
         context.context.gl->glActiveTexture(GL_TEXTURE0);
         context.context.gl->glBindTexture(GL_TEXTURE_BUFFER, renderer->textures.texture);
+    } else if (renderer->uniform_buffer.buffer != 0) {
+        context.context.gl->glBindBufferBase(GL_UNIFORM_BUFFER, 4, renderer->uniform_buffer.buffer);
     }
 
     for (std::vector<ShaderPass>::iterator pass_it = renderer->passes.begin(); pass_it != renderer->passes.end(); ++pass_it) {

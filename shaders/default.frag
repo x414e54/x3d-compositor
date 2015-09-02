@@ -3,6 +3,8 @@
 #extension GL_ARB_explicit_attrib_location: require
 #extension GL_ARB_explicit_uniform_location: require
 #extension GL_ARB_shading_language_420pack: require
+#extension GL_NV_bindless_texture : enable
+#extension GL_NV_gpu_shader5 : enable
 
 layout(std140, binding = 0) uniform GlobalParameters
 {
@@ -46,7 +48,14 @@ layout(std140, binding = 3) uniform ShaderParameters
     X3DAppearanceNode apperances[256];
 };
 
+#ifdef GL_NV_bindless_texture
+layout(std140, binding = 4) uniform TextureParameters
+{
+    sampler2D textures[4000];
+};
+#else
 layout(binding = 0) uniform samplerBuffer textures;
+#endif
 
 layout(location = 1) in vec3 vertex_position;
 layout(location = 2) in vec3 vertex_normal;
@@ -58,7 +67,20 @@ layout(location = 0) out vec4 rt0;
 layout(location = 1) out vec4 rt1;
 layout(location = 2) out vec4 rt2;
 layout(location = 3) out vec4 rt3;
+layout(location = 4) out vec4 rt4;
+layout(location = 5) out vec4 rt5;
 
+#ifdef GL_NV_bindless_texture
+vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
+{
+    vec4 texel = texture(textures[o_w_h[0]], tex_coord);
+    if (o_w_h[1] == 0 || o_w_h[2] == 0) {
+        return vec4(0.0, 0.0, 0.0, 0.0);
+    } else {
+        return texel;
+    }
+}
+#else
 vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
 {
     int offset = o_w_h[0] + (int(o_w_h[2] * tex_coord.y) * o_w_h[1]) + int(o_w_h[1] * tex_coord.x);
@@ -69,15 +91,29 @@ vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
         return texel;
     }
 }
+#endif
 
 void main()
 {
     // Be wasteful for now
     X3DMaterialNode material = apperances[draw_id].material;
-    vec4 texel = get_texel(apperances[draw_id].texture.diffuse_offset_width_height, vertex_texcoord);
-    rt0 = vec4(vertex_position, material.specular_shininess.r);
-    rt1 = vec4(normalize(vertex_normal), material.specular_shininess.g);
-    rt2 = vec4(material.diffuse_color.rgb + texel.rgb, material.emissive_ambient_intensity.a);
-    rt3 = vec4(material.emissive_ambient_intensity.rgb, material.specular_shininess.b);
+    vec4 ambient_texel = get_texel(apperances[draw_id].texture.ambient_offset_width_height, vertex_texcoord);
+    vec4 diffuse_texel = get_texel(apperances[draw_id].texture.diffuse_offset_width_height, vertex_texcoord);
+    vec4 alpha_texel = get_texel(apperances[draw_id].texture.alpha_offset_width_height, vertex_texcoord);
+    vec4 normal_texel = get_texel(apperances[draw_id].texture.normal_offset_width_height, vertex_texcoord);
+    vec4 specular_texel = get_texel(apperances[draw_id].texture.specular_offset_width_height, vertex_texcoord);
+    //vec4 emissive_texel = get_texel(apperances[draw_id].texture.emissive_offset_width_height, vertex_texcoord);
+
+    float alpha = alpha_texel.r * diffuse_texel.a * material.diffuse_color.a;
+    if (alpha == 0.0) {
+        discard;
+    }
+
+    rt0 = vec4(vertex_position, 1.0);
+    rt1 = vec4(normalize(vertex_normal), 1.0);
+    rt2 = vec4(diffuse_texel.bgr, alpha_texel.r * diffuse_texel.a * material.diffuse_color.a);
+    rt3 = vec4(ambient_texel.rgb, material.emissive_ambient_intensity.a);
+    rt4 = vec4(specular_texel.rgb + material.specular_shininess.rgb, material.specular_shininess.a);
+    rt5 = vec4(material.emissive_ambient_intensity.rgb, 1.0);
 }
 

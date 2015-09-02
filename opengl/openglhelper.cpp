@@ -69,6 +69,10 @@ ContextPoolContext::ContextPoolContext(QOpenGLContext* share_context, bool reser
     if (!tex->initializeOpenGLFunctions()) {
         throw;
     }
+
+    bind_tex = new QOpenGLExtension_NV_bindless_texture();
+    bind_tex->initializeOpenGLFunctions();
+
     buffer = (QOpenGLExtension_ARB_buffer_storage)context->getProcAddress("glBufferStorage");
     debug = new QOpenGLExtension_ARB_debug_output();
     if (!debug->initializeOpenGLFunctions()) {
@@ -395,6 +399,28 @@ void OpenGLRenderer::create_material(const std::string& name,
     // TODO cache shader program by filename these
     material.vert = context.context.sso->glCreateShaderProgramv(GL_VERTEX_SHADER, 1, vert_list);
     material.frag = context.context.sso->glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, frag_list);
+
+    GLint linked = GL_FALSE;
+    context.context.gl->glGetProgramiv(material.vert, GL_LINK_STATUS, &linked);
+    if(linked == GL_FALSE)
+    {
+        GLint length = 0;
+        context.context.gl->glGetProgramiv(material.vert, GL_INFO_LOG_LENGTH, &length);
+        GLchar log[length];
+        context.context.gl->glGetProgramInfoLog(material.vert, length, &length, log);
+        context.context.debug->glDebugMessageInsertARB(GL_DEBUG_SOURCE_SHADER_COMPILER_ARB, GL_DEBUG_TYPE_ERROR_ARB, 0, GL_DEBUG_SEVERITY_HIGH_ARB, length, log);
+    }
+
+    context.context.gl->glGetProgramiv(material.frag, GL_LINK_STATUS, &linked);
+    if(linked == GL_FALSE)
+    {
+        GLint length = 0;
+        context.context.gl->glGetProgramiv(material.frag, GL_INFO_LOG_LENGTH, &length);
+        GLchar log[length];
+        context.context.gl->glGetProgramInfoLog(material.frag, length, &length, log);
+        context.context.debug->glDebugMessageInsertARB(GL_DEBUG_SOURCE_SHADER_COMPILER_ARB, GL_DEBUG_TYPE_ERROR_ARB, 0, GL_DEBUG_SEVERITY_HIGH_ARB, length, log);
+    }
+
     context.context.gl->glUniformBlockBinding(material.vert, 0, 0);
     context.context.gl->glUniformBlockBinding(material.vert, 1, 1);
     context.context.gl->glUniformBlockBinding(material.frag, 0, 0);
@@ -450,6 +476,28 @@ DrawInfoBuffer& OpenGLRenderer::get_draw_info_buffer()
         buffer.offset = 0;
         buffer.frame_num = 0;
         buffer.data = (char*)context.context.gl->glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer.max_bytes, flags);
+    } else if (buffer.frame_num != frame_num) {
+        buffer.frame_num = frame_num;
+        buffer.advance();
+    }
+    return buffer;
+}
+
+ShaderBuffer& OpenGLRenderer::get_uniform_buffer()
+{
+    ShaderBuffer& buffer = this->uniform_buffer;
+    if (buffer.buffer == 0) {
+        ScopedContext context(context_pool);
+
+        GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+        context.context.gl->glGenBuffers(1, &buffer.buffer);
+        context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, buffer.buffer);
+        buffer.max_bytes = 65536;
+        context.context.buffer(GL_UNIFORM_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
+        buffer.current_pos = 0;
+        buffer.offset = 0;
+        buffer.frame_num = 0;
+        buffer.data = (char*)context.context.gl->glMapBufferRange(GL_UNIFORM_BUFFER, 0, buffer.max_bytes, flags);
     } else if (buffer.frame_num != frame_num) {
         buffer.frame_num = frame_num;
         buffer.advance();

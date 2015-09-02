@@ -21,6 +21,7 @@ protected:
     VertexBuffer& get_buffer(const VertexFormat& format);
     IndexBuffer& get_index_buffer();
     PixelBuffer& get_pixel_buffer();
+    ShaderBuffer& get_uniform_buffer();
     ShaderBuffer& get_transform_buffer();
     Material* get_material(const size_t& id);
     Material& get_material(const std::string& name);
@@ -43,6 +44,7 @@ private:
     DrawInfoBuffer& get_draw_info_buffer();
     IndexBuffer indices;
     DrawBuffer draw_calls;
+    ShaderBuffer uniform_buffer;
     ShaderBuffer transform_buffer;
     DrawInfoBuffer draw_info;
     PixelBuffer textures;

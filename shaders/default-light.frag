@@ -33,6 +33,8 @@ layout(binding = 1) uniform sampler2D in_rt0;
 layout(binding = 2) uniform sampler2D in_rt1;
 layout(binding = 3) uniform sampler2D in_rt2;
 layout(binding = 4) uniform sampler2D in_rt3;
+layout(binding = 5) uniform sampler2D in_rt4;
+layout(binding = 6) uniform sampler2D in_rt5;
 
 layout(location = 1) flat in int draw_id;
 
@@ -82,10 +84,13 @@ void main()
     vec4 pos = texture(in_rt0, texcoord);
     vec4 norm = texture(in_rt1, texcoord);
     vec4 color = texture(in_rt2, texcoord);
-    float ambient_intensity = color.a;
-    float shininess = 0.1;
+    vec4 ambient = texture(in_rt3, texcoord);
+    vec4 specular = texture(in_rt4, texcoord);
+//    vec4 emissive = texture(in_rt5, texcoord);
+
+    float ambient_intensity = ambient.a;
+    float shininess = specular.a;
     vec4 emissive = texture(in_rt3, texcoord);
-    vec3 specular_color = vec3(pos.a, norm.a, emissive.a);
 
     vec3 light_direction = pos.xyz - light.position.xyz;
     float distance = length(light_direction);
@@ -98,16 +103,16 @@ void main()
     }
     
     float attenuation = x3d_light_attenuation(distance, light.attenuation_ambient_intensity.xyz);
-    vec3 ambient = x3d_light_ambient(light.attenuation_ambient_intensity.w, color.rgb, ambient_intensity);
-    vec3 diffuse = x3d_light_diffuse(light.color_intensity.a, color.rgb, norm.xyz, light_normal);
-    vec3 specular = x3d_light_specular(light.color_intensity.a, shininess, specular_color, norm.xyz, light_normal, eye_normal);
+    vec3 ambient_color = x3d_light_ambient(light.attenuation_ambient_intensity.w, color.rgb, ambient_intensity);
+    vec3 diffuse_color = x3d_light_diffuse(light.color_intensity.a, color.rgb, norm.xyz, light_normal);
+    vec3 specular_color = x3d_light_specular(light.color_intensity.a, shininess, specular.rgb, norm.xyz, light_normal, eye_normal);
 
     float spoti = 1;
     if (light.type == 2) {
         // TODO calculate spoti;
     }
 
-    rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient, diffuse, specular);
+    rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient_color, diffuse_color, specular_color);
 
     if (render_type == 0) {    
     } else if (render_type == 1) {
@@ -117,10 +122,12 @@ void main()
     } else if (render_type == 3) {
         rt0 = vec4(color.rgb, 1.0);
     } else if (render_type == 4) {
-        rt0 = vec4(specular_color.rgb, 1.0);
+        rt0 = vec4(ambient.rgb, 1.0);
+    } else if (render_type == 4) {
+        rt0 = vec4(specular.rgb, 1.0);
     } else if (render_type == 5) {
         rt0 = vec4(emissive.rgb, 1.0);
-    }   
+    }
 
 }
 
