@@ -19,7 +19,12 @@ struct X3DTextureTransformNode
 
 struct X3DTextureNode
 {
-    ivec4 offset_width_height;
+    ivec4 ambient_offset_width_height;
+    ivec4 diffuse_offset_width_height;
+    ivec4 specular_offset_width_height;
+    ivec4 normal_offset_width_height;
+    ivec4 displacement_offset_width_height;
+    ivec4 alpha_offset_width_height;
 };
 
 struct X3DMaterialNode
@@ -69,7 +74,7 @@ void main()
 {
     // Be wasteful for now
     X3DMaterialNode material = apperances[draw_id].material;
-    vec4 texel = get_texel(apperances[draw_id].texture.offset_width_height, vertex_texcoord);
+    vec4 texel = get_texel(apperances[draw_id].texture.diffuse_offset_width_height, vertex_texcoord);
     rt0 = vec4(vertex_position, material.specular_shininess.r);
     rt1 = vec4(normalize(vertex_normal), material.specular_shininess.g);
     rt2 = vec4(material.diffuse_color.rgb + texel.rgb, material.emissive_ambient_intensity.a);

@@ -253,7 +253,9 @@ void X3DScene::sendKeyUp(uint code)
             fake_rotating = false;
             fake_rotation = 0.0f;
         } else if(code == 111) {
+            m_renderer->debug_render_increase();
         } else if(code == 116) {
+            m_renderer->debug_render_decrease();
         }
     }
 }

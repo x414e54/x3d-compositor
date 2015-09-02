@@ -424,6 +424,7 @@ struct GlobalParameters
     glm::vec4 position;
     int width;
     int height;
+    int render_type;
 };
 
 class RenderTarget

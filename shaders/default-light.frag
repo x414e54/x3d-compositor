@@ -21,6 +21,7 @@ layout(std140, binding = 0) uniform GlobalParameters
     vec4 position;
     int width;
     int height;
+    int render_type;
 };
 
 layout(std140, binding = 3) uniform ShaderParameters
@@ -105,6 +106,21 @@ void main()
     if (light.type == 2) {
         // TODO calculate spoti;
     }
+
     rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient, diffuse, specular);
+
+    if (render_type == 0) {    
+    } else if (render_type == 1) {
+        rt0 = vec4(pos.xyz, 1.0);
+    } else if (render_type == 2) {
+        rt0 = vec4(norm.xyz, 1.0);
+    } else if (render_type == 3) {
+        rt0 = vec4(color.rgb, 1.0);
+    } else if (render_type == 4) {
+        rt0 = vec4(specular_color.rgb, 1.0);
+    } else if (render_type == 5) {
+        rt0 = vec4(emissive.rgb, 1.0);
+    }   
+
 }
 

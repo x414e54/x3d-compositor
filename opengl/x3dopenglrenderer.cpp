@@ -84,7 +84,13 @@ struct X3DTextureTransformNode
 
 struct X3DTextureNode
 {
-    int offset_width_height[4] = {0, 0, 0, 0};
+    glm::ivec4 ambient_offset_width_height;
+    glm::ivec4 diffuse_offset_width_height;
+    glm::ivec4 specular_offset_width_height;
+    glm::ivec4 normal_offset_width_height;
+    glm::ivec4 displacement_offset_width_height;
+    glm::ivec4 alpha_offset_width_height;
+    /// etc.
 };
 
 struct X3DAppearanceNode
@@ -149,6 +155,16 @@ void X3DOpenGLRenderer::set_projection(Scalar fov, Scalar aspect, Scalar near, S
     active_viewpoint.right.projection = glm::perspective(fov, aspect, near, far);
 }
 
+void X3DOpenGLRenderer::debug_render_increase()
+{
+    ++this->render_type;
+}
+
+void X3DOpenGLRenderer::debug_render_decrease()
+{
+    --this->render_type;
+}
+
 void X3DOpenGLRenderer::process_background_node(BackgroundNode *background)
 {
 
@@ -176,6 +192,7 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     Material& default_material = get_material("x3d-default-light");
     float location[3];
 
+    // TODO update light direction, etc.
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.type = 0;
@@ -302,6 +319,42 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, DrawInfo
     }
 }
 
+void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ivec4& info)
+{
+    ScopedContext context(this->context_pool, 0);
+    const auto gl = context.context.gl;
+
+    if (base_texture != nullptr && base_texture->isNode(IMAGETEXTURE_NODE)) {
+        ImageTextureNode *texture = (ImageTextureNode*)base_texture;
+        if (texture->getTextureName() != 0 && texture->getWidth() > 0 && texture->getHeight() > 0) {
+            // TODO make resident, add to ssbo
+            // TODO allow setable texture node width/height
+            PixelBuffer& buffer = get_pixel_buffer();
+
+            if (info[1] == 0 && info[2] == 0) {
+                info[1] = texture->getWidth();
+                info[2] = texture->getHeight();
+                info[0] = (buffer.offset + buffer.current_pos) / 4;
+
+                size_t bbp = texture->hasTransparencyColor() + 3;
+                size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
+
+                if (buffer.current_pos + num_bytes >= buffer.max_bytes) {
+                    throw;
+                }
+
+                gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
+                gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
+                gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)buffer.offset + buffer.current_pos);
+
+                buffer.current_pos += num_bytes;
+                //texture->getRepeatS();
+                //texture->getRepeatT();
+            }
+        }
+    }
+}
+
 void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawInfoBuffer::DrawInfo& info)
 {
     ScopedContext context(this->context_pool, 0);
@@ -328,47 +381,48 @@ void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawI
             return;
         }
 
-        TextureTransformNode *transform = appearance->getTextureTransformNodes();
-        if (transform != nullptr) {
-            transform->getTranslation(node.tex_transform.translation_rotation);
-            transform->getCenter(node.tex_transform.center_scale);
-            node.tex_transform.translation_rotation[2] = transform->getRotation();
-            transform->getScale(&node.tex_transform.center_scale[2]);
-        }
-
-        ImageTextureNode *texture = appearance->getImageTextureNodes();
-        if (texture != nullptr && texture->getTextureName() != 0) {
-            // TODO make resident, add to ssbo
-            // TODO allow setable texture node width/height
-            PixelBuffer& buffer = get_pixel_buffer();
-            node.texture.offset_width_height[1] = texture->getWidth();
-            node.texture.offset_width_height[2] = texture->getHeight();
-            node.texture.offset_width_height[0] = (buffer.offset + buffer.current_pos) / 4;
-            size_t bbp = texture->hasTransparencyColor() + 3;
-            size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
-
-            if (buffer.current_pos + num_bytes >= buffer.max_bytes) {
-                throw;
+        CommonSurfaceShaderNode *shader = appearance->getCommonSurfaceShaderNodes();
+        if (shader != nullptr) {
+            process_texture_node((TextureNode*)shader->getAlphaTextureField()->getValue(), node.texture.alpha_offset_width_height);
+            process_texture_node((TextureNode*)shader->getAmbientTextureField()->getValue(), node.texture.ambient_offset_width_height);
+            process_texture_node((TextureNode*)shader->getDiffuseTextureField()->getValue(), node.texture.diffuse_offset_width_height);
+            process_texture_node((TextureNode*)shader->getDisplacementTextureField()->getValue(), node.texture.displacement_offset_width_height);
+            //process_texture_node((TextureNode*)shader->getEmissiveTextureField()->getValue(), node.texture.);
+            process_texture_node((TextureNode*)shader->getSpecularTextureField()->getValue(), node.texture.specular_offset_width_height);
+            //process_texture_node((TextureNode*)shader->getShininessTextureField()->getValue(), node.texture.);
+            //process_texture_node((TextureNode*)shader->getTransmissionTextureField()->getValue(), node.texture.tr);
+            process_texture_node((TextureNode*)shader->getNormalTextureField()->getValue(), node.texture.normal_offset_width_height);
+            //process_texture_node((TextureNode*)shader->getReflectionTextureField()->getValue());
+            //process_texture_node((TextureNode*)shader->getEnvironmentTextureField()->getValue(), node.texture.);
+        } else {
+            TextureTransformNode *transform = appearance->getTextureTransformNodes();
+            if (transform != nullptr) {
+                transform->getTranslation(node.tex_transform.translation_rotation);
+                transform->getCenter(node.tex_transform.center_scale);
+                node.tex_transform.translation_rotation[2] = transform->getRotation();
+                transform->getScale(&node.tex_transform.center_scale[2]);
             }
 
-            gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
-            gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
-            gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)buffer.offset + buffer.current_pos);
+            MaterialNode *material = appearance->getMaterialNodes();
+            if (material != nullptr) {
+                material->getDiffuseColor(&node.material.diffuse_color[0]);
+                node.material.diffuse_color[3] = 1 - material->getTransparency();
+                material->getSpecularColor(node.material.specular_shininess);
+                node.material.specular_shininess[3] = material->getShininess();
+                material->getEmissiveColor(node.material.emissive_ambient_intensity);
+                node.material.emissive_ambient_intensity[3] = material->getAmbientIntensity();
+            }
 
-            buffer.current_pos += num_bytes;
-            //texture->getRepeatS();
-            //texture->getRepeatT();
-            node.material.diffuse_color = glm::vec4(0.0, 0.0, 0.0, 1.0);
-        }
-
-        MaterialNode *material = appearance->getMaterialNodes();
-        if (material != nullptr) {
-            material->getDiffuseColor(&node.material.diffuse_color[0]);
-            node.material.diffuse_color[3] = 1 - material->getTransparency();
-            material->getSpecularColor(node.material.specular_shininess);
-            node.material.specular_shininess[3] = material->getShininess();
-            material->getEmissiveColor(node.material.emissive_ambient_intensity);
-            node.material.emissive_ambient_intensity[3] = material->getAmbientIntensity();
+            ImageTextureNode *texture = appearance->getImageTextureNodes();
+            if (texture == nullptr) {
+                MultiTextureNode *multi_texture = appearance->getMultiTextureNodes();
+                // TODO handle multitexture
+                /*while (multi_texture != nullptr) {
+                    //process_texture_node(multi_texture)
+                }*/
+            } else {
+                process_texture_node(texture, node.texture.diffuse_offset_width_height);
+            }
         }
 
         if (default_material.total_objects >= 600) {

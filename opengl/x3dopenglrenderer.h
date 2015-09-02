@@ -7,6 +7,7 @@
 
 namespace CyberX3D
 {
+    class TextureNode;
     class BackgroundNode;
     class Geometry3DNode;
     class AppearanceNode;
@@ -27,7 +28,11 @@ public:
     void set_projection(Scalar fovy, Scalar aspect, Scalar zNear, Scalar zFar);
     bool get_ray(Scalar x, Scalar y, const Scalar (&model)[4][4], Scalar (&from)[3], Scalar (&to)[3]);
     void render(CyberX3D::SceneGraph *sg);
+
+    void debug_render_increase();
+    void debug_render_decrease();
 private:
+    void process_texture_node(CyberX3D::TextureNode *texture, glm::ivec4& info);
     void process_apperance_node(CyberX3D::AppearanceNode *apperance, DrawInfoBuffer::DrawInfo& info);
     void process_geometry_node(CyberX3D::Geometry3DNode *geometry, DrawInfoBuffer::DrawInfo& info);
     void process_background_node(CyberX3D::BackgroundNode *background);

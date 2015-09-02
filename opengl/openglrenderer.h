@@ -37,6 +37,7 @@ protected:
     Viewpoint active_viewpoint;
     ContextPool context_pool;
     std::vector<ShaderPass> passes;
+    int render_type;
 private:
     DrawBuffer& get_draw_buffer();
     DrawInfoBuffer& get_draw_info_buffer();

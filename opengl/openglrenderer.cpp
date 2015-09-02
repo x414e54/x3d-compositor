@@ -22,6 +22,7 @@
 OpenGLRenderer::OpenGLRenderer()
 {
     frame_num = 0;
+    render_type = 0;
 
     ScopedContext context(context_pool, 0);
 
@@ -129,6 +130,7 @@ void OpenGLRenderer::set_viewpoint_view(int, const glm::mat4x4 &view)
     left_params.position = glm::inverse(left_params.view)[3];
     left_params.width = active_viewpoint.left.back_buffer.width;
     left_params.height = active_viewpoint.left.back_buffer.height;
+    left_params.render_type = this->render_type;
 
     GlobalParameters right_params;
     right_params.view = view * active_viewpoint.right.view_offset;
@@ -137,6 +139,7 @@ void OpenGLRenderer::set_viewpoint_view(int, const glm::mat4x4 &view)
     right_params.position = glm::inverse(right_params.view)[3];
     right_params.width = active_viewpoint.right.back_buffer.width;
     right_params.height = active_viewpoint.right.back_buffer.height;
+    right_params.render_type = this->render_type;
 
     size_t aligned_size = align(sizeof(GlobalParameters), this->uniform_alignment);
     context.context.gl->glBindBuffer(GL_UNIFORM_BUFFER, this->global_uniforms);

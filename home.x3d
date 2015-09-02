@@ -5,8 +5,10 @@
   </head>
   <Scene>
     <Viewpoint description='Default Viewpoint' position='0 2.0 10.00'/>
-    <!--Inline url="crytek-sponza/sponza.obj"/-->
-    <Transform translation="0 0 0">
+    <Transform scale="0.02 0.02 0.02">
+        <Inline url="crytek-sponza/sponza.obj"/>
+    </Transform>
+    <!--Transform translation="0 0 0">
         <Inline url="mitsuba/mitsuba.obj" DEF="mitsuba" />
     </Transform>
     <Transform translation="4 0 0">
@@ -41,6 +43,6 @@
     </Transform>
     <Transform translation="44 0 0">
         <Inline USE="mitsuba"/>
-    </Transform>
+    </Transform-->
   </Scene>
 </X3D>
