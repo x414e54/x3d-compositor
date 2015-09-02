@@ -326,6 +326,10 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
 
     if (base_texture != nullptr && base_texture->isNode(IMAGETEXTURE_NODE)) {
         ImageTextureNode *texture = (ImageTextureNode*)base_texture;
+        if (texture->isInstanceNode()) {
+            texture = (ImageTextureNode*)texture->getReferenceNode();
+        }
+
         if (texture->getTextureName() != 0) {
             info[0] = (texture->getTextureName() - 1) / 4;
             info[1] = texture->getWidth();

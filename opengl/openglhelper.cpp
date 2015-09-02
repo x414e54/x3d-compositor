@@ -418,7 +418,7 @@ PixelBuffer& OpenGLRenderer::get_pixel_buffer()
         GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
         context.context.gl->glGenBuffers(1, &buffer.buffer);
         context.context.gl->glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer.buffer);
-        buffer.max_bytes = 100 * 1024 * 1024;
+        buffer.max_bytes = 400 * 1024 * 1024;
         context.context.buffer(GL_PIXEL_UNPACK_BUFFER, buffer.max_bytes, nullptr, flags | GL_DYNAMIC_STORAGE_BIT);
         buffer.current_pos = 0;
         buffer.offset = 0;
