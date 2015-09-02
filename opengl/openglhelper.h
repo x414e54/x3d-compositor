@@ -430,7 +430,7 @@ struct GlobalParameters
 class RenderTarget
 {
 public:
-    static const size_t MAX_ATTACHMENTS = 4;
+    static const size_t MAX_ATTACHMENTS = 6;
 
     RenderTarget(size_t num_attachments, bool depth)
         : width(0), height(0), num_attachments(num_attachments),
@@ -469,7 +469,7 @@ class RenderOuputGroup
 {
 public:
     RenderOuputGroup() :  enabled(false), uniform_offset(0),
-        g_buffer(4, true), back_buffer(1, true)
+        g_buffer(6, true), back_buffer(1, true)
     {
     }
 

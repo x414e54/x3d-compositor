@@ -212,7 +212,8 @@ void ContextPoolContext::setup_for_pass(const ShaderPass &pass, const RenderOupu
 
     gl->glBindFramebuffer(GL_FRAMEBUFFER, get_fbo(target));
     GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-                        GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+                        GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+                        GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5};
     gl->glDrawBuffers(target.num_attachments, buffers);
     gl->glViewport(0, 0, target.width, target.height);
 
