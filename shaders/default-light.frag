@@ -86,11 +86,10 @@ void main()
     vec4 color = texture(in_rt2, texcoord);
     vec4 ambient = texture(in_rt3, texcoord);
     vec4 specular = texture(in_rt4, texcoord);
-//    vec4 emissive = texture(in_rt5, texcoord);
+    vec4 emissive = texture(in_rt5, texcoord);
 
     float ambient_intensity = ambient.a;
     float shininess = specular.a;
-    vec4 emissive = texture(in_rt3, texcoord);
 
     vec3 light_direction = pos.xyz - light.position.xyz;
     float distance = length(light_direction);
@@ -123,9 +122,9 @@ void main()
         rt0 = vec4(color.rgb, 1.0);
     } else if (render_type == 4) {
         rt0 = vec4(ambient.rgb, 1.0);
-    } else if (render_type == 4) {
-        rt0 = vec4(specular.rgb, 1.0);
     } else if (render_type == 5) {
+        rt0 = vec4(specular.rgb, 1.0);
+    } else if (render_type == 6) {
         rt0 = vec4(emissive.rgb, 1.0);
     }
 

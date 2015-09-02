@@ -111,7 +111,7 @@ void main()
 
     rt0 = vec4(vertex_position, 1.0);
     rt1 = vec4(normalize(vertex_normal), 1.0);
-    rt2 = vec4(diffuse_texel.rgb, alpha_texel.r * diffuse_texel.a * material.diffuse_color.a);
+    rt2 = vec4(diffuse_texel.rgb, alpha);
     rt3 = vec4(ambient_texel.rgb, material.emissive_ambient_intensity.a);
     rt4 = vec4(specular_texel.rgb + material.specular_shininess.rgb, material.specular_shininess.a);
     rt5 = vec4(material.emissive_ambient_intensity.rgb, 1.0);
