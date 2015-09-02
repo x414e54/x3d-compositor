@@ -332,7 +332,8 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
 
         if (texture->getTextureName() != 0) {
             if (context.context.bind_tex != nullptr) {
-                info[0] = (texture->getTextureName() - 1) / sizeof(GLuint64);
+                size_t aligned_size = align(sizeof(GLuint64), 16);
+                info[0] = (texture->getTextureName() - 1) / aligned_size;
             } else {
                 info[0] = (texture->getTextureName() - 1) / 4;
             }
@@ -341,6 +342,8 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
         } else if (texture->getWidth() > 0 && texture->getHeight() > 0) {
             // TODO allow setable texture node width/height
             // TODO convert to ARB from NV spec (qt does not have ARB)
+            info[1] = texture->getWidth();
+            info[2] = texture->getHeight();
             if (context.context.bind_tex != nullptr) {
                 GLuint tex = 0;
                 gl->glGenTextures(1, &tex);
@@ -349,35 +352,31 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, texture->getImage());
+                gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, texture->getImage());
                 GLuint64 handle = context.context.bind_tex->glGetTextureHandleNV(tex);
-                texture->setTextureName(tex);
                 texture->setValue((void*)handle);
 
                 context.context.bind_tex->glMakeTextureHandleResidentNV(handle);
 
                 ShaderBuffer& buffer = get_uniform_buffer();
-                size_t pos = buffer.allocate(sizeof(GLuint64));
+                size_t aligned_size = align(sizeof(GLuint64), 16);
+                size_t pos = buffer.allocate(aligned_size);
                 memcpy(buffer.data + pos, &handle, sizeof(GLuint64));
-                info[0] = pos + 1;
+                texture->setTextureName(pos + 1);
+                info[0] = pos / aligned_size;
             } else {
                 PixelBuffer& buffer = get_pixel_buffer();
+                size_t bbp = 4;
+                size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
+                size_t pos = buffer.allocate(num_bytes);
+                info[0] =  pos / 4;
+                texture->setTextureName(pos + 1);
 
-                if (info[1] == 0 && info[2] == 0) {
-                    info[1] = texture->getWidth();
-                    info[2] = texture->getHeight();
-                    size_t bbp = 4;
-                    size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
-                    size_t pos = buffer.allocate(num_bytes);
-                    info[0] =  pos / 4;
-                    texture->setTextureName(pos + 1);
+                memcpy(buffer.data + pos, texture->getImage(), num_bytes);
 
-                    memcpy(buffer.data + pos, texture->getImage(), num_bytes);
-
-                    //texture->getRepeatS();
-                    //texture->getRepeatT();
+                //texture->getRepeatS();
+                //texture->getRepeatT();
                 }
-            }
         }
     }
 }

@@ -75,7 +75,7 @@ vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
 {
     vec4 texel = texture(textures[o_w_h.x], tex_coord);
     if (o_w_h[1] == 0 || o_w_h[2] == 0) {
-        return vec4(0.0, 0.0, 0.0, 0.0);
+        return vec4(0.0, 0.0, 0.0, 1.0);
     } else {
         return texel;
     }
@@ -104,14 +104,14 @@ void main()
     vec4 specular_texel = get_texel(apperances[draw_id].texture.specular_offset_width_height, vertex_texcoord);
     //vec4 emissive_texel = get_texel(apperances[draw_id].texture.emissive_offset_width_height, vertex_texcoord);
 
-    float alpha = alpha_texel.r * diffuse_texel.a * material.diffuse_color.a;
+    float alpha = alpha_texel.a * diffuse_texel.a * material.diffuse_color.a;
     if (alpha == 0.0) {
         discard;
     }
 
     rt0 = vec4(vertex_position, 1.0);
     rt1 = vec4(normalize(vertex_normal), 1.0);
-    rt2 = vec4(diffuse_texel.bgr, alpha_texel.r * diffuse_texel.a * material.diffuse_color.a);
+    rt2 = vec4(diffuse_texel.rgb, alpha_texel.r * diffuse_texel.a * material.diffuse_color.a);
     rt3 = vec4(ambient_texel.rgb, material.emissive_ambient_intensity.a);
     rt4 = vec4(specular_texel.rgb + material.specular_shininess.rgb, material.specular_shininess.a);
     rt5 = vec4(material.emissive_ambient_intensity.rgb, 1.0);
