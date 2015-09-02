@@ -326,7 +326,11 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
 
     if (base_texture != nullptr && base_texture->isNode(IMAGETEXTURE_NODE)) {
         ImageTextureNode *texture = (ImageTextureNode*)base_texture;
-        if (texture->getTextureName() != 0 && texture->getWidth() > 0 && texture->getHeight() > 0) {
+        if (texture->getTextureName() != 0) {
+            info[0] = (texture->getTextureName() - 1) / 4;
+            info[1] = texture->getWidth();
+            info[2] = texture->getWidth();
+        } else if (texture->getWidth() > 0 && texture->getHeight() > 0) {
             // TODO make resident, add to ssbo
             // TODO allow setable texture node width/height
             PixelBuffer& buffer = get_pixel_buffer();
@@ -334,20 +338,14 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
             if (info[1] == 0 && info[2] == 0) {
                 info[1] = texture->getWidth();
                 info[2] = texture->getHeight();
-                info[0] = (buffer.offset + buffer.current_pos) / 4;
-
-                size_t bbp = texture->hasTransparencyColor() + 3;
+                size_t bbp = 4;
                 size_t num_bytes = texture->getWidth() * texture->getHeight() * bbp;
+                size_t pos = buffer.allocate(num_bytes);
+                info[0] =  pos / 4;
+                texture->setTextureName(pos + 1);
 
-                if (buffer.current_pos + num_bytes >= buffer.max_bytes) {
-                    throw;
-                }
+                memcpy(buffer.data + pos, texture->getImage(), num_bytes);
 
-                gl->glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer.buffer);
-                gl->glBindTexture(GL_TEXTURE_2D, texture->getTextureName());
-                gl->glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, (void*)buffer.offset + buffer.current_pos);
-
-                buffer.current_pos += num_bytes;
                 //texture->getRepeatS();
                 //texture->getRepeatT();
             }
