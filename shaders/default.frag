@@ -51,7 +51,7 @@ layout(std140, binding = 3) uniform ShaderParameters
 #ifdef GL_NV_bindless_texture
 layout(std140, binding = 4) uniform TextureParameters
 {
-    sampler2D textures[4000];
+    sampler2D textures[256];
 };
 #else
 layout(binding = 0) uniform samplerBuffer textures;
@@ -73,7 +73,7 @@ layout(location = 5) out vec4 rt5;
 #ifdef GL_NV_bindless_texture
 vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
 {
-    vec4 texel = texture(textures[o_w_h[0]], tex_coord);
+    vec4 texel = texture(textures[o_w_h.x], tex_coord);
     if (o_w_h[1] == 0 || o_w_h[2] == 0) {
         return vec4(0.0, 0.0, 0.0, 0.0);
     } else {
