@@ -29,6 +29,13 @@ QWindowOutput::QWindowOutput() : context(nullptr)
     this->stereo = false;
 
     this->installEventFilter(this);
+
+#if !USE_WAYLAND
+    update_scheduler.setSingleShot(false);
+    update_scheduler.setInterval(10);
+    connect(&update_scheduler,SIGNAL(timeout()),this,SLOT(update()));
+    update_scheduler.start();
+#endif
 }
 
 
@@ -200,4 +207,15 @@ bool QWindowOutput::eventFilter(QObject *obj, QEvent *event)
         break;
     }
     return false;
+}
+
+void QWindowOutput::update()
+{
+    if (this->listener == nullptr) {
+        return;
+    }
+
+    listener->update();
+    listener->render(this->size().width(), this->size().height());
+    this->swap_buffers();
 }

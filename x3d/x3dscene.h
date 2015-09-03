@@ -69,7 +69,7 @@ public:
     void add_texture(int texture_id, float real_width, float real_height,
                      size_t width, size_t height, void* data);
     void remove_texture(void* data);
-    void render(const QSize &viewportSize);
+    void render(size_t width, size_t height);
     void load(const QString& filename);
     void update();
 

@@ -408,13 +408,13 @@ void X3DScene::update()
     view->getMatrix(this->view);
 }
 
-void X3DScene::render(const QSize &viewport_size)
+void X3DScene::render(size_t width, size_t height)
 {
-    if (viewport_size.width() == 0 || viewport_size.height() == 0) {
+    if (width == 0 || height == 0) {
         return;
     }
 
-    Scalar aspect = (Scalar)viewport_size.width()/(Scalar)viewport_size.height();
+    Scalar aspect = (Scalar)width/(Scalar)height;
 
     ViewpointNode *view = m_root->getViewpointNode();
     if (view == nullptr) {

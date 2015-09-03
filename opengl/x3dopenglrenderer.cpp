@@ -319,7 +319,19 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, DrawInfo
     }
 }
 
-void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ivec4& info)
+static size_t clamp(size_t in, size_t max)
+{
+    return std::min(in, max);
+}
+
+static float lookup_pixel(RGBAColor32 *image, int in_x, int in_y, size_t width, size_t height)
+{
+    size_t x = clamp(in_x, width);
+    size_t y = clamp(in_y, height);
+    return image[(y * width) + x][3] / 255.0;
+}
+
+void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ivec4& info, size_t filter)
 {
     ScopedContext context(this->context_pool, 0);
     const auto gl = context.context.gl;
@@ -352,7 +364,35 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, texture->getImage());
+                RGBAColor32 *image = texture->getImage();
+                if (filter == 1) {
+                    const glm::ivec3 o(-1, 0, 1);
+                    for (size_t i = 0; i < info[1]; ++i) {
+                        for (size_t j = 0; j < info[2]; ++j) {
+                            float h_tl = lookup_pixel(image, i + o.x, j + o.x, info[1], info[2]);
+                            float h_t  = lookup_pixel(image, i + o.y, j + o.x, info[1], info[2]);
+                            float h_tr = lookup_pixel(image, i + o.z, j + o.x, info[1], info[2]);
+
+                            float h_l  = lookup_pixel(image, i + o.x, j + o.y, info[1], info[2]);
+                            float h_r  = lookup_pixel(image, i + o.z, j + o.y, info[1], info[2]);
+
+                            float h_bl = lookup_pixel(image, i + o.x, j + o.z, info[1], info[2]);
+                            float h_b  = lookup_pixel(image, i + o.y, j + o.z, info[1], info[2]);
+                            float h_br = lookup_pixel(image, i + o.z, j + o.z, info[1], info[2]);
+
+                            float d_x = h_tl - h_tr + (2.0 * h_l) - (2.0 * h_r) + h_bl - h_br;
+                            float d_y = h_tl + (2.0 * h_t) + h_tr - h_bl - (2.0 * h_b) - h_br;
+                            glm::vec3 normal(d_x, d_y, 1.0);
+                            glm::normalize(normal);
+                            normal += 1.0;
+                            normal /= 2.0;
+                            image[(i * info[1]) + j][0] = normal.x;
+                            image[(i * info[1]) + j][1] = normal.y;
+                            image[(i * info[1]) + j][2] = normal.z;
+                        }
+                    }
+                }
+                gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, image);
                 GLuint64 handle = context.context.bind_tex->glGetTextureHandleNV(tex);
                 texture->setValue((void*)handle);
 
@@ -417,7 +457,8 @@ void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawI
             process_texture_node((TextureNode*)shader->getSpecularTextureField()->getValue(), node.texture.specular_offset_width_height);
             //process_texture_node((TextureNode*)shader->getShininessTextureField()->getValue(), node.texture.);
             //process_texture_node((TextureNode*)shader->getTransmissionTextureField()->getValue(), node.texture.tr);
-            process_texture_node((TextureNode*)shader->getNormalTextureField()->getValue(), node.texture.normal_offset_width_height);
+            //if (shader->getNormalFormat()-> ) //TODO check here for bump map or normal map
+            process_texture_node((TextureNode*)shader->getNormalTextureField()->getValue(), node.texture.normal_offset_width_height, 1);
             //process_texture_node((TextureNode*)shader->getReflectionTextureField()->getValue());
             //process_texture_node((TextureNode*)shader->getEnvironmentTextureField()->getValue(), node.texture.);
         } else {

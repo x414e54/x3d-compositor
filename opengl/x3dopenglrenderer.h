@@ -32,7 +32,7 @@ public:
     void debug_render_increase();
     void debug_render_decrease();
 private:
-    void process_texture_node(CyberX3D::TextureNode *texture, glm::ivec4& info);
+    void process_texture_node(CyberX3D::TextureNode *texture, glm::ivec4& info, size_t filter = 0);
     void process_apperance_node(CyberX3D::AppearanceNode *apperance, DrawInfoBuffer::DrawInfo& info);
     void process_geometry_node(CyberX3D::Geometry3DNode *geometry, DrawInfoBuffer::DrawInfo& info);
     void process_background_node(CyberX3D::BackgroundNode *background);

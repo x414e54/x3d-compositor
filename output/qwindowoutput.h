@@ -5,6 +5,7 @@
 #include "input/inputlistener.h"
 
 #include <QWindow>
+#include <QTimer>
 
 class QOpenGLVertexArrayObject;
 
@@ -20,7 +21,10 @@ public:
     virtual void get_eye_matrix(glm::mat4x4 &left, glm::mat4x4 &right);
 protected:
     virtual void resizeEvent(QResizeEvent* event);
+private slots:
+    void update();
 private:
+    QTimer update_scheduler;
 
     bool eventFilter(QObject *obj, QEvent *event);
 

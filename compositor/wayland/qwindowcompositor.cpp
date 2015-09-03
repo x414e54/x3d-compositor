@@ -294,7 +294,7 @@ void QWindowCompositor::render()
         }
     }
 
-    m_scene->render(m_window->size());
+    m_scene->render(m_window->size()->width(), m_window->size()->height());
 
     sendFrameCallbacks(surfaces());
 
