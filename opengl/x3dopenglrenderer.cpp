@@ -362,8 +362,8 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                 gl->glBindTexture(GL_TEXTURE_2D, tex);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                 gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 RGBAColor32 *image = texture->getImage();
                 if (filter == 1) {
                     const glm::ivec3 o(-1, 0, 1);
