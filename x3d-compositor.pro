@@ -11,6 +11,7 @@ HEADERS += \
     compositor/wayland/qwindowcompositor.h \
     x3d/x3dscene.h \
     x3d/x3drenderer.h \
+    input/inputlistener.h \
     output/qwindowoutput.h \
     output/openvroutput.h
 

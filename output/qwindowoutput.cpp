@@ -27,6 +27,8 @@ QWindowOutput::QWindowOutput() : context(nullptr)
     this->output_width = this->width();
     this->output_height = this->height();
     this->stereo = false;
+
+    this->installEventFilter(this);
 }
 
 
@@ -139,4 +141,63 @@ void QWindowOutput::get_eye_matrix(glm::mat4x4 &left, glm::mat4x4 &right)
     const float fake_ipd = 60.0/1000.0;
     left = glm::translate(glm::mat4x4(), glm::vec3(-fake_ipd, 0.0, 0.0));
     right = glm::translate(glm::mat4x4(), glm::vec3(fake_ipd, 0.0, 0.0));
+}
+
+bool QWindowOutput::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj != this || this->listener == nullptr) {
+        return false;
+    }
+
+    switch (event->type()) {
+    case QEvent::MouseButtonPress: {
+        QMouseEvent *me = static_cast<QMouseEvent *>(event);
+        listener->send_pointerevent(me->button(), me->localPos().x() / this->width(),
+                                  me->localPos().y() / this->height(), Qt::TouchPointPressed);
+        return true;
+    }
+    case QEvent::MouseButtonRelease: {
+        QMouseEvent *me = static_cast<QMouseEvent *>(event);
+        listener->send_pointerevent(me->button(), me->localPos().x() / this->width(),
+                                  me->localPos().y() / this->height(), Qt::TouchPointReleased);
+        return true;
+    }
+    case QEvent::MouseMove: {
+        QMouseEvent *me = static_cast<QMouseEvent *>(event);
+        listener->send_pointerevent(0, me->localPos().x() / this->width(),
+                                  me->localPos().y() / this->height(), Qt::TouchPointMoved);
+        double x = double(me->localPos().x()/this->width() - 0.5f);
+        double y = double(me->localPos().y()/this->height() - 0.5f);
+        listener->send_axisevent(0, x);
+        listener->send_axisevent(1, y);
+        break;
+    }
+    case QEvent::KeyPress: {
+        QKeyEvent *ke = static_cast<QKeyEvent *>(event);
+        listener->send_keydown(ke->nativeScanCode());
+        break;
+    }
+    case QEvent::KeyRelease: {
+        QKeyEvent *ke = static_cast<QKeyEvent *>(event);
+        listener->send_keyup(ke->nativeScanCode());
+        break;
+    }
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+    case QEvent::TouchEnd:
+    {
+        QTouchEvent *te = static_cast<QTouchEvent *>(event);
+        QList<QTouchEvent::TouchPoint> points = te->touchPoints();
+        QPointF point = points.at(0).pos().toPoint();
+        if (!points.isEmpty()) {
+            listener->send_pointerevent(points.at(0).id(),
+                                     point.x() / this->width(),
+                                     point.y() / this->height(), Qt::TouchPointPressed);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+    return false;
 }

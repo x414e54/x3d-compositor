@@ -187,7 +187,7 @@ void X3DScene::remove_texture(void* data)
     }
 }
 
-void X3DScene::sendKeyDown(uint code)
+void X3DScene::send_keydown(uint code)
 {
     // TODO be more efficient here
     m_current_key_device = m_root->getSelectedKeyDeviceSensorNode();
@@ -222,7 +222,7 @@ void X3DScene::sendKeyDown(uint code)
     }
 }
 
-void X3DScene::sendKeyUp(uint code)
+void X3DScene::send_keyup(uint code)
 {
     if (m_current_key_device != nullptr) {
         m_current_key_device->setKeyRelease(code);
@@ -265,8 +265,9 @@ void X3DScene::installEventFilter(SceneEventFilter* filter)
     event_filter = filter;
 }
 
-void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState state)
+void X3DScene::send_pointerevent(int id, float x, float y, int state_int)
 {
+    Qt::TouchPointState state = (Qt::TouchPointState)state_int;
     Scalar from[3];
     Scalar to[3];
     if (m_current_touch == nullptr && id == 2 && state == Qt::TouchPointPressed) {
@@ -370,7 +371,7 @@ void X3DScene::sendPointerEvent(int id, float x, float y, Qt::TouchPointState st
     }
 }
 
-void X3DScene::sendAxisEvent(int id, const double& value)
+void X3DScene::send_axisevent(int id, const double& value)
 {
     if (id == 0 && fake_rotating) {
         fake_rotation = value;

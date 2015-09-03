@@ -4,6 +4,8 @@
 #include <QtGui/QMatrix4x4>
 #include <QElapsedTimer>
 
+#include "input/inputlistener.h"
+
 namespace CyberX3D
 {
     class SceneGraph;
@@ -50,7 +52,7 @@ public:
     }
 };
 
-class X3DScene
+class X3DScene : public InputListener
 {
 public:
     struct NodePhysicsGroup
@@ -71,11 +73,11 @@ public:
     void load(const QString& filename);
     void update();
 
-    void sendKeyDown(uint code);
-    void sendKeyUp(uint code);
+    void send_keydown(uint code);
+    void send_keyup(uint code);
 
-    void sendPointerEvent(int id, float x, float y, Qt::TouchPointState state);
-    void sendAxisEvent(int id, const double& value);
+    void send_pointerevent(int id, float x, float y, int state);
+    void send_axisevent(int id, const double& value);
 
 private:
     void addToPhysics(CyberX3D::Node* node);

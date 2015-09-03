@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     renderer.set_viewpoint_output(0, window);
     renderer.set_viewpoint_viewport(0, 1920, 1080);
     X3DScene scene(&renderer);
+    window.set_input_listener(&scene);
 
     if (argc > 1)
     {

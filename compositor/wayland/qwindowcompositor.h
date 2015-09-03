@@ -77,8 +77,6 @@ protected:
     virtual bool sceneEventFilter(void *, const float (&pos)[2], SceneEvent);
     virtual bool sceneKeyEventFilter(void *, int key, SceneEvent);
 
-    bool eventFilter(QObject *obj, QEvent *event);
-
     virtual bool openUrl(QWaylandClient *, const QUrl &) { return false;}
 private slots:
     void sendExpose();

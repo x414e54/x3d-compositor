@@ -145,7 +145,6 @@ QWindowCompositor::QWindowCompositor(QWindowOutput *window, X3DScene *scene)
     m_updateScheduler.setInterval(10);
     connect(&m_updateScheduler,SIGNAL(timeout()),this,SLOT(update()));
 
-    m_window->installEventFilter(this);
     m_scene->installEventFilter(this);
 
     setRetainedSelectionEnabled(true);
@@ -371,66 +370,5 @@ bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2], Scene
     return false;
 }
 
-bool QWindowCompositor::eventFilter(QObject *obj, QEvent *event)
-{
-    if (obj != m_window) {
-        return false;
-    }
-
-    switch (event->type()) {
-    case QEvent::Expose:
-        m_renderScheduler.start(0);
-        break;
-    case QEvent::MouseButtonPress: {
-        QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        m_scene->sendPointerEvent(me->button(), me->localPos().x() / m_window->width(),
-                                  me->localPos().y() / m_window->height(), Qt::TouchPointPressed);
-        return true;
-    }
-    case QEvent::MouseButtonRelease: {
-        QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        m_scene->sendPointerEvent(me->button(), me->localPos().x() / m_window->width(),
-                                  me->localPos().y() / m_window->height(), Qt::TouchPointReleased);
-        return true;
-    }
-    case QEvent::MouseMove: {
-        QMouseEvent *me = static_cast<QMouseEvent *>(event);
-        m_scene->sendPointerEvent(0, me->localPos().x() / m_window->width(),
-                                  me->localPos().y() / m_window->height(), Qt::TouchPointMoved);
-        double x = double(me->localPos().x()/m_window->width() - 0.5f);
-        double y = double(me->localPos().y()/m_window->height() - 0.5f);
-        m_scene->sendAxisEvent(0, x);
-        m_scene->sendAxisEvent(1, y);
-        break;
-    }
-    case QEvent::KeyPress: {
-        QKeyEvent *ke = static_cast<QKeyEvent *>(event);
-        m_scene->sendKeyDown(ke->nativeScanCode());
-        break;
-    }
-    case QEvent::KeyRelease: {
-        QKeyEvent *ke = static_cast<QKeyEvent *>(event);
-        m_scene->sendKeyUp(ke->nativeScanCode());
-        break;
-    }
-    case QEvent::TouchBegin:
-    case QEvent::TouchUpdate:
-    case QEvent::TouchEnd:
-    {
-        QTouchEvent *te = static_cast<QTouchEvent *>(event);
-        QList<QTouchEvent::TouchPoint> points = te->touchPoints();
-        QPointF point = points.at(0).pos().toPoint();
-        if (!points.isEmpty()) {
-            m_scene->sendPointerEvent(points.at(0).id(),
-                                      point.x() / m_window->width(),
-                                      point.y() / m_window->height(), Qt::TouchPointPressed);
-        }
-        break;
-    }
-    default:
-        break;
-    }
-    return false;
-}
 
 QT_END_NAMESPACE

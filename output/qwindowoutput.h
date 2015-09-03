@@ -2,11 +2,13 @@
 #define QWINDOWOUTPUT_H
 
 #include "opengl/opengloutput.h"
+#include "input/inputlistener.h"
+
 #include <QWindow>
 
 class QOpenGLVertexArrayObject;
 
-class QWindowOutput : public QWindow, public OpenGLOutput
+class QWindowOutput : public QWindow, public OpenGLOutput, public InputOutput
 {
 public:
     QWindowOutput();
@@ -19,6 +21,9 @@ public:
 protected:
     virtual void resizeEvent(QResizeEvent* event);
 private:
+
+    bool eventFilter(QObject *obj, QEvent *event);
+
     QOpenGLContext* context;
     QOpenGLVertexArrayObject* vao;
 };
