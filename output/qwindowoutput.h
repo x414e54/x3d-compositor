@@ -11,6 +11,7 @@ class QOpenGLVertexArrayObject;
 
 class QWindowOutput : public QWindow, public OpenGLOutput, public InputOutput
 {
+    Q_OBJECT
 public:
     QWindowOutput();
     virtual ~QWindowOutput();
@@ -24,12 +25,12 @@ protected:
 private slots:
     void update();
 private:
-    QTimer update_scheduler;
-
     bool eventFilter(QObject *obj, QEvent *event);
 
     QOpenGLContext* context;
     QOpenGLVertexArrayObject* vao;
+    QTimer update_scheduler;
+
 };
 
 #endif // QWINDOWOUTPUT_H

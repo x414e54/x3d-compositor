@@ -9,7 +9,7 @@
 #include <QtGui/QOpenGLVertexArrayObject>
 #include <QResizeEvent>
 
-QWindowOutput::QWindowOutput() : context(nullptr)
+QWindowOutput::QWindowOutput() : context(nullptr), update_scheduler(this)
 {
     QSurfaceFormat format;
     format.setMajorVersion(3);
