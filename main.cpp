@@ -1,6 +1,7 @@
 #include "output/qwindowoutput.h"
 #include "compositor/wayland/qwindowcompositor.h"
 #include "opengl/x3dopenglrenderer.h"
+#include "x3d/x3dscene.h"
 
 #include <QGuiApplication>
 #include <QFileInfo>
@@ -26,7 +27,9 @@ int main(int argc, char *argv[])
         scene.load(file);
     }
 
+#if USE_COMPOSITOR
     QWindowCompositor compositor(&window, &scene);
+#endif
 
     window.show();
 

@@ -298,8 +298,8 @@ public:
         return this->draw_info == b.draw_info;
     }
 //private:
-    bool updated;
     DrawInfoBuffer::DrawInfo draw_info;
+    bool updated;
 };
 
 class Draw
@@ -331,9 +331,9 @@ public:
     }
 
 //private
-    bool updated;
     size_t num_instances;
     size_t buffer_offset;
+    bool updated;
     std::list<DrawInstance> instances;
 };
 

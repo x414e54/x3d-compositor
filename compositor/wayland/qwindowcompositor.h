@@ -41,6 +41,8 @@
 #ifndef QWINDOWCOMPOSITOR_H
 #define QWINDOWCOMPOSITOR_H
 
+#if USE_COMPOSITOR
+
 #include "qwaylandcompositor.h"
 #include "qwaylandsurface.h"
 #include "x3d/x3dscene.h"
@@ -95,5 +97,7 @@ private:
 };
 
 QT_END_NAMESPACE
+
+#endif
 
 #endif // QWINDOWCOMPOSITOR_H

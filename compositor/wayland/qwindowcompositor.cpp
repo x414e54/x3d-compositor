@@ -39,6 +39,8 @@
 **
 ****************************************************************************/
 
+#if USE_COMPOSITOR
+
 #include "qwindowcompositor.h"
 
 #include <QMouseEvent>
@@ -372,3 +374,5 @@ bool QWindowCompositor::sceneEventFilter(void *obj, const float (&pos)[2], Scene
 
 
 QT_END_NAMESPACE
+
+#endif
