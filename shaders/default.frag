@@ -70,12 +70,39 @@ layout(location = 3) out vec4 rt3;
 layout(location = 4) out vec4 rt4;
 layout(location = 5) out vec4 rt5;
 
-#ifdef GL_NV_bindless_texture
-vec4 get_texel(ivec4 o_w_h, vec2 tex_coord)
+// http://www.thetenthplanet.de/archives/1180
+mat3 cotangent_frame(vec3 N, vec2 uv)
 {
+    vec3 p = normalize(vertex_position.xyz);
+
+    // get edge vectors of the pixel triangle
+    vec3 dp1 = dFdx(p);
+    vec3 dp2 = dFdy(p);
+    vec2 duv1 = dFdx(uv);
+    vec2 duv2 = dFdy(uv);
+ 
+    // solve the linear system
+    vec3 dp2perp = cross(dp2, N);
+    vec3 dp1perp = cross(N, dp1);
+    vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+ 
+    // construct a scale-invariant frame 
+    float invmax = inversesqrt(max(dot(T,T), dot(B,B)));
+    return mat3(T * invmax, B * invmax, N);
+}
+
+
+#ifdef GL_NV_bindless_texture
+vec4 get_texel(ivec4 o_w_h, vec2 tex_coord, vec4 none)
+{
+    if (o_w_h.w == 1.0) {
+        tex_coord.y = 1 - tex_coord.y;
+    }
+
     vec4 texel = texture(textures[o_w_h.x], tex_coord);
     if (o_w_h[1] == 0 || o_w_h[2] == 0) {
-        return vec4(0.0, 0.0, 0.0, 1.0);
+        return none;
     } else {
         return texel;
     }
@@ -97,11 +124,11 @@ void main()
 {
     // Be wasteful for now
     X3DMaterialNode material = apperances[draw_id].material;
-    vec4 ambient_texel = get_texel(apperances[draw_id].texture.ambient_offset_width_height, vertex_texcoord);
-    vec4 diffuse_texel = get_texel(apperances[draw_id].texture.diffuse_offset_width_height, vertex_texcoord);
-    vec4 alpha_texel = get_texel(apperances[draw_id].texture.alpha_offset_width_height, vertex_texcoord);
-    vec4 normal_texel = get_texel(apperances[draw_id].texture.normal_offset_width_height, vertex_texcoord);
-    vec4 specular_texel = get_texel(apperances[draw_id].texture.specular_offset_width_height, vertex_texcoord);
+    vec4 ambient_texel = get_texel(apperances[draw_id].texture.ambient_offset_width_height, vertex_texcoord, vec4(0.0, 0.0, 0.0, 1.0));
+    vec4 diffuse_texel = get_texel(apperances[draw_id].texture.diffuse_offset_width_height, vertex_texcoord, vec4(0.0, 0.0, 0.0, 1.0));
+    vec4 alpha_texel = get_texel(apperances[draw_id].texture.alpha_offset_width_height, vertex_texcoord, vec4(0.0, 0.0, 0.0, 1.0));
+    vec4 normal_texel = get_texel(apperances[draw_id].texture.normal_offset_width_height, vertex_texcoord, vec4(0.5, 0.5, 1.0, 1.0));
+    vec4 specular_texel = get_texel(apperances[draw_id].texture.specular_offset_width_height, vertex_texcoord, vec4(0.0, 0.0, 0.0, 1.0));
     //vec4 emissive_texel = get_texel(apperances[draw_id].texture.emissive_offset_width_height, vertex_texcoord);
 
     float alpha = alpha_texel.a * diffuse_texel.a * material.diffuse_color.a;
@@ -110,7 +137,7 @@ void main()
     }
 
     rt0 = vec4(vertex_position, 1.0);
-    rt1 = vec4(normalize(vertex_normal), 1.0);
+    rt1 = vec4(normalize(cotangent_frame(normalize(vertex_normal), vertex_texcoord) * ((normal_texel.rgb * 2.0) - 1.0)), 1.0);
     rt2 = vec4(diffuse_texel.rgb, alpha);
     rt3 = vec4(ambient_texel.rgb, material.emissive_ambient_intensity.a);
     rt4 = vec4(specular_texel.rgb + material.specular_shininess.rgb, material.specular_shininess.a);
