@@ -179,8 +179,17 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
 		return;
     }
 
+    Material& default_material = get_material("x3d-default-light");
+
+    size_t light_id = 0;
+
+    bool is_new = false;
     if (light_node->getValue() != nullptr) {
-        return;
+        light_id = (size_t)light_node->getValue() - 1;
+    } else {
+        is_new = true;
+        light_id = default_material.total_objects++;
+        light_node->setValue((void*)light_id + 1);
     }
 
     X3DLightNode node;
@@ -189,46 +198,45 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     node.color_intensity[3] = light_node->getIntensity();
     node.attenuation_ambient_intensity[3] = light_node->getAmbientIntensity();
 
-    Material& default_material = get_material("x3d-default-light");
     float location[3];
+
+    Geometry3DNode *light_geometry = nullptr;
 
     // TODO update light direction, etc.
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
         node.type = 0;
 
+        if (is_new) {
+            light_node->addChildNode(new SphereNode(), false);
+        }
+
         point_light->getAttenuation(node.attenuation_ambient_intensity);
-        SphereNode sphere;
-        sphere.setRadius(calc_light_radius(0, node.color_intensity[3],
+        /*sphere.setRadius(calc_light_radius(0, node.color_intensity[3],
                                            node.attenuation_ambient_intensity[0],
                                            node.attenuation_ambient_intensity[1],
-                                           node.attenuation_ambient_intensity[2]));
+                                           node.attenuation_ambient_intensity[2]));*/
         point_light->getLocation(location);
 
         node.position = glm::vec4(glm::make_vec3(&location[0]), 1.0);
         transform.transform = glm::translate(transform.transform, glm::vec3(node.position));
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, default_material.id, 0, node.type};
-        sphere.setValue(light_node->getValue());
-        process_geometry_node(&sphere, info);
-        light_node->setValue(sphere.getValue());
     } else if (light_node->isDirectionalLightNode()) {
         DirectionalLightNode *direction_light = (DirectionalLightNode *)light_node;
         node.type = 1;
 
-        BoxNode box;
+        if (is_new) {
+            light_node->addChildNode(new BoxNode(), false);
+        }
 
         direction_light->getDirection(location);
         node.direction = glm::vec4(glm::make_vec3(&location[0]), 1.0);
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, default_material.id, 0, node.type};
-        box.setValue(light_node->getValue());
-        process_geometry_node(&box, info);
-        light_node->setValue(box.getValue());
     } else if (light_node->isSpotLightNode()) {
         SpotLightNode *spot_light = (SpotLightNode *)light_node;
         node.type = 2;
 
-        ConeNode cone;
-        cone.setBottom(false);
+        if (is_new) {
+            light_node->addChildNode(new ConeNode(), false);
+        }
 
         spot_light->getLocation(location);
 
@@ -236,22 +244,20 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
         //spot_light->getDirection(direction);
         float attenuation[3];
         spot_light->getAttenuation(attenuation);
-        cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
-                                               attenuation[0], attenuation[1], attenuation[2]));
+        /*cone.setBottomRadius(calc_light_radius(spot_light->getCutOffAngle(), spot_light->getIntensity(),
+                                               attenuation[0], attenuation[1], attenuation[2]));*/
         transform.transform = glm::translate(transform.transform, glm::vec3(node.position));
-        DrawInfoBuffer::DrawInfo info = {default_material.total_objects, default_material.id, 0, node.type};
-        cone.setValue(light_node->getValue());
-        process_geometry_node(&cone, info);
-        light_node->setValue(cone.getValue());
     }
+
+    DrawInfoBuffer::DrawInfo info = {light_id, default_material.id, 0, node.type};
+    process_geometry_node(light_node->getGeometry3DNode(), info);
 
     // TODO update transform
     gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
-    void *data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (default_material.total_objects) * sizeof(X3DLightNode),
+    void *data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (light_id) * sizeof(X3DLightNode),
                                 sizeof(X3DLightNode), GL_MAP_WRITE_BIT);
     memcpy(data, &node, sizeof(X3DLightNode));
     gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
-    ++default_material.total_objects;
 
     if (light_node->getNodeListener() != nullptr) {
         light_node->setNodeListener(this->node_listener);
