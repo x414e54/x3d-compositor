@@ -369,7 +369,7 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                     const glm::ivec3 o(-1, 0, 1);
                     for (size_t i = 0; i < info[1]; ++i) {
                         for (size_t j = 0; j < info[2]; ++j) {
-                            image[(i * info[1]) + j][3] = image[(i * info[1]) + j][0];
+                            image[(j * info[1]) + i][3] = image[(j * info[1]) + i][0];
                         }
                     }
 
@@ -392,9 +392,9 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                             glm::normalize(normal);
                             normal += 1.0;
                             normal /= 2.0;
-                            image[(i * info[1]) + j][0] = normal.x * 255;
-                            image[(i * info[1]) + j][1] = normal.y * 255;
-                            image[(i * info[1]) + j][2] = normal.z * 255;
+                            image[(j * info[1]) + i][2] = normal.x * 255;
+                            image[(j * info[1]) + i][1] = normal.y * 255;
+                            image[(j * info[1]) + i][0] = normal.z * 255;
                         }
                     }
                 }
