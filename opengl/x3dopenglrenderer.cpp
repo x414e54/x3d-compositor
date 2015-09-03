@@ -319,9 +319,9 @@ void X3DOpenGLRenderer::process_geometry_node(Geometry3DNode *geometry, DrawInfo
     }
 }
 
-static size_t clamp(size_t in, size_t max)
+static size_t clamp(int in, int max)
 {
-    return std::min(in, max);
+    return std::max(0, std::min(in, max));
 }
 
 static float lookup_pixel(RGBAColor32 *image, int in_x, int in_y, size_t width, size_t height)
@@ -369,6 +369,12 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                     const glm::ivec3 o(-1, 0, 1);
                     for (size_t i = 0; i < info[1]; ++i) {
                         for (size_t j = 0; j < info[2]; ++j) {
+                            image[(i * info[1]) + j][3] = image[(i * info[1]) + j][0];
+                        }
+                    }
+
+                    for (size_t i = 0; i < info[1]; ++i) {
+                        for (size_t j = 0; j < info[2]; ++j) {
                             float h_tl = lookup_pixel(image, i + o.x, j + o.x, info[1], info[2]);
                             float h_t  = lookup_pixel(image, i + o.y, j + o.x, info[1], info[2]);
                             float h_tr = lookup_pixel(image, i + o.z, j + o.x, info[1], info[2]);
@@ -386,9 +392,9 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                             glm::normalize(normal);
                             normal += 1.0;
                             normal /= 2.0;
-                            image[(i * info[1]) + j][0] = normal.x;
-                            image[(i * info[1]) + j][1] = normal.y;
-                            image[(i * info[1]) + j][2] = normal.z;
+                            image[(i * info[1]) + j][0] = normal.x * 255;
+                            image[(i * info[1]) + j][1] = normal.y * 255;
+                            image[(i * info[1]) + j][2] = normal.z * 255;
                         }
                     }
                 }
