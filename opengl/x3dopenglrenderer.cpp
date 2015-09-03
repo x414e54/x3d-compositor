@@ -388,7 +388,7 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
 
                             float d_x = h_tl - h_tr + (2.0 * h_l) - (2.0 * h_r) + h_bl - h_br;
                             float d_y = h_tl + (2.0 * h_t) + h_tr - h_bl - (2.0 * h_b) - h_br;
-                            glm::vec3 normal(d_x, d_y, 0.3 * sqrt(1.0 - (d_x * d_x) - (d_y * d_y)));
+                            glm::vec3 normal(d_x, -d_y, 0.3 * sqrt(1.0 - (d_x * d_x) - (d_y * d_y)));
                             glm::normalize(normal);
                             normal += 1.0;
                             normal /= 2.0;
