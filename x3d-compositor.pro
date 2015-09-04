@@ -2,7 +2,7 @@ QT += gui gui-private core-private compositor openglextensions
 CONFIG += c++11
 
 LIBS += -L ../openvr/lib/linux64
-QMAKE_RPATHDIR += $ORIGIN/lib
+QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN/lib\''
 
 HEADERS += \
     opengl/opengloutput.h \
