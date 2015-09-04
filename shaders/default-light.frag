@@ -76,6 +76,11 @@ vec4 x3d_light(vec3 mat_emissive, float attenuation, float spoti,
                              * (ambient + diffuse + specular)), 1.0);
 }
 
+float luminance(vec3 color)
+{
+    return max(dot(color, vec3(0.299, 0.587, 0.114)), 0.00001);
+}
+
 void main()
 {
     X3DLightNode light = lights[draw_id];
@@ -112,6 +117,7 @@ void main()
     }
 
     rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient_color, diffuse_color, specular_color);
+    rt0.a = log(luminance(rt0.rgb));
 
     if (render_type == 0) {    
     } else if (render_type == 1) {

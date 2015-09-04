@@ -37,7 +37,7 @@ private:
     void process_geometry_node(CyberX3D::Geometry3DNode *geometry, DrawInfoBuffer::DrawInfo& info);
     void process_background_node(CyberX3D::BackgroundNode *background);
     void process_light_node(CyberX3D::LightNode *light);
-    void process_effect_node(CyberX3D::LightNode *effect);
+    void process_effect_node(CyberX3D::DirectionalLightNode *effect);
     void process_shape_node(CyberX3D::ShapeNode *shape, bool selected);
     void process_node(CyberX3D::SceneGraph *sg, CyberX3D::Node *root);
     friend class RenderingNodeListener;
