@@ -209,8 +209,13 @@ void ContextPoolContext::setup_for_pass(const ShaderPass &pass, const RenderOupu
     if (pass.in >= 0) {
         const RenderTarget& in_target = output.get_render_target(pass.in);
         for (size_t i = 1; i <= in_target.num_attachments; ++i) {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, in_target.attachments[i - 1]);
+            gl->glActiveTexture(GL_TEXTURE0 + i);
+            gl->glBindTexture(GL_TEXTURE_2D, in_target.attachments[i - 1]);
+            // TODO make a list
+            if (pass.mip_texture == i) {
+                gl->glGenerateMipmap(GL_TEXTURE_2D);
+                gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+            }
         }
     }
 

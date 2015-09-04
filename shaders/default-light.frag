@@ -86,7 +86,7 @@ void main()
     vec4 color = texture(in_rt2, texcoord);
     vec4 ambient = texture(in_rt3, texcoord);
     vec4 specular = texture(in_rt4, texcoord);
-    vec4 emissive = texture(in_rt5, texcoord);
+    vec4 emissive = textureLod(in_rt5, texcoord, 0);
 
     float ambient_intensity = ambient.a;
     float shininess = specular.a;
@@ -115,17 +115,17 @@ void main()
 
     if (render_type == 0) {    
     } else if (render_type == 1) {
-        rt0 = vec4(pos.xyz, 1.0);
+        rt0.rgb = pos.xyz;
     } else if (render_type == 2) {
-        rt0 = vec4(norm.xyz, 1.0);
+        rt0.rgb = norm.xyz;
     } else if (render_type == 3) {
-        rt0 = vec4(color.rgb, 1.0);
+        rt0.rgb = color.rgb;
     } else if (render_type == 4) {
-        rt0 = vec4(ambient.rgb, 1.0);
+        rt0.rgb = ambient.rgb;
     } else if (render_type == 5) {
-        rt0 = vec4(specular.rgb, 1.0);
+        rt0.rgb = specular.rgb;
     } else if (render_type == 6) {
-        rt0 = vec4(emissive.rgb, 1.0);
+        rt0.rgb = emissive.rgb;
     }
 
 }

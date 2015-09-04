@@ -394,10 +394,10 @@ public:
 
     ShaderPass(const char* name, size_t pass_id, ssize_t in, ssize_t out, bool color_mask, bool depth_mask,
                bool stencil_mask, int clear, int depth_func, int blend_equation,
-               int blend_dst, int blend_src, int cull_face, int stencil_func)
+               int blend_dst, int blend_src, int cull_face, int stencil_func, int mip_texture = -1)
         : name(name), pass_id(pass_id), in(in), out(out), color_mask(color_mask), depth_mask(depth_mask),
           stencil_mask(stencil_mask), clear(clear), depth_func(depth_func), blend_equation(blend_equation),
-          blend_dst(blend_dst), blend_src(blend_src), cull_face(cull_face), stencil_func(stencil_func) {}
+          blend_dst(blend_dst), blend_src(blend_src), cull_face(cull_face), stencil_func(stencil_func), mip_texture(mip_texture) {}
 
     const char* name;
 
@@ -416,6 +416,7 @@ public:
     int blend_src;
     int cull_face;
     int stencil_func;
+    int mip_texture;
 };
 
 struct GlobalParameters
