@@ -100,6 +100,11 @@ struct X3DAppearanceNode
     X3DTextureNode texture;
 };
 
+struct X3DToneMapNode
+{
+    int type;
+};
+
 static VertexFormat convert_to_internal(const GeometryRenderInfo::VertexFormat& format)
 {
     VertexFormat new_format;
@@ -129,18 +134,26 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
                                 GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_LESS, ShaderPass::DISABLED,
                                 GL_ZERO, GL_ZERO, GL_BACK, ShaderPass::DISABLED));
 
-    passes.push_back(ShaderPass("Lighting", 1, 1, 0, true, false, false,
-                                GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, ShaderPass::DISABLED, GL_FUNC_ADD,
+    passes.push_back(ShaderPass("Lighting", 1, 1, 1, true, false, false,
+                                GL_DEPTH_BUFFER_BIT, ShaderPass::DISABLED, GL_FUNC_ADD,
+                                GL_ONE, GL_ONE, GL_FRONT, ShaderPass::DISABLED));
+
+    passes.push_back(ShaderPass("Post", 2, 1, 0, true, false, false,
+                                GL_DEPTH_BUFFER_BIT, ShaderPass::DISABLED, GL_FUNC_ADD,
                                 GL_ONE, GL_ONE, GL_FRONT, ShaderPass::DISABLED));
 
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
+    create_material("x3d-default-post", ":/shaders/default-light.vert", ":/shaders/default-post.frag", 2);
 
     this->node_listener = new RenderingNodeListener(this);
 
     this->headlight = new DirectionalLightNode();
     headlight->setAmbientIntensity(0.0);
     headlight->setIntensity(1.0);
+
+    // TODO stop this being a light node
+    this->post_process.push_back(new DirectionalLightNode());
 }
 
 X3DOpenGLRenderer::~X3DOpenGLRenderer()
@@ -168,6 +181,44 @@ void X3DOpenGLRenderer::debug_render_decrease()
 void X3DOpenGLRenderer::process_background_node(BackgroundNode *background)
 {
 
+}
+
+void X3DOpenGLRenderer::process_effect_node(LightNode *effect_node)
+{
+    ScopedContext context(this->context_pool, 0);
+    const auto gl = context.context.gl;
+
+    Material& default_material = get_material("x3d-default-post");
+
+    size_t effect_id = 0;
+
+    bool is_new = false;
+    if (effect_node->getValue() != nullptr) {
+        effect_id = (size_t)effect_node->getValue() - 1;
+    } else {
+        is_new = true;
+        effect_id = default_material.total_objects++;
+        effect_node->setValue((void*)effect_id + 1);
+    }
+
+    X3DToneMapNode node;
+
+    if (is_new) {
+        effect_node->addChildNode(new BoxNode(), false);
+    }
+
+    DrawInfoBuffer::DrawInfo info = {effect_id, default_material.id, 0, 1};
+    process_geometry_node(effect_node->getGeometry3DNode(), info);
+
+    gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
+    void *data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, (effect_id) * sizeof(X3DToneMapNode),
+                                sizeof(X3DToneMapNode), GL_MAP_WRITE_BIT);
+    memcpy(data, &node, sizeof(X3DToneMapNode));
+    gl->glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+    if (effect_node->getNodeListener() != nullptr) {
+        effect_node->setNodeListener(this->node_listener);
+    }
 }
 
 void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
@@ -199,9 +250,6 @@ void X3DOpenGLRenderer::process_light_node(LightNode *light_node)
     node.attenuation_ambient_intensity[3] = light_node->getAmbientIntensity();
 
     float location[3];
-
-    Geometry3DNode *light_geometry = nullptr;
-
     // TODO update light direction, etc.
     if (light_node->isPointLightNode()) {
         PointLightNode *point_light = (PointLightNode *)light_node;
@@ -567,8 +615,6 @@ void X3DOpenGLRenderer::process_node(SceneGraph *sg, Node *root)
 
 void X3DOpenGLRenderer::render(SceneGraph *sg)
 {
-    ScopedContext context(context_pool, 0);
-
     ViewpointNode *view = sg->getViewpointNode();
     if (view == nullptr) {
         if ((view = sg->getDefaultViewpointNode()) == nullptr) {
@@ -593,7 +639,11 @@ void X3DOpenGLRenderer::render(SceneGraph *sg)
         glm::vec4 direction = -glm::inverse(view_mat)[2];
         headlight->setDirection(direction.x, direction.y, direction.z);
         process_light_node(headlight);
-	}
+    }
+
+    for (auto effect = this->post_process.begin(); effect != this->post_process.end(); ++effect) {
+        process_effect_node(*effect);
+    }
 
     process_node(sg, sg->getNodes());
 

@@ -39,6 +39,11 @@ layout(binding = 6) uniform sampler2D in_rt5;
 layout(location = 1) flat in int draw_id;
 
 layout(location = 0) out vec4 rt0;
+layout(location = 1) out vec4 rt1;
+layout(location = 2) out vec4 rt2;
+layout(location = 3) out vec4 rt3;
+layout(location = 4) out vec4 rt4;
+layout(location = 5) out vec4 rt5;
 
 // Calculations from X3D spec at 
 // http://www.web3d.org/documents/specifications/19775-2/V3.0/Part01/components/lighting.html
@@ -111,21 +116,21 @@ void main()
         // TODO calculate spoti;
     }
 
-    rt0 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient_color, diffuse_color, specular_color);
+    rt5 = x3d_light(emissive.rgb, attenuation, spoti, light.color_intensity.rgb, ambient_color, diffuse_color, specular_color);
 
     if (render_type == 0) {    
     } else if (render_type == 1) {
-        rt0 = vec4(pos.xyz, 1.0);
+        rt5 = vec4(pos.xyz, 1.0);
     } else if (render_type == 2) {
-        rt0 = vec4(norm.xyz, 1.0);
+        rt5 = vec4(norm.xyz, 1.0);
     } else if (render_type == 3) {
-        rt0 = vec4(color.rgb, 1.0);
+        rt5 = vec4(color.rgb, 1.0);
     } else if (render_type == 4) {
-        rt0 = vec4(ambient.rgb, 1.0);
+        rt5 = vec4(ambient.rgb, 1.0);
     } else if (render_type == 5) {
-        rt0 = vec4(specular.rgb, 1.0);
+        rt5 = vec4(specular.rgb, 1.0);
     } else if (render_type == 6) {
-        rt0 = vec4(emissive.rgb, 1.0);
+        rt5 = vec4(emissive.rgb, 1.0);
     }
 
 }
