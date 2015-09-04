@@ -139,8 +139,8 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
                                 GL_ONE, GL_ONE, GL_FRONT, ShaderPass::DISABLED));
 
     passes.push_back(ShaderPass("Post", 2, 1, 0, true, false, false,
-                                GL_DEPTH_BUFFER_BIT, ShaderPass::DISABLED, GL_FUNC_ADD,
-                                GL_ONE, GL_ONE, GL_FRONT, ShaderPass::DISABLED));
+                                GL_DEPTH_BUFFER_BIT, ShaderPass::DISABLED, ShaderPass::DISABLED,
+                                GL_ZERO, GL_ZERO, GL_FRONT, ShaderPass::DISABLED));
 
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
