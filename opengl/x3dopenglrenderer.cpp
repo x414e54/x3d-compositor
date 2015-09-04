@@ -387,9 +387,6 @@ static float lookup_pixel(RGBAColor32 *image, int in_x, int in_y, size_t width, 
 
 void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ivec4& info, size_t filter)
 {
-    ScopedContext context(this->context_pool, 0);
-    const auto gl = context.context.gl;
-
     if (base_texture != nullptr && base_texture->isNode(IMAGETEXTURE_NODE)) {
         ImageTextureNode *texture = (ImageTextureNode*)base_texture;
         if (texture->isInstanceNode()) {
@@ -397,7 +394,8 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
         }
 
         if (texture->getTextureName() != 0) {
-            if (context.context.bind_tex != nullptr) {
+            // TODO check capabilities here
+            if (true) {
                 size_t aligned_size = align(sizeof(GLuint64), 16);
                 info[0] = (texture->getTextureName() - 1) / aligned_size;
             } else {
@@ -406,6 +404,8 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
             info[1] = texture->getWidth();
             info[2] = texture->getWidth();
         } else if (texture->getWidth() > 0 && texture->getHeight() > 0) {
+            ScopedContext context(this->context_pool, 0);
+            const auto gl = context.context.gl;
             // TODO allow setable texture node width/height
             // TODO convert to ARB from NV spec (qt does not have ARB)
             info[1] = texture->getWidth();
@@ -484,9 +484,6 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
 
 void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawInfoBuffer::DrawInfo& info)
 {
-    ScopedContext context(this->context_pool, 0);
-    const auto gl = context.context.gl;
-
     Material& default_material = get_material("x3d-default");
 
     info[1] = default_material.id;
@@ -559,6 +556,9 @@ void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawI
             // TODO too many objects, convert to SSBO and instance any nodes
             throw;
         }
+
+        ScopedContext context(this->context_pool, 0);
+        const auto gl = context.context.gl;
 
         gl->glBindBuffer(GL_UNIFORM_BUFFER, default_material.frag_params);
         void *data = gl->glMapBufferRange(GL_UNIFORM_BUFFER, default_material.total_objects * sizeof(node),
