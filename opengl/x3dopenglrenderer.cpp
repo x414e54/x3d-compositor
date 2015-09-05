@@ -103,7 +103,7 @@ struct X3DAppearanceNode
 struct X3DToneMapNode
 {
     int type;
-    int direction;
+    glm::vec4 direction;
     float bloom_saturation;
     float bloom_exponent;
     float bloom_scale;
@@ -154,8 +154,8 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
 
     create_material("x3d-default", ":/shaders/default.vert", ":/shaders/default.frag", 0);
     create_material("x3d-default-light", ":/shaders/default-light.vert", ":/shaders/default-light.frag", 1);
-    create_material("x3d-default-exposure", ":/shaders/default-light.vert", ":/shaders/default-exposure.frag", 2);
-    create_material("x3d-default-blur", ":/shaders/default-light.vert", ":/shaders/default-blur.frag", 2);
+    create_material("x3d-default-1-exposure", ":/shaders/default-light.vert", ":/shaders/default-exposure.frag", 2);
+    create_material("x3d-default-2-blur", ":/shaders/default-light.vert", ":/shaders/default-blur.frag", 2);
     create_material("x3d-default-tonemap", ":/shaders/default-light.vert", ":/shaders/default-tonemap.frag", 3);
 
     this->node_listener = new RenderingNodeListener(this);
@@ -167,7 +167,7 @@ X3DOpenGLRenderer::X3DOpenGLRenderer()
     // TODO stop this being a light node
     this->post_process.push_back(new DirectionalLightNode());
     DirectionalLightNode *blur_h = new DirectionalLightNode();
-    blur_h->setDirection(0, 0, 1);
+    blur_h->setDirection(1, 0, 1);
     this->post_process.push_back(blur_h);
     DirectionalLightNode *blur_v = new DirectionalLightNode();
     blur_v->setDirection(0, 1, 1);
@@ -215,11 +215,11 @@ void X3DOpenGLRenderer::process_effect_node(DirectionalLightNode *effect_node)
     effect_node->getDirection(params);
 
     if (params[2] == 1) {
-        default_material = &get_material("x3d-default-blur");
+        default_material = &get_material("x3d-default-2-blur");
     } else if (params[2] == 2) {
         default_material = &get_material("x3d-default-tonemap");
     } else {
-        default_material = &get_material("x3d-default-exposure");
+        default_material = &get_material("x3d-default-1-exposure");
     }
 
     size_t effect_id = 0;
@@ -238,7 +238,7 @@ void X3DOpenGLRenderer::process_effect_node(DirectionalLightNode *effect_node)
     node.bloom_saturation = 3.0;
     node.bloom_exponent = 0.8;
     node.bloom_scale = 1.0;
-    node.direction = params[1];
+    node.direction = glm::vec4(params[0], params[1], 0.0, 0.0);
     // TODO make time delta global
     node.time_delta = 0.1;
 

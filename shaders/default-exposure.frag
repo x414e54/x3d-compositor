@@ -7,7 +7,7 @@
 struct X3DEffect
 {
     int type;
-    int direction;
+    vec4 direction;
     float bloom_saturation;
     float bloom_exponent;
     float bloom_scale;
