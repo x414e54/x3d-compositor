@@ -424,7 +424,7 @@ static float lookup_pixel(RGBAColor32 *image, int in_x, int in_y, size_t width, 
     return image[(y * width) + x][3] / 255.0;
 }
 
-void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ivec4& info, size_t filter)
+void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ivec4& info, size_t filter, bool srgb)
 {
     if (base_texture != nullptr && base_texture->isNode(IMAGETEXTURE_NODE)) {
         ImageTextureNode *texture = (ImageTextureNode*)base_texture;
@@ -491,7 +491,7 @@ void X3DOpenGLRenderer::process_texture_node(TextureNode *base_texture, glm::ive
                         }
                     }
                 }
-                gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, image);
+                gl->glTexImage2D(GL_TEXTURE_2D, 0, (srgb) ? GL_SRGB8_ALPHA8 : GL_RGBA8,  texture->getWidth(), texture->getHeight(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, image);
                 gl->glGenerateMipmap(GL_TEXTURE_2D);
                 GLuint64 handle = context.context.bind_tex->glGetTextureHandleNV(tex);
                 texture->setValue((void*)handle);
@@ -547,17 +547,17 @@ void X3DOpenGLRenderer::process_apperance_node(AppearanceNode *appearance, DrawI
         CommonSurfaceShaderNode *shader = appearance->getCommonSurfaceShaderNodes();
         if (shader != nullptr) {
             process_texture_node((TextureNode*)shader->getAlphaTextureField()->getValue(), node.texture.alpha_offset_width_height);
-            process_texture_node((TextureNode*)shader->getAmbientTextureField()->getValue(), node.texture.ambient_offset_width_height);
-            process_texture_node((TextureNode*)shader->getDiffuseTextureField()->getValue(), node.texture.diffuse_offset_width_height);
+            process_texture_node((TextureNode*)shader->getAmbientTextureField()->getValue(), node.texture.ambient_offset_width_height, 0, true);
+            process_texture_node((TextureNode*)shader->getDiffuseTextureField()->getValue(), node.texture.diffuse_offset_width_height, 0, true);
             process_texture_node((TextureNode*)shader->getDisplacementTextureField()->getValue(), node.texture.displacement_offset_width_height);
-            //process_texture_node((TextureNode*)shader->getEmissiveTextureField()->getValue(), node.texture.);
+            //process_texture_node((TextureNode*)shader->getEmissiveTextureField()->getValue(), node.texture., true);
             process_texture_node((TextureNode*)shader->getSpecularTextureField()->getValue(), node.texture.specular_offset_width_height);
             //process_texture_node((TextureNode*)shader->getShininessTextureField()->getValue(), node.texture.);
             //process_texture_node((TextureNode*)shader->getTransmissionTextureField()->getValue(), node.texture.tr);
             //if (shader->getNormalFormat()-> ) //TODO check here for bump map or normal map
             // TODO remove hard coded flip
             node.texture.normal_offset_width_height[3] = 1.0;
-            process_texture_node((TextureNode*)shader->getNormalTextureField()->getValue(), node.texture.normal_offset_width_height, 1);
+            process_texture_node((TextureNode*)shader->getNormalTextureField()->getValue(), node.texture.normal_offset_width_height, 1, false);
             //process_texture_node((TextureNode*)shader->getReflectionTextureField()->getValue());
             //process_texture_node((TextureNode*)shader->getEnvironmentTextureField()->getValue(), node.texture.);
         } else {

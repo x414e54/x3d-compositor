@@ -45,7 +45,7 @@ vec3 tonemap_filmic(vec3 color)
 {
     color = max(vec3(color - 0.004), 0.0);
     color = (color * (6.2 * color + 0.5)) / (color * (6.2 * color + 1.7)+ 0.06);
-    return color;
+    return pow(color, vec3(2.2));
 }
 
 void main()
