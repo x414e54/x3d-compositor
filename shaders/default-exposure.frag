@@ -57,7 +57,8 @@ vec3 expose(vec3 color, float threshold)
     average_luminance = max(average_luminance, 0.00001);
 	float key_value = 1.03 - (2.0 / (2.0 + log(average_luminance + 1.0)));
 	float linear_exposure = (key_value / average_luminance);
-	exposure = clamp(log2(max(linear_exposure, 0.00001)), min_exposure, max_exposure);
+//	exposure = clamp(log2(max(linear_exposure, 0.00001)), min_exposure, max_exposure);
+	exposure = log2(max(linear_exposure, 0.00001));
     exposure -= threshold;
     return exp2(exposure) * color;
 }
@@ -76,8 +77,8 @@ void main()
     vec4 color = texture(in_rt5, texcoord);
 
     rt0 = vec4(expose(color.rgb, 0.0), 1.0);
-    vec3 brightpass = expose(color.rgb, 0.0);
-    if (length(brightpass) > 1.0) {
+    vec3 brightpass = expose(color.rgb, 3.0);
+    if (luminance(color.rgb) > 0.001) {
         rt1 = vec4(brightpass, 1.0);
     } else {
         rt1 = vec4(0.0, 0.0, 0.0, 1.0);
