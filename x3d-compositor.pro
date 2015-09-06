@@ -1,5 +1,11 @@
-QT += gui gui-private core-private compositor openglextensions
+QT += gui gui-private core-private openglextensions
+
 CONFIG += c++11
+
+CONFIG(compositor) {
+    QT += compositor
+    DEFINES +=USE_COMPOSITOR=1
+}
 
 LIBS += -L ../openvr/lib/linux64
 QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN/lib\''
