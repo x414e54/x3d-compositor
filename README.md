@@ -5,3 +5,5 @@ https://github.com/x414e54/CyberX3D4CC
 https://github.com/x414e54/tinyobjloader
 
 Also you will need openvr and bullet physics installed.
+
+Please use the "bindless" branch for tonemapping, HDR and progressing to bindless textures.
